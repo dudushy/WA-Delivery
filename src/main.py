@@ -1,16 +1,45 @@
 # pip freeze > requirements.txt
-#* -- Imports
+# * -- Imports
 import os
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+# import time
 
-#* -- Variables
-path = os.path.dirname(__file__) #? Directory path
+# * -- Variables
+PATH = os.path.dirname(__file__).replace(
+    os.path.dirname(__file__)[0],
+    os.path.dirname(__file__)[0].upper(),
+    1
+    ).replace('\\src', '', 1) # ? Directory path
+DRIVE_PATH = f'{PATH}\\drivers\\chromedriver.exe'
 
-#* -- Functions
-def clearConsole() -> None: #? Clear console
+chrome_options = Options()
+# chrome_options.add_argument('--incognito')
+# chrome_options.add_argument('--databaseEnabled')
+# chrome_options.add_argument('--applicationCacheEnabled')
+# chrome_options.add_argument('--webStorageEnabled')
+chrome_options.add_argument(f'--user-data-dir={PATH}\\data')
+# chrome_options.add_argument(f'{PATH}--user-data-dir=\\..\\data')
+# chrome_options.add_argument('--user-data-dir=C:\\Users\\User\\Documents\\0PCSync\\0CODE\\GitHub\\WA-Delivery\\data')
+chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+
+driver = webdriver.Chrome(executable_path=DRIVE_PATH, options=chrome_options)
+
+# * -- Functions
+def clearConsole() -> None:  # ? Clear console
     os.system("cls" if os.name == "nt" else "clear")
 
+
 def main() -> None:
-    pass
+    driver.get("https://web.whatsapp.com/")
+    # elem = driver.find_element(By.NAME, "q")
+    # elem.clear()
+    # elem.send_keys("pycon")
+    # elem.send_keys(Keys.RETURN)
+    input("DO NOT CLOSE THE TAB!!!\nPress Enter to close...")
+    driver.close()
 
 #! Main
 if __name__ == "__main__":
