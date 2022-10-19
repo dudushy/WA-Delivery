@@ -33,11 +33,16 @@ def clearConsole() -> None:  # ? Clear console
 
 
 def main() -> None:
-    driver.get("https://web.whatsapp.com/")
+    # driver.get("https://web.whatsapp.com/")
+    phone = '' #TODO Phone number
+    text = 'testWA-Delivery'
+    # driver.get("https://wa.me/5516982249783?text=testWA-Delivery")
+    driver.get(f"https://web.whatsapp.com/send/?phone={phone}&text={text}&type=phone_number&app_absent=0")
     # elem = driver.find_element(By.NAME, "q")
     # elem.clear()
     # elem.send_keys("pycon")
     # elem.send_keys(Keys.RETURN)
+    # driver.send_keys(Keys.RETURN)
     input("DO NOT CLOSE THE TAB!!!\nPress Enter to close...")
     driver.close()
 
