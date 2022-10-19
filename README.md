@@ -1,2 +1,2 @@
-# [template-python](https://github.com/dudushy/template-python/)
-Template for Python projects.
+# [WA-Delivery](https://github.com/dudushy/WA-Delivery/)
+TODO
