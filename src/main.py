@@ -36,7 +36,7 @@ def main() -> None:
     # driver.get("https://web.whatsapp.com/")
     phone = '' #TODO Phone number
     text = 'testWA-Delivery'
-    # driver.get("https://wa.me/5516982249783?text=testWA-Delivery")
+    # driver.get("https://wa.me/5511964257899?text=testWA-Delivery")
     driver.get(f"https://web.whatsapp.com/send/?phone={phone}&text={text}&type=phone_number&app_absent=0")
     # elem = driver.find_element(By.NAME, "q")
     # elem.clear()
