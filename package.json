@@ -1,0 +1,25 @@
+{
+  "name": "wa-delivery",
+  "version": "1.0.0",
+  "description": "TODO",
+  "main": "bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dudushy/WA-Delivery.git"
+  },
+  "keywords": [
+    "bot"
+  ],
+  "author": "dudushy",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dudushy/WA-Delivery/issues"
+  },
+  "homepage": "https://github.com/dudushy/WA-Delivery#readme",
+  "devDependencies": {
+    "eslint": "^8.29.0"
+  }
+}
