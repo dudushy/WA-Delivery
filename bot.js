@@ -35,30 +35,38 @@ const exit = () => {
 };
 
 client.on('qr', qr => {
-  console.log('[qr] generating...');
+  console.log('[bot#qr] generating...');
   qrcode.generate(qr, { small: true });
 
   updateData([]);
 });
 
 client.on('loading_screen', (percent, message) => {
-  console.log(`[loading_screen] ${percent}%`, message);
+  console.log(`[bot#loading_screen] ${percent}%`, message);
 });
 
 client.on('authenticated', (session) => {
-  console.log('[authenticated] client is authenticated!', session);
+  console.log('[bot#authenticated] client is authenticated!', session);
 });
 
 client.on('auth_failure', error => {
-  console.error('[auth_failure] ERROR', error);
+  console.error('[bot#auth_failure] ERROR', error);
 });
 
 client.on('ready', () => {
-  console.log('[ready] client is ready!');
+  console.log('[bot#ready] client is ready!');
 });
 
 client.on('disconnected', (reason) => {
-  console.log('[disconnected] client disconnected', reason);
+  console.log('[bot#disconnected] client disconnected', reason);
+});
+
+client.on('message', msg => {
+  console.log('[bot#message] received', msg);
+
+  if (msg.body == '!ping') {
+    msg.reply('pong');
+  }
 });
 
 //? Main
