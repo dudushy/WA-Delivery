@@ -4,8 +4,8 @@
   "description": "TODO",
   "main": "bot.js",
   "scripts": {
-    "test": "node temp",
-    "start": "node bot"
+    "test": "node temp.js",
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
