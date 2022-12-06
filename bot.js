@@ -29,10 +29,10 @@ function updateData(newData) {
   });
 }
 
-function exit() {
+const exit = () => {
   client.destroy();
   console.log('[bot] finished.');
-}
+};
 
 client.on('qr', qr => {
   console.log('[qr] generating...');
@@ -71,16 +71,18 @@ fs.readFile('./data.json', 'utf8', (err, jsonString) => {
 
     return;
   }
+
   try {
     data = JSON.parse(jsonString);
     console.log('[data] data loaded from disk:', data);
   } catch (err) {
     console.log('[data] error parsing JSON string:', err);
+    updateData(data);
   }
 });
 
 client.initialize();
 
-process.on('SIGINT', () => { exit(); });  // CTRL+C
-process.on('SIGQUIT', () => { exit(); }); // Keyboard quit
-process.on('SIGTERM', () => { exit(); }); // `kill` command
+process.on('SIGINT', exit);  // CTRL+C
+process.on('SIGQUIT', exit); // Keyboard quit
+process.on('SIGTERM', exit); // `kill` command
