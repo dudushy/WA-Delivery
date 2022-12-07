@@ -14,3 +14,12 @@ npm i
 ```bash
 npm start
 ```
+
+<!--
+## How to compile to executable:
+```bash
+npm i pkg -g
+
+pkg index.js
+```
+-->
