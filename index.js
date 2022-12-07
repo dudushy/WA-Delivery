@@ -34,6 +34,25 @@ const exit = () => {
   console.log('[bot] finished.');
 };
 
+function sleep(seconds) {
+  return new Promise(resolve => { console.log(`[sleep] ${seconds}s`); setTimeout(resolve, seconds * 1000); });
+}
+
+async function sendMessages() {
+  for (const contact of data) {
+    try {
+      const chatId = await bot.getNumberId(contact);
+      // console.log('[sendMessages] chatId', chatId._serialized);
+
+      await bot.sendMessage(chatId._serialized, '*test*');
+
+      console.log(`[sendMessages] #${data.indexOf(contact)} (${chatId.user}) sent`);
+    } catch (err) {
+      console.log('[sendMessages] error', err);
+    }
+  }
+}
+
 bot.on('qr', qr => {
   console.log('[bot#qr] generating...');
   qrcode.generate(qr, { small: true });
@@ -53,8 +72,12 @@ bot.on('auth_failure', error => {
   console.error('[bot#auth_failure] ERROR', error);
 });
 
-bot.on('ready', () => {
+bot.on('ready', async () => {
   console.log('[bot#ready] client is ready!');
+
+  await sendMessages();
+  await sleep(10);
+  exit();
 });
 
 bot.on('disconnected', (reason) => {
