@@ -62,7 +62,7 @@ function sleep(seconds) {
 async function sendMessages() {
   for (const contact of data) {
     try {
-      const chatId = await bot.getNumberId(contact.replace(/[+ -]/g, ''));
+      const chatId = await bot.getNumberId(contact.match(/\d/g).join(''));
       // console.log('[sendMessages] chatId', chatId._serialized);
 
       await bot.sendMessage(chatId._serialized, MSG);
@@ -75,7 +75,7 @@ async function sendMessages() {
 }
 
 async function confirmLastMsg() {
-  const lastCtt = data[data.length - 1].replace(/[+ -]/g, '');
+  const lastCtt = data[data.length - 1].match(/\d/g).join('');
   console.log('[confirmLastMsg] lastCtt', lastCtt);
 
   const chatId = await bot.getNumberId(lastCtt);
