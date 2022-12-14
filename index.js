@@ -16,36 +16,65 @@ const bot = new Client({
   }
 });
 
-let data = [];
+let contacts = [];
 
-const MSG = '*test*';
+let MSG = '*default*';
 
 //? Functions
-function updateData(newData) {
-  fs.writeFile('./data.json', JSON.stringify(newData), err => {
+function updateContacts(newData) {
+  fs.writeFile('./data/CONTACTS.json', JSON.stringify(newData), err => {
     if (err) {
-      console.log('[updateData] error writing file', err);
+      console.log('[updateContacts] error writing file', err);
     } else {
-      console.log('[updateData] successfully wrote file');
+      console.log('[updateContacts] successfully wrote file');
     }
   });
 }
 
-function readData() {
-  fs.readFile('./data.json', 'utf8', (err, jsonString) => {
+function loadContacts() {
+  fs.readFile('./data/CONTACTS.json', 'utf8', (err, jsonString) => {
     if (err) {
-      console.log('[data] error reading file from disk:', err);
-      updateData(data);
+      console.log('[loadContacts] error reading file from disk:', err);
+      updateContacts(contacts);
 
       return;
     }
 
     try {
-      data = JSON.parse(jsonString);
-      console.log('[data] data loaded from disk:', data);
+      contacts = JSON.parse(jsonString);
+      console.log('[loadContacts] data loaded from disk:', contacts);
     } catch (err) {
-      console.log('[data] error parsing JSON string:', err);
-      updateData(data);
+      console.log('[loadContacts] error parsing JSON string:', err);
+      updateContacts(contacts);
+    }
+  });
+}
+
+function updateMsg(newData) {
+  fs.writeFile('./data/MSG.txt', newData, err => {
+    if (err) {
+      console.log('[updateMsg] error writing file', err);
+    } else {
+      console.log('[updateMsg] successfully wrote file');
+    }
+  });
+}
+
+function loadMsg() {
+  fs.readFile('./data/MSG.txt', 'utf8', (err, msg) => {
+    if (err) {
+      console.log('[loadMsg] error reading file from disk:', err);
+      updateMsg(MSG);
+
+      return;
+    }
+
+    try {
+      MSG = msg;
+      console.log('[loadMsg] MSG loaded from disk:', MSG);
+    } catch (err) {
+      console.log('[loadMsg] error parsing text:', err);
+      updateMsg(MSG);
     }
   });
 }
@@ -60,14 +89,14 @@ function sleep(seconds) {
 }
 
 async function sendMessages() {
-  for (const contact of data) {
+  for (const contact of contacts) {
     try {
       const chatId = await bot.getNumberId(contact.match(/\d/g).join(''));
       // console.log('[sendMessages] chatId', chatId._serialized);
 
       await bot.sendMessage(chatId._serialized, MSG);
 
-      console.log(`[sendMessages] #${data.indexOf(contact)} (${chatId.user}) sent`);
+      console.log(`[sendMessages] #${contacts.indexOf(contact)} (${chatId.user}) sent`);
     } catch (err) {
       console.log('[sendMessages] error', err);
     }
@@ -75,7 +104,7 @@ async function sendMessages() {
 }
 
 async function confirmLastMsg() {
-  const lastCtt = data[data.length - 1].match(/\d/g).join('');
+  const lastCtt = contacts[contacts.length - 1].match(/\d/g).join('');
   console.log('[confirmLastMsg] lastCtt', lastCtt);
 
   const chatId = await bot.getNumberId(lastCtt);
@@ -138,7 +167,8 @@ bot.on('message', msg => {
 //? Main
 console.log('\n[bot] starting...');
 
-readData();
+loadMsg();
+loadContacts();
 
 bot.initialize();
 
