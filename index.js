@@ -16,7 +16,7 @@ const bot = new Client({
   }
 });
 
-let contacts = [];
+let CONTACTS = [];
 
 let MSG = '*default*';
 
@@ -35,17 +35,17 @@ function loadContacts() {
   fs.readFile('./data/CONTACTS.json', 'utf8', (err, jsonString) => {
     if (err) {
       console.log('[loadContacts] error reading file from disk:', err);
-      updateContacts(contacts);
+      updateContacts(CONTACTS);
 
       return;
     }
 
     try {
-      contacts = JSON.parse(jsonString);
-      console.log('[loadContacts] data loaded from disk:', contacts);
+      CONTACTS = JSON.parse(jsonString);
+      console.log('[loadContacts] data loaded from disk:', CONTACTS);
     } catch (err) {
       console.log('[loadContacts] error parsing JSON string:', err);
-      updateContacts(contacts);
+      updateContacts(CONTACTS);
     }
   });
 }
@@ -89,14 +89,14 @@ function sleep(seconds) {
 }
 
 async function sendMessages() {
-  for (const contact of contacts) {
+  for (const contact of CONTACTS) {
     try {
       const chatId = await bot.getNumberId(contact.match(/\d/g).join(''));
       // console.log('[sendMessages] chatId', chatId._serialized);
 
       await bot.sendMessage(chatId._serialized, MSG);
 
-      console.log(`[sendMessages] #${contacts.indexOf(contact)} (${chatId.user}) sent`);
+      console.log(`[sendMessages] #${CONTACTS.indexOf(contact)} (${chatId.user}) sent`);
     } catch (err) {
       console.log('[sendMessages] error', err);
     }
@@ -104,7 +104,7 @@ async function sendMessages() {
 }
 
 async function confirmLastMsg() {
-  const lastCtt = contacts[contacts.length - 1].match(/\d/g).join('');
+  const lastCtt = CONTACTS[CONTACTS.length - 1].match(/\d/g).join('');
   console.log('[confirmLastMsg] lastCtt', lastCtt);
 
   const chatId = await bot.getNumberId(lastCtt);
