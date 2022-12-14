@@ -29,6 +29,25 @@ function updateData(newData) {
   });
 }
 
+function readData() {
+  fs.readFile('./data.json', 'utf8', (err, jsonString) => {
+    if (err) {
+      console.log('[data] error reading file from disk:', err);
+      updateData(data);
+
+      return;
+    }
+
+    try {
+      data = JSON.parse(jsonString);
+      console.log('[data] data loaded from disk:', data);
+    } catch (err) {
+      console.log('[data] error parsing JSON string:', err);
+      updateData(data);
+    }
+  });
+}
+
 const exit = () => {
   bot.destroy();
   console.log('[bot] finished.');
@@ -95,22 +114,7 @@ bot.on('message', msg => {
 //? Main
 console.log('\n[bot] starting...');
 
-fs.readFile('./data.json', 'utf8', (err, jsonString) => {
-  if (err) {
-    console.log('[data] error reading file from disk:', err);
-    updateData(data);
-
-    return;
-  }
-
-  try {
-    data = JSON.parse(jsonString);
-    console.log('[data] data loaded from disk:', data);
-  } catch (err) {
-    console.log('[data] error parsing JSON string:', err);
-    updateData(data);
-  }
-});
+readData();
 
 bot.initialize();
 
