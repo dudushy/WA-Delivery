@@ -1,6 +1,6 @@
 .wwebjs_auth/
 temp.js
-data.json
+data/
 
 # Logs
 logs
