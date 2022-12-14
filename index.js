@@ -18,6 +18,8 @@ const bot = new Client({
 
 let data = [];
 
+const MSG = '*test*';
+
 //? Functions
 function updateData(newData) {
   fs.writeFile('./data.json', JSON.stringify(newData), err => {
@@ -60,10 +62,10 @@ function sleep(seconds) {
 async function sendMessages() {
   for (const contact of data) {
     try {
-      const chatId = await bot.getNumberId(contact);
+      const chatId = await bot.getNumberId(contact.replace(/[+ -]/g, ''));
       // console.log('[sendMessages] chatId', chatId._serialized);
 
-      await bot.sendMessage(chatId._serialized, '*test*');
+      await bot.sendMessage(chatId._serialized, MSG);
 
       console.log(`[sendMessages] #${data.indexOf(contact)} (${chatId.user}) sent`);
     } catch (err) {
@@ -72,11 +74,29 @@ async function sendMessages() {
   }
 }
 
+async function confirmLastMsg() {
+  const lastCtt = data[data.length - 1].replace(/[+ -]/g, '');
+  console.log('[confirmLastMsg] lastCtt', lastCtt);
+
+  const chatId = await bot.getNumberId(lastCtt);
+  console.log('[confirmLastMsg] chatId', chatId);
+
+  const chat = await bot.getChatById(chatId._serialized);
+  console.log('[confirmLastMsg] lastMsg', chat);
+
+  const lastMsg = await chat.fetchMessages({ limit: 1 });
+  console.log('[confirmLastMsg] lastMsg', lastMsg);
+
+  const result = lastMsg[0].body == MSG;
+  console.log('[confirmLastMsg] result', result);
+  return result;
+}
+
 bot.on('qr', qr => {
   console.log('[bot#qr] generating...');
   qrcode.generate(qr, { small: true });
 
-  updateData([]);
+  // updateData([]);
 });
 
 bot.on('loading_screen', (percent, message) => {
@@ -95,7 +115,11 @@ bot.on('ready', async () => {
   console.log('[bot#ready] client is ready!');
 
   await sendMessages();
-  await sleep(10);
+
+  while (await confirmLastMsg() == false) {
+    await sleep(5);
+  }
+
   exit();
 });
 
