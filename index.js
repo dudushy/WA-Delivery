@@ -4,7 +4,7 @@ const qrcode = require('qrcode-terminal');
 const moment = require('moment-timezone');
 moment.tz.setDefault('America/Sao_Paulo');
 
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 
 const fs = require('fs');
 
@@ -15,6 +15,8 @@ const bot = new Client({
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   }
 });
+
+let MEDIA = [];
 
 let CONTACTS = [];
 
@@ -35,6 +37,17 @@ function checkData() {
   }
 
   console.log('[checkData] data checked');
+}
+
+function loadMedia() {
+  fs.readdir('./data/media', (err, files) => {
+    if (err) {
+      console.log('[loadMedia] error reading directory', err);
+    } else {
+      MEDIA = files;
+      console.log('[loadMedia] media loaded', MEDIA);
+    }
+  });
 }
 
 function updateContacts(newData) {
@@ -112,6 +125,14 @@ async function sendMessages() {
 
       await bot.sendMessage(chatId._serialized, MSG);
 
+      for (const [key, value] of Object.entries(MEDIA)) {
+        const media = MessageMedia.fromFilePath(`./data/media/${value}`);
+        // console.log(`[sendMessages/media] #${key} (${value})`, media);
+
+        await bot.sendMessage(chatId._serialized, media);
+        console.log(`[sendMessages/media] #${key} (${value}) sent`);
+      }
+
       console.log(`[sendMessages] #${CONTACTS.indexOf(contact)} (${chatId.user}) sent`);
     } catch (err) {
       console.log('[sendMessages] error', err);
@@ -119,6 +140,7 @@ async function sendMessages() {
   }
 }
 
+// eslint-disable-next-line no-unused-vars
 async function confirmLastMsg() {
   if (CONTACTS.length == 0) return true;
 
@@ -162,11 +184,16 @@ bot.on('auth_failure', error => {
 bot.on('ready', async () => {
   console.log('[bot#ready] client is ready!');
 
+  console.log('[bot#ready] WhatsApp Web version:', await bot.getWWebVersion());
+  console.log('[bot#ready] WWebJS version:', require('whatsapp-web.js').version);
+
   await sendMessages();
 
-  while (await confirmLastMsg() == false) {
-    await sleep(5);
-  }
+  // while (await confirmLastMsg() == false) {
+  //   await sleep(1);
+  // }
+
+  await sleep(2);
 
   exit();
 });
@@ -187,6 +214,7 @@ bot.on('message', msg => {
 console.log('\n[bot] starting...');
 
 checkData();
+loadMedia();
 loadMsg();
 loadContacts();
 
