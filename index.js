@@ -124,6 +124,7 @@ async function sendMessages() {
       // console.log('[sendMessages] chatId', chatId._serialized);
 
       await bot.sendMessage(chatId._serialized, MSG);
+      console.log('[sendMessages/txt] sent');
 
       for (const [key, value] of Object.entries(MEDIA)) {
         const media = MessageMedia.fromFilePath(`./data/media/${value}`);
@@ -133,7 +134,7 @@ async function sendMessages() {
         console.log(`[sendMessages/media] #${key} (${value}) sent`);
       }
 
-      console.log(`[sendMessages] #${CONTACTS.indexOf(contact)} (${chatId.user}) sent`);
+      console.log(`[sendMessages] #${CONTACTS.indexOf(contact)} (${chatId.user}) done`);
     } catch (err) {
       console.log('[sendMessages] error', err);
     }
