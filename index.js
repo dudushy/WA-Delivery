@@ -21,6 +21,22 @@ let CONTACTS = [];
 let MSG = '*default*';
 
 //? Functions
+function checkData() {
+  if (!fs.existsSync('./data')) {
+    fs.mkdirSync('./data/media', { recursive: true });
+  }
+
+  if (!fs.existsSync('./data/CONTACTS.json')) {
+    updateContacts(CONTACTS);
+  }
+
+  if (!fs.existsSync('./data/MSG.txt')) {
+    updateMsg(MSG);
+  }
+
+  console.log('[checkData] data checked');
+}
+
 function updateContacts(newData) {
   fs.writeFile('./data/CONTACTS.json', JSON.stringify(newData), err => {
     if (err) {
@@ -104,6 +120,8 @@ async function sendMessages() {
 }
 
 async function confirmLastMsg() {
+  if (CONTACTS.length == 0) return true;
+
   const lastCtt = CONTACTS[CONTACTS.length - 1].match(/\d/g).join('');
   console.log('[confirmLastMsg] lastCtt', lastCtt);
 
@@ -118,6 +136,7 @@ async function confirmLastMsg() {
 
   const result = lastMsg[0].body == MSG;
   console.log('[confirmLastMsg] result', result);
+
   return result;
 }
 
@@ -167,6 +186,7 @@ bot.on('message', msg => {
 //? Main
 console.log('\n[bot] starting...');
 
+checkData();
 loadMsg();
 loadContacts();
 
