@@ -209,7 +209,7 @@ bot.on('ready', async () => {
   //   await sleep(1);
   // }
 
-  await sleep(2);
+  await sleep(5);
 
   exit();
 });
