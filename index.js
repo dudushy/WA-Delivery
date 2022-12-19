@@ -8,9 +8,12 @@ const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 
 const fs = require('fs');
 
+const csv2json = require('convert-csv-to-json');
+
 const bot = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
+    executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
     headless: process.argv[2] == '--show' ? false : true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   }
@@ -23,6 +26,18 @@ let CONTACTS = [];
 let MSG = '*default*';
 
 //? Functions
+// eslint-disable-next-line no-unused-vars
+function convertContacts() { //TODO unfinished
+  const json = csv2json.getJsonFromCsv('./data/CONTACTS.csv');
+  const contacts = [];
+
+  for (const [, value] of Object.entries(json)) {
+    contacts.push(value['Phone 1 - Value']);
+  }
+
+  updateContacts(contacts);
+}
+
 function checkData() {
   if (!fs.existsSync('./data')) {
     fs.mkdirSync('./data/media', { recursive: true });
