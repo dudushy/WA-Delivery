@@ -145,7 +145,7 @@ async function sendMessages() {
         const media = MessageMedia.fromFilePath(`./data/media/${value}`);
         // console.log(`[sendMessages/media] #${key} (${value})`, media);
 
-        await bot.sendMessage(chatId._serialized, media);
+        await bot.sendMessage(chatId._serialized, media, {caption: ''});
         console.log(`[sendMessages/media] #${key} (${value}) sent`);
       }
 
