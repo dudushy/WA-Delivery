@@ -51,6 +51,7 @@ function loadMedia() {
 
 function loadContacts() {
   const json = csv2json.fieldDelimiter(',').getJsonFromCsv('./data/contacts.csv');
+  console.log('[loadContacts] json', json);
 
   for (const [, value] of Object.entries(json)) {
     const contact = (value['Phone1-Value'] || value['Phone2-Value'] || value['Phone3-Value'] || null)?.match(/\d/g)?.join('');
