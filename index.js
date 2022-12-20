@@ -26,25 +26,9 @@ let CONTACTS = [];
 let MSG = '*default*';
 
 //? Functions
-// eslint-disable-next-line no-unused-vars
-function convertContacts() { //TODO unfinished
-  const json = csv2json.getJsonFromCsv('./data/CONTACTS.csv');
-  const contacts = [];
-
-  for (const [, value] of Object.entries(json)) {
-    contacts.push(value['Phone 1 - Value']);
-  }
-
-  updateContacts(contacts);
-}
-
 function checkData() {
   if (!fs.existsSync('./data')) {
     fs.mkdirSync('./data/media', { recursive: true });
-  }
-
-  if (!fs.existsSync('./data/CONTACTS.json')) {
-    updateContacts(CONTACTS);
   }
 
   if (!fs.existsSync('./data/MSG.txt')) {
@@ -65,33 +49,16 @@ function loadMedia() {
   });
 }
 
-function updateContacts(newData) {
-  fs.writeFile('./data/CONTACTS.json', JSON.stringify(newData), err => {
-    if (err) {
-      console.log('[updateContacts] error writing file', err);
-    } else {
-      console.log('[updateContacts] successfully wrote file');
-    }
-  });
-}
-
 function loadContacts() {
-  fs.readFile('./data/CONTACTS.json', 'utf8', (err, jsonString) => {
-    if (err) {
-      console.log('[loadContacts] error reading file from disk:', err);
-      updateContacts(CONTACTS);
+  const json = csv2json.fieldDelimiter(',').getJsonFromCsv('./data/contacts.csv');
 
-      return;
-    }
+  for (const [, value] of Object.entries(json)) {
+    const contact = (value['Phone1-Value'] || value['Phone2-Value'] || value['Phone3-Value'] || null)?.match(/\d/g)?.join('');
 
-    try {
-      CONTACTS = JSON.parse(jsonString);
-      console.log('[loadContacts] data loaded from disk:', CONTACTS);
-    } catch (err) {
-      console.log('[loadContacts] error parsing JSON string:', err);
-      updateContacts(CONTACTS);
-    }
-  });
+    if (contact) CONTACTS.push(contact);
+  }
+
+  console.log('[loadContacts] contacts loaded', CONTACTS);
 }
 
 function updateMsg(newData) {
@@ -145,7 +112,7 @@ async function sendMessages() {
         const media = MessageMedia.fromFilePath(`./data/media/${value}`);
         // console.log(`[sendMessages/media] #${key} (${value})`, media);
 
-        await bot.sendMessage(chatId._serialized, media, {caption: ''});
+        await bot.sendMessage(chatId._serialized, media, { caption: '' });
         console.log(`[sendMessages/media] #${key} (${value}) sent`);
       }
 
