@@ -1,9 +1,6 @@
 //? Variables
 const qrcode = require('qrcode-terminal');
 
-const moment = require('moment-timezone');
-moment.tz.setDefault('America/Sao_Paulo');
-
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 
 const fs = require('fs');
