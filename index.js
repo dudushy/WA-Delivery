@@ -7,10 +7,12 @@ const fs = require('fs');
 
 const csv2json = require('convert-csv-to-json');
 
+const CHROME_PATH = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+
 const bot = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
-    executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    executablePath: CHROME_PATH,
     headless: process.argv[2] == '--show' ? false : true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   }
