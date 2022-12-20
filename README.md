@@ -15,7 +15,7 @@ npm i
 1. Export your contacts to a CSV file (Google Contacts).
 
 1. Add your contacts and media to the data folder.
-    > Heres an example of the data folder structure:
+    > Heres an example of the data folder structure: <br>
     ![folder_strucute](/assets/folder_stucture.png)
 
 1. Edit the `CHROME_PATH` to your Google Chrome path in the `index.js` file.
