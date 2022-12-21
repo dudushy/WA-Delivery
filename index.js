@@ -102,7 +102,7 @@ function sleep(seconds) {
 async function sendMessages() {
   for (const contact of CONTACTS) {
     try {
-      const chatId = await bot.getNumberId(contact.match(/\d/g).join(''));
+      const chatId = await bot.getNumberId(contact);
       // console.log('[sendMessages] chatId', chatId._serialized);
 
       await bot.sendMessage(chatId._serialized, MSG);
