@@ -53,9 +53,11 @@ function loadContacts() {
   console.log('[loadContacts] json', json);
 
   for (const [, value] of Object.entries(json)) {
-    const contact = (value['Phone1-Value'] || value['Phone2-Value'] || value['Phone3-Value'] || null)?.match(/\d/g)?.join('');
+    const contact = value['Phone1-Value'] || value['Phone2-Value'] || value['Phone3-Value'] || null;
 
-    if (contact) CONTACTS.push(contact);
+    if (!contact) continue;
+
+    CONTACTS.push(contact.match(/\d/g).join(''));
   }
 
   console.log('[loadContacts] contacts loaded', CONTACTS);
