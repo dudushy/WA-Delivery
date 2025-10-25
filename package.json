@@ -2,10 +2,9 @@
   "name": "wa-delivery",
   "version": "1.0.0",
   "description": "TODO",
-  "main": "bot.js",
+  "main": "src/index.js",
   "scripts": {
-    "test": "node temp.js",
-    "start": "node index.js"
+    "start": "node src/index.js"
   },
   "repository": {
     "type": "git",
@@ -24,9 +23,9 @@
     "eslint": "^8.29.0"
   },
   "dependencies": {
-    "convert-csv-to-json": "^1.4.0",
+    "convert-csv-to-json": "^1.5.0",
     "fs": "^0.0.1-security",
     "qrcode-terminal": "^0.12.0",
-    "whatsapp-web.js": "^1.18.4"
+    "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js#main"
   }
 }

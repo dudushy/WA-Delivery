@@ -1,6 +1,6 @@
 @echo off
 
-call npm install
+call npm ci
 call npm start
 
 pause

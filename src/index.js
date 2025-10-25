@@ -1,0 +1,227 @@
+const qrcode = require('qrcode-terminal');
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const readline = require('readline');
+
+// Importa os utilitários
+const { loadConfig } = require('./utils/loadConfig');
+const { loadContacts } = require('./utils/loadContacts');
+const { loadMessage } = require('./utils/loadMessage');
+
+// Configuração do readline para capturar ENTER
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+const bot = new Client({
+  authStrategy: new LocalAuth({
+    clientId: 'wa-delivery',
+  }),
+  webVersionCache: {
+    type: 'local',
+  },
+  puppeteer: {
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-zygote',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding'
+    ],
+  },
+});
+
+let CONTACTS = [];
+let MESSAGE = '';
+let DELAY_BETWEEN_MESSAGES = 2; // Valor padrão
+let isAuthenticated = false;
+let isReady = false;
+let isFullyLoaded = false;
+
+function sleep(seconds) {
+  return new Promise(resolve => {
+    console.log(`[sleep] Waiting ${seconds}s...`);
+    setTimeout(resolve, seconds * 1000);
+  });
+}
+
+async function sendMessages() {
+  if (CONTACTS.length === 0) {
+    console.log('[sendMessages] No contacts to send messages to');
+    return;
+  }
+
+  console.log(`[sendMessages] Starting to send messages to ${CONTACTS.length} contacts...`);
+  console.log(`[sendMessages] Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`);
+
+  for (let i = 0; i < CONTACTS.length; i++) {
+    const contact = CONTACTS[i];
+    try {
+      console.log(`[sendMessages] Processing contact ${i + 1}/${CONTACTS.length}: ${contact}`);
+
+      const chatId = await bot.getNumberId(contact);
+
+      if (!chatId) {
+        console.log(`[sendMessages] Contact ${contact} not found on WhatsApp`);
+        // Aplica delay mesmo para contatos não encontrados, exceto no último
+        if (i < CONTACTS.length - 1) {
+          await sleep(DELAY_BETWEEN_MESSAGES);
+        }
+        continue;
+      }
+
+      await bot.sendMessage(chatId._serialized, MESSAGE);
+      console.log(`[sendMessages] Message sent successfully to ${contact}`);
+
+      await sleep(DELAY_BETWEEN_MESSAGES);
+
+    } catch (error) {
+      console.error(`[sendMessages] Error sending message to ${contact}:`, error.message);
+      // Aplica delay mesmo em caso de erro, exceto no último
+      if (i < CONTACTS.length - 1) {
+        await sleep(DELAY_BETWEEN_MESSAGES);
+      }
+    }
+  }
+
+  console.log('[sendMessages] Finished sending messages to all contacts');
+}
+
+function checkFullyLoaded() {
+  if (isAuthenticated && isReady && isFullyLoaded) {
+    console.log('\n🟢 === BOT FULLY READY ===');
+    console.log(`✅ Contacts loaded: ${CONTACTS.length}`);
+    console.log(`✅ Message: "${MESSAGE}"`);
+    console.log(`✅ Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`);
+    console.log('\n🚀 Press ENTER to start sending messages to all contacts...');
+
+    waitForUserInput();
+  }
+}
+
+function waitForUserInput() {
+  rl.question('', async () => {
+    console.log('\n[BOT] Starting message delivery...');
+    await sendMessages();
+    console.log('\n[BOT] Message delivery completed!');
+    exit();
+  });
+}
+
+const exit = () => {
+  rl.close();
+  bot.destroy();
+  console.log('[BOT] Application finished.');
+  process.exit(0);
+};
+
+// Bot events
+bot.on('qr', qr => {
+  console.log('[BOT] 📱 Generating QR code...');
+  qrcode.generate(qr, { small: true });
+  console.log('📲 Scan the QR code above with your WhatsApp mobile app');
+});
+
+bot.on('loading_screen', (percent, message) => {
+  console.log(`[BOT] ⏳ Loading... ${percent}% - ${message}`);
+});
+
+bot.on('authenticated', () => {
+  console.log('[BOT] ✅ Successfully authenticated!');
+  isAuthenticated = true;
+  checkFullyLoaded();
+});
+
+bot.on('auth_failure', error => {
+  console.error('[BOT] ❌ Authentication failed:', error);
+});
+
+bot.on('ready', async () => {
+  console.log('[BOT] ✅ WhatsApp client is ready!');
+  console.log(`[BOT] 📱 WhatsApp Web version: ${await bot.getWWebVersion()}`);
+
+  isReady = true;
+
+  // Aguarda um pouco mais para garantir que tudo esteja carregado
+  console.log('[BOT] ⏳ Waiting for full synchronization...');
+  setTimeout(async () => {
+    try {
+      // Testa se consegue obter informações básicas
+      const info = await bot.getState();
+      console.log(`[BOT] 📊 WhatsApp state: ${info}`);
+
+      isFullyLoaded = true;
+      checkFullyLoaded();
+    } catch (error) {
+      console.log('[BOT] ⚠️ Still synchronizing, waiting more...');
+      setTimeout(() => {
+        isFullyLoaded = true;
+        checkFullyLoaded();
+      }, 5000);
+    }
+  }, 3000);
+});
+
+bot.on('disconnected', (reason) => {
+  console.log('[BOT] ❌ Client disconnected:', reason);
+  isAuthenticated = false;
+  isReady = false;
+  isFullyLoaded = false;
+});
+
+// Evento adicional para garantir que está totalmente sincronizado
+bot.on('change_state', state => {
+  console.log(`[BOT] 🔄 State changed to: ${state}`);
+  if (state === 'CONNECTED') {
+    console.log('[BOT] ✅ Fully connected and synchronized!');
+  }
+});
+
+// Main execution
+async function main() {
+  console.log('\n=== 🤖 WA-Delivery BOT Starting ===');
+
+  // Carrega configuração
+  const config = loadConfig();
+
+  // Carrega contatos e mensagem usando o config.json
+  CONTACTS = loadContacts(config['contacts-file']);
+  MESSAGE = loadMessage(config['message-file']);
+
+  // Carrega o delay entre mensagens
+  DELAY_BETWEEN_MESSAGES = config['delay-between-messages'] || 2;
+
+  if (CONTACTS.length === 0) {
+    console.log('[MAIN] ❌ No contacts loaded. Please check your CSV file.');
+    process.exit(1);
+  }
+
+  if (!MESSAGE || MESSAGE === '*default message*') {
+    console.log('[MAIN] ❌ No message loaded. Please check your message file.');
+    process.exit(1);
+  }
+
+  console.log('[MAIN] ✅ Configuration loaded:');
+  console.log(`  - Contacts file: ${config['contacts-file']}`);
+  console.log(`  - Message file: ${config['message-file']}`);
+  console.log(`  - Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`);
+  console.log(`  - Contacts count: ${CONTACTS.length}`);
+  console.log(`  - Message preview: "${MESSAGE.substring(0, 50)}${MESSAGE.length > 50 ? '...' : ''}"`);
+
+  // Inicializa o bot
+  console.log('\n[BOT] 🚀 Initializing WhatsApp client...');
+  console.log('[BOT] ⏳ Please wait for complete authentication and synchronization...');
+  bot.initialize();
+}
+
+// Process handlers
+process.on('SIGINT', exit);  // CTRL+C
+process.on('SIGQUIT', exit); // Keyboard quit
+process.on('SIGTERM', exit); // `kill` command
+
+// Start the application
+main().catch(console.error);

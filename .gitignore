@@ -1,6 +1,12 @@
-.wwebjs_auth/
-temp.js
-data/
+/.wwebjs_auth
+/.wwebjs_cache
+
+# Ignore all files in data directory except .gitkeep
+data/*
+!data/.gitkeep
+
+# Ignore core
+core
 
 # Logs
 logs
