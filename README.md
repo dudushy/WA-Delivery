@@ -5,20 +5,17 @@ A WhatsApp BOT to send custom messages to a list of contacts.
 
 ## Prerequisites:
 - [NodeJS](https://nodejs.org/)
-- [Google Chrome](https://www.google.com/chrome/)
 
 ## How to install:
 ```bash
-npm i
+npm ci
 ```
+
 ## How to run:
 1. Export your contacts to a CSV file (Google Contacts).
-
-1. Add your contacts and media to the data folder.
-    > Heres an example of the data folder structure: <br>
-    ![folder_strucute](/assets/folder_stucture.png)
-
-1. Edit the `CHROME_PATH` to your Google Chrome path in the `index.js` file.
+2. Update the `config.json` file with the paths to your message and contacts files.
+3. Run the application:
+4. Press ENTER to start sending messages.
 
 ```bash
 npm start
