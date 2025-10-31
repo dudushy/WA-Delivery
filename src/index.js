@@ -1,6 +1,8 @@
 const qrcode = require('qrcode-terminal');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const readline = require('readline');
+const fs = require('fs');
+const path = require('path');
 
 // Importa os utilitários
 const { loadConfig } = require('./utils/loadConfig');
@@ -42,11 +44,88 @@ let isAuthenticated = false;
 let isReady = false;
 let isFullyLoaded = false;
 
+// Arrays para controlar sucessos e falhas
+let successfulContacts = [];
+let failedContacts = [];
+
 function sleep(seconds) {
   return new Promise(resolve => {
     console.log(`[sleep] Waiting ${seconds}s...`);
     setTimeout(resolve, seconds * 1000);
   });
+}
+
+function generateLogFiles() {
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const logsDir = 'logs';
+
+    // Cria diretório de logs se não existir
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+
+    // Gera log de sucessos
+    if (successfulContacts.length > 0) {
+      const successLogPath = path.join(logsDir, `successful_contacts_${timestamp}.txt`);
+      const successContent = [
+        '=== SUCCESSFUL DELIVERIES ===',
+        `Timestamp: ${new Date().toISOString()}`,
+        `Total successful: ${successfulContacts.length}`,
+        `Message sent: "${MESSAGE}"`,
+        '',
+        'Phone numbers:',
+        ...successfulContacts.map((contact, index) => `${index + 1}. ${contact}`)
+      ].join('\n');
+
+      fs.writeFileSync(successLogPath, successContent, 'utf8');
+      console.log(`[LOG] ✅ Successful contacts log saved: ${successLogPath}`);
+    }
+
+    // Gera log de falhas
+    if (failedContacts.length > 0) {
+      const failedLogPath = path.join(logsDir, `failed_contacts_${timestamp}.txt`);
+      const failedContent = [
+        '=== FAILED DELIVERIES ===',
+        `Timestamp: ${new Date().toISOString()}`,
+        `Total failed: ${failedContacts.length}`,
+        `Message attempted: "${MESSAGE}"`,
+        '',
+        'Failed contacts (Phone Number - Reason):',
+        ...failedContacts.map((contact, index) => `${index + 1}. ${contact.phone} - ${contact.reason}`)
+      ].join('\n');
+
+      fs.writeFileSync(failedLogPath, failedContent, 'utf8');
+      console.log(`[LOG] ❌ Failed contacts log saved: ${failedLogPath}`);
+    }
+
+    // Gera resumo geral
+    const summaryLogPath = path.join(logsDir, `delivery_summary_${timestamp}.txt`);
+    const summaryContent = [
+      '=== DELIVERY SUMMARY ===',
+      `Timestamp: ${new Date().toISOString()}`,
+      `Total contacts processed: ${CONTACTS.length}`,
+      `Successful deliveries: ${successfulContacts.length}`,
+      `Failed deliveries: ${failedContacts.length}`,
+      `Success rate: ${((successfulContacts.length / CONTACTS.length) * 100).toFixed(2)}%`,
+      `Message: "${MESSAGE}"`,
+      `Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`,
+      '',
+      '=== DETAILED RESULTS ===',
+      '',
+      '✅ Successful:',
+      ...successfulContacts.map((contact, index) => `  ${index + 1}. ${contact}`),
+      '',
+      '❌ Failed:',
+      ...failedContacts.map((contact, index) => `  ${index + 1}. ${contact.phone} - ${contact.reason}`)
+    ].join('\n');
+
+    fs.writeFileSync(summaryLogPath, summaryContent, 'utf8');
+    console.log(`[LOG] 📊 Summary log saved: ${summaryLogPath}`);
+
+  } catch (error) {
+    console.error('[LOG] Error generating log files:', error);
+  }
 }
 
 async function sendMessages() {
@@ -58,6 +137,10 @@ async function sendMessages() {
   console.log(`[sendMessages] Starting to send messages to ${CONTACTS.length} contacts...`);
   console.log(`[sendMessages] Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`);
 
+  // Reset dos arrays de controle
+  successfulContacts = [];
+  failedContacts = [];
+
   for (let i = 0; i < CONTACTS.length; i++) {
     const contact = CONTACTS[i];
     try {
@@ -66,7 +149,10 @@ async function sendMessages() {
       const chatId = await bot.getNumberId(contact);
 
       if (!chatId) {
-        console.log(`[sendMessages] Contact ${contact} not found on WhatsApp`);
+        const reason = 'Contact not found on WhatsApp';
+        console.log(`[sendMessages] ${reason}: ${contact}`);
+        failedContacts.push({ phone: contact, reason });
+
         // Aplica delay mesmo para contatos não encontrados, exceto no último
         if (i < CONTACTS.length - 1) {
           await sleep(DELAY_BETWEEN_MESSAGES);
@@ -76,11 +162,18 @@ async function sendMessages() {
 
       await bot.sendMessage(chatId._serialized, MESSAGE);
       console.log(`[sendMessages] Message sent successfully to ${contact}`);
+      successfulContacts.push(contact);
 
-      await sleep(DELAY_BETWEEN_MESSAGES);
+      // Delay entre mensagens - só não aplica delay após a última mensagem
+      if (i < CONTACTS.length - 1) {
+        await sleep(DELAY_BETWEEN_MESSAGES);
+      }
 
     } catch (error) {
-      console.error(`[sendMessages] Error sending message to ${contact}:`, error.message);
+      const reason = error.message || 'Unknown error';
+      console.error(`[sendMessages] Error sending message to ${contact}: ${reason}`);
+      failedContacts.push({ phone: contact, reason });
+
       // Aplica delay mesmo em caso de erro, exceto no último
       if (i < CONTACTS.length - 1) {
         await sleep(DELAY_BETWEEN_MESSAGES);
@@ -88,7 +181,22 @@ async function sendMessages() {
     }
   }
 
-  console.log('[sendMessages] Finished sending messages to all contacts');
+  console.log('\n=== DELIVERY RESULTS ===');
+  console.log(`✅ Successful deliveries: ${successfulContacts.length}/${CONTACTS.length}`);
+  console.log(`❌ Failed deliveries: ${failedContacts.length}/${CONTACTS.length}`);
+  console.log(`📊 Success rate: ${((successfulContacts.length / CONTACTS.length) * 100).toFixed(2)}%`);
+
+  if (failedContacts.length > 0) {
+    console.log('\n❌ Failed contacts:');
+    failedContacts.forEach((contact, index) => {
+      console.log(`  ${index + 1}. ${contact.phone} - ${contact.reason}`);
+    });
+  }
+
+  // Gera arquivos de log
+  generateLogFiles();
+
+  console.log('\n[sendMessages] Finished sending messages to all contacts');
 }
 
 function checkFullyLoaded() {

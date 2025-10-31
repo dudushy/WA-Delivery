@@ -5,6 +5,9 @@
 data/*
 !data/.gitkeep
 
+# Ignore logs directory
+logs/
+
 # Ignore core
 core
 
