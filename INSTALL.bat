@@ -1,5 +1,5 @@
 @echo off
 
-call npm start
+call npm ci
 
 pause
