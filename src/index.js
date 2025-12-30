@@ -8,6 +8,7 @@ const path = require('path');
 const { loadConfig } = require('./utils/loadConfig');
 const { loadContacts } = require('./utils/loadContacts');
 const { loadMessage } = require('./utils/loadMessage');
+const { loadMedia } = require('./utils/loadMedia');
 
 // Configuração do readline para capturar ENTER
 const rl = readline.createInterface({
@@ -34,11 +35,13 @@ const bot = new Client({
       '--disable-backgrounding-occluded-windows',
       '--disable-renderer-backgrounding'
     ],
+    path: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' // Altere este caminho se necessário
   },
 });
 
 let CONTACTS = [];
 let MESSAGE = '';
+let MEDIA = null;
 let DELAY_BETWEEN_MESSAGES = 2; // Valor padrão
 let isAuthenticated = false;
 let isReady = false;
@@ -73,6 +76,7 @@ function generateLogFiles() {
         `Timestamp: ${new Date().toISOString()}`,
         `Total successful: ${successfulContacts.length}`,
         `Message sent: "${MESSAGE}"`,
+        `Media attached: ${MEDIA ? 'Yes' : 'No'}`,
         '',
         'Phone numbers:',
         ...successfulContacts.map((contact, index) => `${index + 1}. ${contact}`)
@@ -90,6 +94,7 @@ function generateLogFiles() {
         `Timestamp: ${new Date().toISOString()}`,
         `Total failed: ${failedContacts.length}`,
         `Message attempted: "${MESSAGE}"`,
+        `Media attached: ${MEDIA ? 'Yes' : 'No'}`,
         '',
         'Failed contacts (Phone Number - Reason):',
         ...failedContacts.map((contact, index) => `${index + 1}. ${contact.phone} - ${contact.reason}`)
@@ -109,6 +114,7 @@ function generateLogFiles() {
       `Failed deliveries: ${failedContacts.length}`,
       `Success rate: ${((successfulContacts.length / CONTACTS.length) * 100).toFixed(2)}%`,
       `Message: "${MESSAGE}"`,
+      `Media attached: ${MEDIA ? 'Yes (' + MEDIA.mimetype + ')' : 'No'}`,
       `Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`,
       '',
       '=== DETAILED RESULTS ===',
@@ -136,6 +142,7 @@ async function sendMessages() {
 
   console.log(`[sendMessages] Starting to send messages to ${CONTACTS.length} contacts...`);
   console.log(`[sendMessages] Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`);
+  console.log(`[sendMessages] Media attached: ${MEDIA ? 'Yes' : 'No'}`);
 
   // Reset dos arrays de controle
   successfulContacts = [];
@@ -160,8 +167,14 @@ async function sendMessages() {
         continue;
       }
 
-      await bot.sendMessage(chatId._serialized, MESSAGE);
-      console.log(`[sendMessages] Message sent successfully to ${contact}`);
+      // Send message with or without media
+      if (MEDIA) {
+        await bot.sendMessage(chatId._serialized, MEDIA, { caption: MESSAGE });
+        console.log(`[sendMessages] Message with media sent successfully to ${contact}`);
+      } else {
+        await bot.sendMessage(chatId._serialized, MESSAGE);
+        console.log(`[sendMessages] Message sent successfully to ${contact}`);
+      }
       successfulContacts.push(contact);
 
       // Delay entre mensagens - só não aplica delay após a última mensagem
@@ -204,6 +217,7 @@ function checkFullyLoaded() {
     console.log('\n🟢 === BOT FULLY READY ===');
     console.log(`✅ Contacts loaded: ${CONTACTS.length}`);
     console.log(`✅ Message: "${MESSAGE}"`);
+    console.log(`✅ Media: ${MEDIA ? 'Yes (' + MEDIA.mimetype + ')' : 'No media attached'}`);
     console.log(`✅ Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`);
     console.log('\n🚀 Press ENTER to start sending messages to all contacts...');
 
@@ -300,6 +314,9 @@ async function main() {
   CONTACTS = loadContacts(config['contacts-file']);
   MESSAGE = loadMessage(config['message-file']);
 
+  // Carrega mídia (opcional)
+  MEDIA = loadMedia(config['media-file']);
+
   // Carrega o delay entre mensagens
   DELAY_BETWEEN_MESSAGES = config['delay-between-messages'] || 2;
 
@@ -316,6 +333,8 @@ async function main() {
   console.log('[MAIN] ✅ Configuration loaded:');
   console.log(`  - Contacts file: ${config['contacts-file']}`);
   console.log(`  - Message file: ${config['message-file']}`);
+  console.log(`  - Media file: ${config['media-file'] || 'Not specified'}`);
+  console.log(`  - Media loaded: ${MEDIA ? 'Yes (' + MEDIA.mimetype + ')' : 'No'}`);
   console.log(`  - Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`);
   console.log(`  - Contacts count: ${CONTACTS.length}`);
   console.log(`  - Message preview: "${MESSAGE.substring(0, 50)}${MESSAGE.length > 50 ? '...' : ''}"`);

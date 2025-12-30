@@ -1,5 +1,6 @@
 {
   "message-file": "data/message.txt",
   "contacts-file": "data/contacts.csv",
-  "delay-between-messages": 0.5
+  "delay-between-messages": 0.5,
+  "media-file": "data/video.mp4"
 }
