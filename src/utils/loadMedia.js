@@ -9,24 +9,24 @@ const { MessageMedia } = require('whatsapp-web.js');
  */
 function loadMedia(mediaPath) {
   if (!mediaPath) {
-    console.log('[loadMedia] No media path provided');
+    console.log('[loadMedia] Nenhum caminho de midia foi informado');
     return null;
   }
 
   const absolutePath = path.resolve(mediaPath);
 
   if (!fs.existsSync(absolutePath)) {
-    console.log(`[loadMedia] ⚠️ Media file not found: ${absolutePath}`);
+    console.log(`[loadMedia] Arquivo de midia nao encontrado: ${absolutePath}`);
     return null;
   }
 
   try {
     const media = MessageMedia.fromFilePath(absolutePath);
-    console.log(`[loadMedia] ✅ Media loaded successfully: ${absolutePath}`);
-    console.log(`[loadMedia] 📎 MIME type: ${media.mimetype}`);
+    console.log(`[loadMedia] Midia carregada com sucesso: ${absolutePath}`);
+    console.log(`[loadMedia] Tipo de arquivo: ${media.mimetype}`);
     return media;
   } catch (error) {
-    console.error(`[loadMedia] ❌ Error loading media: ${error.message}`);
+    console.error(`[loadMedia] Erro ao carregar midia: ${error.message}`);
     return null;
   }
 }

@@ -3,8 +3,10 @@ const fs = require('fs');
 function loadConfig(configPath = './config.json') {
   try {
     if (!fs.existsSync(configPath)) {
-      console.log(`[loadConfig] Config file not found: ${configPath}`);
+      console.log(`[loadConfig] Arquivo de configuracao nao encontrado: ${configPath}`);
       return {
+        'csv-phone-key': 'MobilePhone',
+        'delay-between-messages': 2,
         'message-file': 'data/message.txt',
         'contacts-file': 'data/contacts.csv'
       };
@@ -12,11 +14,13 @@ function loadConfig(configPath = './config.json') {
 
     const configData = fs.readFileSync(configPath, 'utf8');
     const config = JSON.parse(configData);
-    console.log('[loadConfig] Configuration loaded successfully');
+    console.log('[loadConfig] Configuracao carregada com sucesso');
     return config;
   } catch (error) {
-    console.error('[loadConfig] Error loading config:', error);
+    console.error('[loadConfig] Erro ao carregar configuracao:', error);
     return {
+      'csv-phone-key': 'MobilePhone',
+      'delay-between-messages': 2,
       'message-file': 'data/message.txt',
       'contacts-file': 'data/contacts.csv'
     };

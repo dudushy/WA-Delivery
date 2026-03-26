@@ -1,22 +1,21 @@
 const fs = require('fs');
 const csv2json = require('convert-csv-to-json');
 
-function loadContacts(filePath) {
+function loadContacts(filePath, phoneKey = 'MobilePhone') {
   try {
     if (!fs.existsSync(filePath)) {
-      console.log(`[loadContacts] File not found: ${filePath}`);
+      console.log(`[loadContacts] Arquivo nao encontrado: ${filePath}`);
       return [];
     }
 
     const json = csv2json.fieldDelimiter(',').getJsonFromCsv(filePath);
-    console.log('[loadContacts] CSV parsed successfully');
+    console.log('[loadContacts] CSV lido com sucesso');
 
     const contacts = [];
 
     for (const [, value] of Object.entries(json)) {
-      // Procura pelo campo 'MobilePhone' no CSV
-      const mobilePhone = value['MobilePhone'];
-      console.log('[loadContacts] Found mobile phone:', mobilePhone);
+      const mobilePhone = value[phoneKey];
+      console.log('[loadContacts] Telefone encontrado:', mobilePhone);
 
       if (!mobilePhone) continue;
 
@@ -28,10 +27,10 @@ function loadContacts(filePath) {
       }
     }
 
-    console.log(`[loadContacts] ${contacts.length} contacts loaded`);
+    console.log(`[loadContacts] ${contacts.length} contatos carregados`);
     return contacts;
   } catch (error) {
-    console.error('[loadContacts] Error loading contacts:', error);
+    console.error('[loadContacts] Erro ao carregar contatos:', error);
     return [];
   }
 }

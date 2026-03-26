@@ -43,6 +43,7 @@ let CONTACTS = [];
 let MESSAGE = '';
 let MEDIA = null;
 let DELAY_BETWEEN_MESSAGES = 2; // Valor padrão
+let CSV_PHONE_KEY = 'MobilePhone';
 let isAuthenticated = false;
 let isReady = false;
 let isFullyLoaded = false;
@@ -53,7 +54,7 @@ let failedContacts = [];
 
 function sleep(seconds) {
   return new Promise(resolve => {
-    console.log(`[sleep] Waiting ${seconds}s...`);
+    console.log(`[sleep] Aguardando ${seconds}s...`);
     setTimeout(resolve, seconds * 1000);
   });
 }
@@ -72,77 +73,77 @@ function generateLogFiles() {
     if (successfulContacts.length > 0) {
       const successLogPath = path.join(logsDir, `successful_contacts_${timestamp}.txt`);
       const successContent = [
-        '=== SUCCESSFUL DELIVERIES ===',
-        `Timestamp: ${new Date().toISOString()}`,
-        `Total successful: ${successfulContacts.length}`,
-        `Message sent: "${MESSAGE}"`,
-        `Media attached: ${MEDIA ? 'Yes' : 'No'}`,
+        '=== ENVIOS COM SUCESSO ===',
+        `Data e hora: ${new Date().toISOString()}`,
+        `Total com sucesso: ${successfulContacts.length}`,
+        `Mensagem enviada: "${MESSAGE}"`,
+        `Midia anexada: ${MEDIA ? 'Sim' : 'Nao'}`,
         '',
-        'Phone numbers:',
+        'Numeros de telefone:',
         ...successfulContacts.map((contact, index) => `${index + 1}. ${contact}`)
       ].join('\n');
 
       fs.writeFileSync(successLogPath, successContent, 'utf8');
-      console.log(`[LOG] ✅ Successful contacts log saved: ${successLogPath}`);
+      console.log(`[LOG] Lista de contatos com sucesso salva em: ${successLogPath}`);
     }
 
     // Gera log de falhas
     if (failedContacts.length > 0) {
       const failedLogPath = path.join(logsDir, `failed_contacts_${timestamp}.txt`);
       const failedContent = [
-        '=== FAILED DELIVERIES ===',
-        `Timestamp: ${new Date().toISOString()}`,
-        `Total failed: ${failedContacts.length}`,
-        `Message attempted: "${MESSAGE}"`,
-        `Media attached: ${MEDIA ? 'Yes' : 'No'}`,
+        '=== ENVIOS COM FALHA ===',
+        `Data e hora: ${new Date().toISOString()}`,
+        `Total com falha: ${failedContacts.length}`,
+        `Mensagem tentada: "${MESSAGE}"`,
+        `Midia anexada: ${MEDIA ? 'Sim' : 'Nao'}`,
         '',
-        'Failed contacts (Phone Number - Reason):',
+        'Contatos com falha (numero - motivo):',
         ...failedContacts.map((contact, index) => `${index + 1}. ${contact.phone} - ${contact.reason}`)
       ].join('\n');
 
       fs.writeFileSync(failedLogPath, failedContent, 'utf8');
-      console.log(`[LOG] ❌ Failed contacts log saved: ${failedLogPath}`);
+      console.log(`[LOG] Lista de contatos com falha salva em: ${failedLogPath}`);
     }
 
     // Gera resumo geral
     const summaryLogPath = path.join(logsDir, `delivery_summary_${timestamp}.txt`);
     const summaryContent = [
-      '=== DELIVERY SUMMARY ===',
-      `Timestamp: ${new Date().toISOString()}`,
-      `Total contacts processed: ${CONTACTS.length}`,
-      `Successful deliveries: ${successfulContacts.length}`,
-      `Failed deliveries: ${failedContacts.length}`,
-      `Success rate: ${((successfulContacts.length / CONTACTS.length) * 100).toFixed(2)}%`,
-      `Message: "${MESSAGE}"`,
-      `Media attached: ${MEDIA ? 'Yes (' + MEDIA.mimetype + ')' : 'No'}`,
-      `Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`,
+      '=== RESUMO DOS ENVIOS ===',
+      `Data e hora: ${new Date().toISOString()}`,
+      `Total de contatos processados: ${CONTACTS.length}`,
+      `Envios com sucesso: ${successfulContacts.length}`,
+      `Envios com falha: ${failedContacts.length}`,
+      `Taxa de sucesso: ${((successfulContacts.length / CONTACTS.length) * 100).toFixed(2)}%`,
+      `Mensagem: "${MESSAGE}"`,
+      `Midia anexada: ${MEDIA ? 'Sim (' + MEDIA.mimetype + ')' : 'Nao'}`,
+      `Intervalo entre mensagens: ${DELAY_BETWEEN_MESSAGES}s`,
       '',
-      '=== DETAILED RESULTS ===',
+      '=== RESULTADOS DETALHADOS ===',
       '',
-      '✅ Successful:',
+      'Com sucesso:',
       ...successfulContacts.map((contact, index) => `  ${index + 1}. ${contact}`),
       '',
-      '❌ Failed:',
+      'Com falha:',
       ...failedContacts.map((contact, index) => `  ${index + 1}. ${contact.phone} - ${contact.reason}`)
     ].join('\n');
 
     fs.writeFileSync(summaryLogPath, summaryContent, 'utf8');
-    console.log(`[LOG] 📊 Summary log saved: ${summaryLogPath}`);
+    console.log(`[LOG] Resumo dos envios salvo em: ${summaryLogPath}`);
 
   } catch (error) {
-    console.error('[LOG] Error generating log files:', error);
+    console.error('[LOG] Erro ao gerar arquivos de log:', error);
   }
 }
 
 async function sendMessages() {
   if (CONTACTS.length === 0) {
-    console.log('[sendMessages] No contacts to send messages to');
+    console.log('[sendMessages] Nao ha contatos para enviar mensagem');
     return;
   }
 
-  console.log(`[sendMessages] Starting to send messages to ${CONTACTS.length} contacts...`);
-  console.log(`[sendMessages] Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`);
-  console.log(`[sendMessages] Media attached: ${MEDIA ? 'Yes' : 'No'}`);
+  console.log(`[sendMessages] Iniciando envio para ${CONTACTS.length} contatos...`);
+  console.log(`[sendMessages] Intervalo entre mensagens: ${DELAY_BETWEEN_MESSAGES}s`);
+  console.log(`[sendMessages] Midia anexada: ${MEDIA ? 'Sim' : 'Nao'}`);
 
   // Reset dos arrays de controle
   successfulContacts = [];
@@ -151,12 +152,12 @@ async function sendMessages() {
   for (let i = 0; i < CONTACTS.length; i++) {
     const contact = CONTACTS[i];
     try {
-      console.log(`[sendMessages] Processing contact ${i + 1}/${CONTACTS.length}: ${contact}`);
+      console.log(`[sendMessages] Processando contato ${i + 1}/${CONTACTS.length}: ${contact}`);
 
       const chatId = await bot.getNumberId(contact);
 
       if (!chatId) {
-        const reason = 'Contact not found on WhatsApp';
+        const reason = 'Contato nao encontrado no WhatsApp';
         console.log(`[sendMessages] ${reason}: ${contact}`);
         failedContacts.push({ phone: contact, reason });
 
@@ -170,10 +171,10 @@ async function sendMessages() {
       // Send message with or without media
       if (MEDIA) {
         await bot.sendMessage(chatId._serialized, MEDIA, { caption: MESSAGE });
-        console.log(`[sendMessages] Message with media sent successfully to ${contact}`);
+        console.log(`[sendMessages] Mensagem com midia enviada com sucesso para ${contact}`);
       } else {
         await bot.sendMessage(chatId._serialized, MESSAGE);
-        console.log(`[sendMessages] Message sent successfully to ${contact}`);
+        console.log(`[sendMessages] Mensagem enviada com sucesso para ${contact}`);
       }
       successfulContacts.push(contact);
 
@@ -183,8 +184,8 @@ async function sendMessages() {
       }
 
     } catch (error) {
-      const reason = error.message || 'Unknown error';
-      console.error(`[sendMessages] Error sending message to ${contact}: ${reason}`);
+      const reason = error.message || 'Erro desconhecido';
+      console.error(`[sendMessages] Erro ao enviar mensagem para ${contact}: ${reason}`);
       failedContacts.push({ phone: contact, reason });
 
       // Aplica delay mesmo em caso de erro, exceto no último
@@ -194,13 +195,13 @@ async function sendMessages() {
     }
   }
 
-  console.log('\n=== DELIVERY RESULTS ===');
-  console.log(`✅ Successful deliveries: ${successfulContacts.length}/${CONTACTS.length}`);
-  console.log(`❌ Failed deliveries: ${failedContacts.length}/${CONTACTS.length}`);
-  console.log(`📊 Success rate: ${((successfulContacts.length / CONTACTS.length) * 100).toFixed(2)}%`);
+  console.log('\n=== RESULTADO DOS ENVIOS ===');
+  console.log(`Envios com sucesso: ${successfulContacts.length}/${CONTACTS.length}`);
+  console.log(`Envios com falha: ${failedContacts.length}/${CONTACTS.length}`);
+  console.log(`Taxa de sucesso: ${((successfulContacts.length / CONTACTS.length) * 100).toFixed(2)}%`);
 
   if (failedContacts.length > 0) {
-    console.log('\n❌ Failed contacts:');
+    console.log('\nContatos com falha:');
     failedContacts.forEach((contact, index) => {
       console.log(`  ${index + 1}. ${contact.phone} - ${contact.reason}`);
     });
@@ -209,17 +210,17 @@ async function sendMessages() {
   // Gera arquivos de log
   generateLogFiles();
 
-  console.log('\n[sendMessages] Finished sending messages to all contacts');
+  console.log('\n[sendMessages] Envio concluido para todos os contatos');
 }
 
 function checkFullyLoaded() {
   if (isAuthenticated && isReady && isFullyLoaded) {
-    console.log('\n🟢 === BOT FULLY READY ===');
-    console.log(`✅ Contacts loaded: ${CONTACTS.length}`);
-    console.log(`✅ Message: "${MESSAGE}"`);
-    console.log(`✅ Media: ${MEDIA ? 'Yes (' + MEDIA.mimetype + ')' : 'No media attached'}`);
-    console.log(`✅ Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`);
-    console.log('\n🚀 Press ENTER to start sending messages to all contacts...');
+    console.log('\n=== BOT PRONTO ===');
+    console.log(`Contatos carregados: ${CONTACTS.length}`);
+    console.log(`Mensagem: "${MESSAGE}"`);
+    console.log(`Midia: ${MEDIA ? 'Sim (' + MEDIA.mimetype + ')' : 'Nenhuma midia anexada'}`);
+    console.log(`Intervalo entre mensagens: ${DELAY_BETWEEN_MESSAGES}s`);
+    console.log('\nPressione ENTER para iniciar o envio para todos os contatos...');
 
     waitForUserInput();
   }
@@ -227,9 +228,9 @@ function checkFullyLoaded() {
 
 function waitForUserInput() {
   rl.question('', async () => {
-    console.log('\n[BOT] Starting message delivery...');
+    console.log('\n[BOT] Iniciando envio das mensagens...');
     await sendMessages();
-    console.log('\n[BOT] Message delivery completed!');
+    console.log('\n[BOT] Envio das mensagens concluido');
     exit();
   });
 }
@@ -237,49 +238,49 @@ function waitForUserInput() {
 const exit = () => {
   rl.close();
   bot.destroy();
-  console.log('[BOT] Application finished.');
+  console.log('[BOT] Aplicacao encerrada.');
   process.exit(0);
 };
 
 // Bot events
 bot.on('qr', qr => {
-  console.log('[BOT] 📱 Generating QR code...');
+  console.log('[BOT] Gerando QR code...');
   qrcode.generate(qr, { small: true });
-  console.log('📲 Scan the QR code above with your WhatsApp mobile app');
+  console.log('Escaneie o QR code acima com o WhatsApp do seu celular');
 });
 
 bot.on('loading_screen', (percent, message) => {
-  console.log(`[BOT] ⏳ Loading... ${percent}% - ${message}`);
+  console.log(`[BOT] Carregando... ${percent}% - ${message}`);
 });
 
 bot.on('authenticated', () => {
-  console.log('[BOT] ✅ Successfully authenticated!');
+  console.log('[BOT] Autenticacao concluida com sucesso');
   isAuthenticated = true;
   checkFullyLoaded();
 });
 
 bot.on('auth_failure', error => {
-  console.error('[BOT] ❌ Authentication failed:', error);
+  console.error('[BOT] Falha na autenticacao:', error);
 });
 
 bot.on('ready', async () => {
-  console.log('[BOT] ✅ WhatsApp client is ready!');
-  console.log(`[BOT] 📱 WhatsApp Web version: ${await bot.getWWebVersion()}`);
+  console.log('[BOT] Cliente do WhatsApp pronto');
+  console.log(`[BOT] Versao do WhatsApp Web: ${await bot.getWWebVersion()}`);
 
   isReady = true;
 
   // Aguarda um pouco mais para garantir que tudo esteja carregado
-  console.log('[BOT] ⏳ Waiting for full synchronization...');
+  console.log('[BOT] Aguardando sincronizacao completa...');
   setTimeout(async () => {
     try {
       // Testa se consegue obter informações básicas
       const info = await bot.getState();
-      console.log(`[BOT] 📊 WhatsApp state: ${info}`);
+      console.log(`[BOT] Estado do WhatsApp: ${info}`);
 
       isFullyLoaded = true;
       checkFullyLoaded();
     } catch (error) {
-      console.log('[BOT] ⚠️ Still synchronizing, waiting more...');
+      console.log('[BOT] Ainda sincronizando. Aguarde mais um pouco...');
       setTimeout(() => {
         isFullyLoaded = true;
         checkFullyLoaded();
@@ -289,7 +290,7 @@ bot.on('ready', async () => {
 });
 
 bot.on('disconnected', (reason) => {
-  console.log('[BOT] ❌ Client disconnected:', reason);
+  console.log('[BOT] Cliente desconectado:', reason);
   isAuthenticated = false;
   isReady = false;
   isFullyLoaded = false;
@@ -297,21 +298,23 @@ bot.on('disconnected', (reason) => {
 
 // Evento adicional para garantir que está totalmente sincronizado
 bot.on('change_state', state => {
-  console.log(`[BOT] 🔄 State changed to: ${state}`);
+  console.log(`[BOT] Estado alterado para: ${state}`);
   if (state === 'CONNECTED') {
-    console.log('[BOT] ✅ Fully connected and synchronized!');
+    console.log('[BOT] Conectado e sincronizado com sucesso');
   }
 });
 
 // Main execution
 async function main() {
-  console.log('\n=== 🤖 WA-Delivery BOT Starting ===');
+  console.log('\n=== INICIANDO WA-DELIVERY ===');
 
   // Carrega configuração
   const config = loadConfig();
 
+  CSV_PHONE_KEY = config['csv-phone-key'] || 'MobilePhone';
+
   // Carrega contatos e mensagem usando o config.json
-  CONTACTS = loadContacts(config['contacts-file']);
+  CONTACTS = loadContacts(config['contacts-file'], CSV_PHONE_KEY);
   MESSAGE = loadMessage(config['message-file']);
 
   // Carrega mídia (opcional)
@@ -321,27 +324,28 @@ async function main() {
   DELAY_BETWEEN_MESSAGES = config['delay-between-messages'] || 2;
 
   if (CONTACTS.length === 0) {
-    console.log('[MAIN] ❌ No contacts loaded. Please check your CSV file.');
+    console.log('[MAIN] Nenhum contato foi carregado. Verifique o arquivo CSV.');
     process.exit(1);
   }
 
   if (!MESSAGE || MESSAGE === '*default message*') {
-    console.log('[MAIN] ❌ No message loaded. Please check your message file.');
+    console.log('[MAIN] Nenhuma mensagem foi carregada. Verifique o arquivo de mensagem.');
     process.exit(1);
   }
 
-  console.log('[MAIN] ✅ Configuration loaded:');
-  console.log(`  - Contacts file: ${config['contacts-file']}`);
-  console.log(`  - Message file: ${config['message-file']}`);
-  console.log(`  - Media file: ${config['media-file'] || 'Not specified'}`);
-  console.log(`  - Media loaded: ${MEDIA ? 'Yes (' + MEDIA.mimetype + ')' : 'No'}`);
-  console.log(`  - Delay between messages: ${DELAY_BETWEEN_MESSAGES}s`);
-  console.log(`  - Contacts count: ${CONTACTS.length}`);
-  console.log(`  - Message preview: "${MESSAGE.substring(0, 50)}${MESSAGE.length > 50 ? '...' : ''}"`);
+  console.log('[MAIN] Configuracao carregada:');
+  console.log(`  - Arquivo de contatos: ${config['contacts-file']}`);
+  console.log(`  - Arquivo de mensagem: ${config['message-file']}`);
+  console.log(`  - Arquivo de midia: ${config['media-file'] || 'Nao informado'}`);
+  console.log(`  - Midia carregada: ${MEDIA ? 'Sim (' + MEDIA.mimetype + ')' : 'Nao'}`);
+  console.log(`  - Intervalo entre mensagens: ${DELAY_BETWEEN_MESSAGES}s`);
+  console.log(`  - Coluna do telefone no CSV: ${CSV_PHONE_KEY}`);
+  console.log(`  - Quantidade de contatos: ${CONTACTS.length}`);
+  console.log(`  - Previa da mensagem: "${MESSAGE.substring(0, 50)}${MESSAGE.length > 50 ? '...' : ''}"`);
 
   // Inicializa o bot
-  console.log('\n[BOT] 🚀 Initializing WhatsApp client...');
-  console.log('[BOT] ⏳ Please wait for complete authentication and synchronization...');
+  console.log('\n[BOT] Iniciando cliente do WhatsApp...');
+  console.log('[BOT] Aguarde a autenticacao e a sincronizacao completas...');
   bot.initialize();
 }
 
