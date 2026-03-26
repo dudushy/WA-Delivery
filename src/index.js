@@ -10,11 +10,31 @@ const { loadContacts } = require('./utils/loadContacts');
 const { loadMessage } = require('./utils/loadMessage');
 const { loadMedia } = require('./utils/loadMedia');
 
+const CONFIG = loadConfig();
+
 // Configuração do readline para capturar ENTER
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
+
+const puppeteerConfig = {
+  headless: true,
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--no-zygote',
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding'
+  ]
+};
+
+if (CONFIG['chrome-executable-path']) {
+  puppeteerConfig.path = CONFIG['chrome-executable-path'];
+}
 
 const bot = new Client({
   authStrategy: new LocalAuth({
@@ -23,20 +43,7 @@ const bot = new Client({
   webVersionCache: {
     type: 'local',
   },
-  puppeteer: {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--no-zygote',
-      '--disable-background-timer-throttling',
-      '--disable-backgrounding-occluded-windows',
-      '--disable-renderer-backgrounding'
-    ],
-    path: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' // Altere este caminho se necessário
-  },
+  puppeteer: puppeteerConfig,
 });
 
 let CONTACTS = [];
@@ -308,8 +315,7 @@ bot.on('change_state', state => {
 async function main() {
   console.log('\n=== INICIANDO WA-DELIVERY ===');
 
-  // Carrega configuração
-  const config = loadConfig();
+  const config = CONFIG;
 
   CSV_PHONE_KEY = config['csv-phone-key'] || 'MobilePhone';
 
@@ -339,6 +345,7 @@ async function main() {
   console.log(`  - Arquivo de midia: ${config['media-file'] || 'Nao informado'}`);
   console.log(`  - Midia carregada: ${MEDIA ? 'Sim (' + MEDIA.mimetype + ')' : 'Nao'}`);
   console.log(`  - Intervalo entre mensagens: ${DELAY_BETWEEN_MESSAGES}s`);
+  console.log(`  - Caminho do Chrome: ${config['chrome-executable-path'] || 'Deteccao automatica'}`);
   console.log(`  - Coluna do telefone no CSV: ${CSV_PHONE_KEY}`);
   console.log(`  - Quantidade de contatos: ${CONTACTS.length}`);
   console.log(`  - Previa da mensagem: "${MESSAGE.substring(0, 50)}${MESSAGE.length > 50 ? '...' : ''}"`);

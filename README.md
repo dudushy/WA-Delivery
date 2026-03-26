@@ -18,6 +18,7 @@ npm ci
 
 O bot usa o arquivo `config.json` para saber:
 
+- onde esta o executavel do Google Chrome, quando necessario
 - onde esta o arquivo `.txt` com a mensagem
 - onde esta o arquivo `.csv` com os contatos
 - onde esta a midia opcional para envio, como `.mp4` ou `.png`
@@ -41,6 +42,7 @@ Voce pode usar outros nomes de arquivo, desde que atualize os caminhos no `confi
 
 ```json
 {
+	"chrome-executable-path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
 	"message-file": "data/message.txt",
 	"contacts-file": "data/contacts.csv",
 	"media-file": "data/video.mp4",
@@ -51,11 +53,30 @@ Voce pode usar outros nomes de arquivo, desde que atualize os caminhos no `confi
 
 ### O que cada campo faz
 
+- `chrome-executable-path`: caminho completo do executavel do Google Chrome
 - `message-file`: caminho do arquivo `.txt` com a mensagem que sera enviada
 - `contacts-file`: caminho do arquivo `.csv` com os contatos
 - `media-file`: caminho da midia opcional que sera enviada junto com a mensagem
 - `delay-between-messages`: tempo de espera entre um envio e outro, em segundos
 - `csv-phone-key`: nome exato da coluna do `.csv` que contem o telefone
+
+### Configuracao do Chrome
+
+O projeto pode usar o caminho do Chrome definido no `config.json` pela chave `chrome-executable-path`.
+
+Exemplo no Windows:
+
+```json
+"chrome-executable-path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+```
+
+Se o Chrome ja estiver disponivel automaticamente no ambiente, voce pode deixar esse campo vazio:
+
+```json
+"chrome-executable-path": ""
+```
+
+Use esse campo principalmente quando o bot nao conseguir encontrar o navegador sozinho.
 
 ## Como preparar os arquivos
 

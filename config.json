@@ -1,4 +1,5 @@
 {
+  "chrome-executable-path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   "message-file": "data/message.txt",
   "contacts-file": "data/contacts.csv",
   "delay-between-messages": 0.5,

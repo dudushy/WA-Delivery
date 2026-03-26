@@ -5,6 +5,7 @@ function loadConfig(configPath = './config.json') {
     if (!fs.existsSync(configPath)) {
       console.log(`[loadConfig] Arquivo de configuracao nao encontrado: ${configPath}`);
       return {
+        'chrome-executable-path': '',
         'csv-phone-key': 'MobilePhone',
         'delay-between-messages': 2,
         'message-file': 'data/message.txt',
@@ -19,6 +20,7 @@ function loadConfig(configPath = './config.json') {
   } catch (error) {
     console.error('[loadConfig] Erro ao carregar configuracao:', error);
     return {
+      'chrome-executable-path': '',
       'csv-phone-key': 'MobilePhone',
       'delay-between-messages': 2,
       'message-file': 'data/message.txt',
