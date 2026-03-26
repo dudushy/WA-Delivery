@@ -14,6 +14,7 @@ function loadContacts(filePath, phoneKey = 'MobilePhone') {
     const contacts = [];
 
     for (const [, value] of Object.entries(json)) {
+      // console.log('[loadContacts] Processando contato:', value);
       const mobilePhone = value[phoneKey];
       console.log('[loadContacts] Telefone encontrado:', mobilePhone);
 

@@ -3,5 +3,5 @@
   "contacts-file": "data/contacts.csv",
   "delay-between-messages": 0.5,
   "media-file": "data/video.mp4",
-  "csv-phone-key": "phone"
+  "csv-phone-key": "Phone1-Value"
 }
