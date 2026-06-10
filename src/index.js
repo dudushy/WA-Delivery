@@ -33,7 +33,7 @@ const puppeteerConfig = {
 };
 
 if (CONFIG['chrome-executable-path']) {
-  puppeteerConfig.path = CONFIG['chrome-executable-path'];
+  puppeteerConfig.executablePath = CONFIG['chrome-executable-path'];
 }
 
 const bot = new Client({
