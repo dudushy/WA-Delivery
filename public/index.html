@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WA-Delivery</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <span class="eyebrow">SHYLAND DEV</span>
+      <h1>WA-Delivery</h1>
+      <p>Campanhas pela API oficial do WhatsApp, executadas no seu computador.</p>
+    </header>
+
+    <nav aria-label="Etapas">
+      <button class="tab active" data-tab="settings">1. Configurar API</button>
+      <button class="tab" data-tab="estimate">2. Estimar custo</button>
+    </nav>
+
+    <section id="settings" class="panel active">
+      <div class="panel-heading">
+        <div><span class="step">CONFIGURAÇÃO LOCAL</span><h2>Meta Cloud API</h2></div>
+        <span id="tokenStatus" class="status">Verificando…</span>
+      </div>
+      <p class="muted">O token é salvo no cofre de credenciais do sistema. Ele não fica no navegador nem é devolvido pela API local.</p>
+      <form id="settingsForm">
+        <div class="grid">
+          <label>Phone Number ID<input id="phoneNumberId" required autocomplete="off" placeholder="123456789012345"></label>
+          <label>WhatsApp Business Account ID<input id="wabaId" required autocomplete="off" placeholder="123456789012345"></label>
+          <label>Graph API version<input id="apiVersion" required pattern="v[0-9]+\.[0-9]+" placeholder="v26.0"></label>
+          <label>Access token<input id="accessToken" type="password" autocomplete="new-password" placeholder="Deixe vazio para manter o atual"></label>
+        </div>
+        <div class="actions">
+          <button class="primary" type="submit">Salvar configuração</button>
+          <button id="testConnection" type="button">Testar conexão</button>
+          <button id="removeToken" class="danger" type="button">Remover token</button>
+        </div>
+      </form>
+      <div id="settingsMessage" class="message" hidden></div>
+    </section>
+
+    <section id="estimate" class="panel">
+      <div class="panel-heading">
+        <div><span class="step">ANTES DE ENVIAR</span><h2>Estimativa da campanha</h2></div>
+      </div>
+      <form id="estimateForm">
+        <div class="grid">
+          <label>Destinatários brasileiros<input id="recipients" type="number" min="1" max="1000000" value="1000" required></label>
+          <label>Categoria do template<select id="category"><option value="marketing">Marketing</option><option value="utility">Utility</option><option value="authentication">Authentication</option></select></label>
+        </div>
+        <button class="primary" type="submit">Calcular estimativa</button>
+      </form>
+      <div id="estimateResult" class="estimate-card" hidden>
+        <span>Custo estimado</span><strong id="estimatedTotal"></strong>
+        <div><b id="unitPrice"></b> por mensagem entregue</div>
+        <small id="estimateDisclaimer"></small>
+        <a id="pricingSource" target="_blank" rel="noreferrer">Consultar tabela oficial da Meta</a>
+      </div>
+      <div id="estimateMessage" class="message" hidden></div>
+    </section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

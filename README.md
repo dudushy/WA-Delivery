@@ -1,144 +1,72 @@
-# [WA-Delivery](https://github.com/dudushy/WA-Delivery/)
+# WA-Delivery
 
-Bot para WhatsApp que envia uma mensagem para uma lista de contatos usando um arquivo `.csv`.
-
----
+Aplicação web local para preparar campanhas usando a **WhatsApp Business Platform / Cloud API oficial da Meta**. A versão 2 remove a automação do WhatsApp Web, Puppeteer, Chrome e autenticação por QR Code.
 
 ## Requisitos
 
-- [Node.js](https://nodejs.org/)
+- Node.js 24 (a versão está fixada em `.nvmrc`)
+- Uma conta configurada na [WhatsApp Business Platform](https://developers.facebook.com/docs/whatsapp/cloud-api/get-started)
+- Um cofre de credenciais disponível no sistema:
+  - Windows: Credential Manager
+  - macOS: Keychain
+  - Linux: Secret Service (por exemplo, GNOME Keyring)
 
-## Instalacao
+## Instalação e execução
 
 ```bash
+nvm install
+nvm use
 npm ci
-```
-
-## Como configurar
-
-O bot usa o arquivo `config.json` para saber:
-
-- onde esta o executavel do Google Chrome, quando necessario
-- onde esta o arquivo `.txt` com a mensagem
-- onde esta o arquivo `.csv` com os contatos
-- onde esta a midia opcional para envio, como `.mp4` ou `.png`
-- qual o intervalo entre as mensagens, em segundos
-- qual coluna do `.csv` contem o numero de telefone
-
-### Estrutura esperada na pasta `data`
-
-Exemplo:
-
-```text
-data/
-	contacts.csv
-	message.txt
-	video.mp4
-```
-
-Voce pode usar outros nomes de arquivo, desde que atualize os caminhos no `config.json`.
-
-### Exemplo de `config.json`
-
-```json
-{
-	"chrome-executable-path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-	"message-file": "data/message.txt",
-	"contacts-file": "data/contacts.csv",
-	"media-file": "data/video.mp4",
-	"delay-between-messages": 0.5,
-	"csv-phone-key": "phone"
-}
-```
-
-### O que cada campo faz
-
-- `chrome-executable-path`: caminho completo do executavel do Google Chrome
-- `message-file`: caminho do arquivo `.txt` com a mensagem que sera enviada
-- `contacts-file`: caminho do arquivo `.csv` com os contatos
-- `media-file`: caminho da midia opcional que sera enviada junto com a mensagem
-- `delay-between-messages`: tempo de espera entre um envio e outro, em segundos
-- `csv-phone-key`: nome exato da coluna do `.csv` que contem o telefone
-
-### Configuracao do Chrome
-
-O projeto pode usar o caminho do Chrome definido no `config.json` pela chave `chrome-executable-path`.
-
-Exemplo no Windows:
-
-```json
-"chrome-executable-path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-```
-
-Se o Chrome ja estiver disponivel automaticamente no ambiente, voce pode deixar esse campo vazio:
-
-```json
-"chrome-executable-path": ""
-```
-
-Use esse campo principalmente quando o bot nao conseguir encontrar o navegador sozinho.
-
-## Como preparar os arquivos
-
-### 1. Arquivo de mensagem
-
-Crie um arquivo `.txt` dentro da pasta `data`, por exemplo:
-
-`data/message.txt`
-
-Conteudo de exemplo:
-
-```text
-Ola! Esta e uma mensagem de teste.
-```
-
-### 2. Arquivo de contatos
-
-Crie ou exporte um arquivo `.csv` com uma coluna que contenha o numero de telefone.
-
-Exemplo:
-
-```csv
-name,phone
-Maria,5511999999999
-Joao,5511888888888
-```
-
-Nesse caso, o valor de `csv-phone-key` deve ser:
-
-```json
-"csv-phone-key": "phone"
-```
-
-Se o seu `.csv` usar outro nome de coluna, como `MobilePhone`, `Telefone` ou `Numero`, basta informar esse mesmo nome no `config.json`.
-
-### 3. Arquivo de midia opcional
-
-Se quiser enviar uma imagem ou video junto com a mensagem, informe o caminho em `media-file`.
-
-Exemplos:
-
-- `data/imagem.png`
-- `data/video.mp4`
-
-Se nao quiser enviar midia, remova a chave `media-file` do `config.json` ou deixe sem valor.
-
-## Como executar
-
-1. Ajuste os arquivos dentro da pasta `data`
-2. Confira o `config.json`
-3. Execute o projeto:
-
-```bash
+npm run build
 npm start
 ```
 
-4. Escaneie o QR code com o WhatsApp no celular
-5. Aguarde o bot terminar a autenticacao
-6. Pressione `ENTER` para iniciar os envios
+Abra `http://127.0.0.1:3000` no navegador. Em desenvolvimento, use `npm run dev`.
 
-## Observacoes
+No Windows, também é possível executar `INSTALL.bat` uma vez e depois `RUN.bat`.
 
-- O bot limpa o numero e usa apenas os digitos encontrados no campo configurado no `.csv`
-- Ao final do processo, arquivos de log sao gerados na pasta `logs`
-- Se o contato nao existir no WhatsApp, ele sera listado como falha
+## Configuração da Meta pela interface
+
+Na tela **Configurar API**, informe:
+
+- `Phone Number ID` (`META_PHONE_NUMBER_ID`)
+- `WhatsApp Business Account ID` (`META_WABA_ID`)
+- versão da Graph API (`META_API_VERSION`), atualmente `v26.0`
+- access token (`META_ACCESS_TOKEN`)
+
+O token é enviado somente ao backend local e salvo no cofre nativo do sistema operacional. Ele não é armazenado em `localStorage`, não aparece no arquivo de configuração e nunca é devolvido ao frontend. Os IDs e a versão da API ficam no diretório de configuração do usuário:
+
+- Windows: `%APPDATA%\WA-Delivery\config.json`
+- macOS: `~/Library/Application Support/WA-Delivery/config.json`
+- Linux: `${XDG_CONFIG_HOME:-~/.config}/wa-delivery/config.json`
+
+As configurações persistem após fechar a aplicação ou reiniciar o computador e são carregadas como variáveis do processo quando o WA-Delivery inicia. Variáveis já definidas no ambiente também são aceitas como bootstrap.
+
+Use **Testar conexão** para validar o token e o `Phone Number ID` diretamente na Graph API.
+
+## Estimativa de custos
+
+A tela **Estimar custo** usa a tabela brasileira incorporada, vigente desde 01/07/2026:
+
+| Categoria | Preço estimado por mensagem entregue |
+|---|---:|
+| Marketing | R$ 0,3217 |
+| Utility | R$ 0,0350 |
+| Authentication | R$ 0,0350 |
+
+A estimativa não é uma cotação nem uma fatura. A Meta cobra mensagens entregues, e o valor pode variar por país do destinatário, categoria aprovada, volume e atualizações da tabela. Confira sempre a [tabela oficial da Meta](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing).
+
+## Segurança
+
+- O servidor escuta somente em `127.0.0.1` por padrão.
+- O token nunca é registrado em logs nem devolvido ao browser.
+- O backend força o cofre nativo e não permite fallback silencioso para arquivo em texto puro.
+- Para trocar a porta, use `PORT`; para alterar o host conscientemente, use `HOST`.
+
+## Validação
+
+```bash
+npm run check
+```
+
+Esse comando compila o TypeScript em modo estrito e executa os testes automatizados.

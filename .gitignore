@@ -1,5 +1,6 @@
 /.wwebjs_auth
 /.wwebjs_cache
+dist/
 
 # Ignore all files in data directory except .gitkeep
 data/*
@@ -7,6 +8,7 @@ data/*
 
 # Ignore logs directory
 logs/
+.wa-delivery/
 
 # Ignore core
 core
