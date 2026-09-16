@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WA-Delivery</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <main class="shell">
     <header>
-      <span class="eyebrow">SHYLAND DEV</span>
+      <span class="eyebrow">DUDUSHY</span>
       <h1>WA-Delivery</h1>
       <p>Campanhas pela API oficial do WhatsApp, executadas no seu computador.</p>
     </header>
@@ -25,7 +26,7 @@
         <div><span class="step">CONFIGURAÇÃO LOCAL</span><h2>Meta Cloud API</h2></div>
         <span id="tokenStatus" class="status">Verificando…</span>
       </div>
-      <p class="muted">O token é salvo no cofre de credenciais do sistema. Ele não fica no navegador nem é devolvido pela API local.</p>
+      <p class="muted">O token é salvo no cofre nativo quando disponível ou, no WSL, em arquivo criptografado. Ele não fica no navegador nem é devolvido pela API local.</p>
       <button class="text-button" type="button" data-open-tab="meta-guide">Não sabe onde obter esses dados? Abrir guia passo a passo →</button>
       <form id="settingsForm">
         <div class="grid">
@@ -191,7 +192,7 @@
               <li>Cole o access token do System User.</li>
               <li>Clique em <strong>Salvar configuração</strong> e depois em <strong>Testar conexão</strong>.</li>
             </ol>
-            <p class="hint">O token é guardado no cofre de credenciais do sistema operacional e não é devolvido ao navegador após ser salvo.</p>
+            <p class="hint">O token é guardado no cofre nativo quando disponível. No WSL, é armazenado com AES-256-GCM em arquivo acessível somente ao usuário e não é devolvido ao navegador após ser salvo.</p>
           </div>
         </details>
 
