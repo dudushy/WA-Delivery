@@ -17,6 +17,7 @@
     <nav aria-label="Etapas">
       <button class="tab active" data-tab="settings">1. Configurar API</button>
       <button class="tab" data-tab="estimate">2. Estimar custo</button>
+      <button class="tab" data-tab="meta-guide">Guia da Meta</button>
     </nav>
 
     <section id="settings" class="panel active">
@@ -25,6 +26,7 @@
         <span id="tokenStatus" class="status">Verificando…</span>
       </div>
       <p class="muted">O token é salvo no cofre de credenciais do sistema. Ele não fica no navegador nem é devolvido pela API local.</p>
+      <button class="text-button" type="button" data-open-tab="meta-guide">Não sabe onde obter esses dados? Abrir guia passo a passo →</button>
       <form id="settingsForm">
         <div class="grid">
           <label>Phone Number ID<input id="phoneNumberId" required autocomplete="off" placeholder="123456789012345"></label>
@@ -59,6 +61,188 @@
         <a id="pricingSource" target="_blank" rel="noreferrer">Consultar tabela oficial da Meta</a>
       </div>
       <div id="estimateMessage" class="message" hidden></div>
+    </section>
+
+    <section id="meta-guide" class="panel guide-panel">
+      <div class="panel-heading">
+        <div><span class="step">ONBOARDING COMPLETO</span><h2>Configurar a Meta Cloud API</h2></div>
+        <span class="status">7 etapas</span>
+      </div>
+      <p class="muted guide-intro">Siga as etapas na ordem. Você pode começar com os recursos de teste da Meta e cadastrar o número real somente depois que a conexão estiver funcionando.</p>
+
+      <aside class="notice warning">
+        <strong>Antes de usar um número que já está no WhatsApp</strong>
+        <p>Não remova nem migre uma conta em uso sem conferir se sua conta possui o fluxo oficial de <em>Coexistence</em>. Dependendo do onboarding disponível, o número pode deixar de funcionar no aplicativo WhatsApp/WhatsApp Business. Faça backup das conversas antes de qualquer migração.</p>
+      </aside>
+
+      <div class="guide-summary" aria-label="Dados que serão obtidos">
+        <div><span>01</span><strong>Phone Number ID</strong><small>ID técnico, diferente do telefone</small></div>
+        <div><span>02</span><strong>WABA ID</strong><small>ID da conta WhatsApp Business</small></div>
+        <div><span>03</span><strong>Access token</strong><small>Credencial secreta do System User</small></div>
+      </div>
+
+      <div class="guide-steps">
+        <details open>
+          <summary><span>1</span><div><strong>Preparar a conta empresarial</strong><small>Business Portfolio e permissões</small></div></summary>
+          <div class="details-body">
+            <h3>Pré-requisitos</h3>
+            <ul>
+              <li>Conta pessoal do Facebook com autenticação em dois fatores ativada.</li>
+              <li>Acesso administrativo a um <em>Business Portfolio</em>.</li>
+              <li>Empresa ou atividade comercial compatível com as políticas do WhatsApp.</li>
+              <li>Para produção, número capaz de receber SMS ou ligação de voz.</li>
+              <li>Método de pagamento aceito pela Meta, quando a cobrança for habilitada.</li>
+            </ul>
+            <ol>
+              <li>Acesse a <a href="https://business.facebook.com/" target="_blank" rel="noreferrer">Meta Business Suite</a>.</li>
+              <li>Selecione um portfólio empresarial existente ou crie um novo.</li>
+              <li>Abra <strong>Configurações do negócio</strong> e confirme que sua conta é administradora.</li>
+              <li>Quando solicitado, confirme e-mail, autenticação em dois fatores e dados da empresa.</li>
+            </ol>
+            <p class="hint">A verificação empresarial pode não ser necessária para o teste inicial, mas pode ser exigida para produção, aumento de limites e outros recursos.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span>2</span><div><strong>Criar o aplicativo da Meta</strong><small>Meta for Developers e WhatsApp</small></div></summary>
+          <div class="details-body">
+            <ol>
+              <li>Acesse <a href="https://developers.facebook.com/apps/" target="_blank" rel="noreferrer">Meus aplicativos — Meta for Developers</a>.</li>
+              <li>Clique em <strong>Criar aplicativo</strong> (<em>Create App</em>).</li>
+              <li>Selecione o caso de uso relacionado a <strong>WhatsApp</strong>. Se ele não aparecer, escolha <strong>Outros</strong> e depois <strong>Business</strong>.</li>
+              <li>Informe um nome, como <code>WA-Delivery</code>, e um e-mail de contato.</li>
+              <li>Associe o aplicativo ao portfólio empresarial correto.</li>
+              <li>No painel do aplicativo, encontre <strong>WhatsApp</strong> e clique em <strong>Configurar</strong> (<em>Set up</em>).</li>
+              <li>Crie ou selecione uma <strong>WhatsApp Business Account (WABA)</strong>.</li>
+            </ol>
+            <p class="hint">O WA-Delivery não solicita o <code>App Secret</code>. Não compartilhe essa credencial.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span>3</span><div><strong>Testar antes de cadastrar o número real</strong><small>Número e token temporários</small></div></summary>
+          <div class="details-body">
+            <p>Em <strong>WhatsApp → Configuração da API</strong> (<em>API Setup</em>), a Meta fornece um número remetente de teste, uma WABA de teste, os IDs e um token temporário.</p>
+            <ol>
+              <li>Na lista de destinatários, clique em <strong>Adicionar número de telefone</strong>.</li>
+              <li>Informe um celular que você controla e confirme o código recebido. Esse telefone será apenas o destinatário autorizado do teste.</li>
+              <li>Envie o template <code>hello_world</code> pela própria página da Meta.</li>
+              <li>Copie o <code>Phone Number ID</code>, o <code>WhatsApp Business Account ID</code> e o token temporário.</li>
+              <li>No WA-Delivery, abra <strong>Configurar API</strong>, salve esses dados e clique em <strong>Testar conexão</strong>.</li>
+            </ol>
+            <aside class="notice"><strong>Token temporário</strong><p>Ele expira rapidamente e serve somente para o teste inicial. Para uso contínuo, crie o token de System User descrito na etapa 5.</p></aside>
+          </div>
+        </details>
+
+        <details>
+          <summary><span>4</span><div><strong>Cadastrar o número real</strong><small>Verificação, PIN e identificação</small></div></summary>
+          <div class="details-body">
+            <h3>Escolha do número</h3>
+            <ul>
+              <li>Prefira um número exclusivo para a integração.</li>
+              <li>Ele precisa estar sob seu controle e receber SMS ou ligação internacional.</li>
+              <li>Informe código do país e DDD, por exemplo <code>+55 16 ...</code>.</li>
+              <li>O número não pode estar conectado a outra WhatsApp Business Platform.</li>
+            </ul>
+            <h3>Cadastro</h3>
+            <ol>
+              <li>Abra <strong>WhatsApp → Configuração da API</strong> e clique em <strong>Adicionar número de telefone</strong>.</li>
+              <li>Preencha nome de exibição, fuso horário, categoria e descrição da empresa.</li>
+              <li>Informe o número e escolha a confirmação por SMS ou ligação.</li>
+              <li>Digite o código recebido.</li>
+              <li>Defina ou informe o PIN de seis dígitos da verificação em duas etapas e guarde-o em local seguro.</li>
+              <li>Aguarde o número aparecer como conectado no WhatsApp Manager.</li>
+            </ol>
+            <h3>Copiar os IDs corretos</h3>
+            <ol>
+              <li>No seletor <strong>De</strong> (<em>From</em>), selecione o número real.</li>
+              <li>Copie o <code>Phone Number ID</code> exibido abaixo dele.</li>
+              <li>Copie o <code>WhatsApp Business Account ID</code>.</li>
+            </ol>
+            <p class="hint"><strong>O Phone Number ID não é o número com DDD.</strong> Ele é uma sequência numérica independente fornecida pela Meta.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span>5</span><div><strong>Gerar o token permanente</strong><small>System User e permissões</small></div></summary>
+          <div class="details-body">
+            <ol>
+              <li>Abra as <a href="https://business.facebook.com/settings/" target="_blank" rel="noreferrer">Configurações do negócio</a> e selecione o portfólio correto.</li>
+              <li>Acesse <strong>Usuários → Usuários do sistema</strong> (<em>System Users</em>).</li>
+              <li>Crie um usuário chamado, por exemplo, <code>WA-Delivery</code>.</li>
+              <li>Em <strong>Adicionar ativos</strong>, atribua o aplicativo e a WABA usados pelo número.</li>
+              <li>Conceda o acesso necessário para gerenciar a conta e enviar mensagens.</li>
+              <li>Clique em <strong>Gerar novo token</strong>, selecione o aplicativo e a maior validade apropriada disponível.</li>
+              <li>Marque <code>whatsapp_business_messaging</code> e <code>whatsapp_business_management</code>.</li>
+              <li>Gere e copie o token imediatamente. A Meta pode não exibi-lo novamente.</li>
+            </ol>
+            <aside class="notice danger-notice"><strong>Trate o token como uma senha</strong><p>Não publique no GitHub, não envie por mensagens, não inclua em capturas de tela e não salve em arquivos versionados.</p></aside>
+          </div>
+        </details>
+
+        <details>
+          <summary><span>6</span><div><strong>Salvar no WA-Delivery</strong><small>Configuração segura neste computador</small></div></summary>
+          <div class="details-body">
+            <ol>
+              <li>Volte para <button type="button" class="inline-action" data-open-tab="settings">Configurar API</button>.</li>
+              <li>Preencha o <strong>Phone Number ID</strong> do número real.</li>
+              <li>Preencha o <strong>WhatsApp Business Account ID</strong> da WABA que contém o número.</li>
+              <li>Mantenha a versão sugerida da Graph API, salvo se a Meta indicar outra versão compatível.</li>
+              <li>Cole o access token do System User.</li>
+              <li>Clique em <strong>Salvar configuração</strong> e depois em <strong>Testar conexão</strong>.</li>
+            </ol>
+            <p class="hint">O token é guardado no cofre de credenciais do sistema operacional e não é devolvido ao navegador após ser salvo.</p>
+          </div>
+        </details>
+
+        <details>
+          <summary><span>7</span><div><strong>Preparar templates e cobrança</strong><small>Requisito para campanhas</small></div></summary>
+          <div class="details-body">
+            <ol>
+              <li>No WhatsApp Manager, abra <strong>Modelos de mensagem</strong> (<em>Message Templates</em>).</li>
+              <li>Crie o template na categoria correta: <code>Marketing</code>, <code>Utility</code> ou <code>Authentication</code>.</li>
+              <li>Informe idioma, conteúdo e variáveis e envie para aprovação.</li>
+              <li>Aguarde o status <strong>Approved</strong>.</li>
+              <li>Em <strong>Cobrança e pagamentos</strong>, cadastre um método de pagamento quando solicitado.</li>
+              <li>Use a tela <button type="button" class="inline-action" data-open-tab="estimate">Estimar custo</button> antes da campanha.</li>
+            </ol>
+            <p class="hint">Envie somente para pessoas que deram consentimento. A estimativa não substitui a fatura da Meta, que considera entrega, categoria, mercado, volume e regras vigentes.</p>
+          </div>
+        </details>
+      </div>
+
+      <section class="checklist">
+        <span class="step">CHECKLIST FINAL</span>
+        <h3>Antes de começar uma campanha</h3>
+        <label><input type="checkbox"> O número aparece como conectado no WhatsApp Manager</label>
+        <label><input type="checkbox"> O teste de conexão do WA-Delivery retorna sucesso</label>
+        <label><input type="checkbox"> O Phone Number ID corresponde ao número real</label>
+        <label><input type="checkbox"> O System User possui acesso à WABA correta</label>
+        <label><input type="checkbox"> Existe um template aprovado para a campanha</label>
+        <label><input type="checkbox"> O método de pagamento está válido, quando exigido</label>
+        <label><input type="checkbox"> Os destinatários consentiram em receber as mensagens</label>
+      </section>
+
+      <section class="troubleshooting">
+        <span class="step">TROUBLESHOOTING</span>
+        <h3>Problemas comuns</h3>
+        <div class="problem-grid">
+          <div><strong>401 ou token inválido</strong><p>Gere outro token e confirme as duas permissões necessárias.</p></div>
+          <div><strong>403 ou sem permissão</strong><p>Atribua o aplicativo e a WABA ao System User.</p></div>
+          <div><strong>Número não encontrado</strong><p>Use o Phone Number ID, não o telefone com DDD.</p></div>
+          <div><strong>Código SMS não chega</strong><p>Confira país/DDD e tente a confirmação por ligação.</p></div>
+          <div><strong>Número já está em uso</strong><p>Avalie migração ou Coexistence antes de remover a conta.</p></div>
+          <div><strong>O teste funcionava e parou</strong><p>O token temporário pode ter expirado. Use um token de System User.</p></div>
+        </div>
+      </section>
+
+      <footer class="guide-links">
+        <strong>Documentação oficial</strong>
+        <a href="https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started" target="_blank" rel="noreferrer">Primeiros passos</a>
+        <a href="https://developers.facebook.com/documentation/business-messaging/whatsapp/business-phone-numbers/registration" target="_blank" rel="noreferrer">Registro de números</a>
+        <a href="https://developers.facebook.com/documentation/business-messaging/whatsapp/business-phone-numbers/two-step-verification/" target="_blank" rel="noreferrer">Verificação em duas etapas</a>
+        <a href="https://developers.facebook.com/blog/post/2022/12/05/auth-tokens/" target="_blank" rel="noreferrer">Tokens de acesso</a>
+      </footer>
     </section>
   </main>
   <script type="module" src="/app.js"></script>
