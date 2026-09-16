@@ -27,6 +27,8 @@ No Windows, também é possível executar `INSTALL.bat` uma vez e depois `RUN.ba
 
 ## Configuração da Meta pela interface
 
+Para criar a aplicação na Meta, testar com o número fornecido pela plataforma, cadastrar um número real e gerar um token permanente, siga o **[guia completo de configuração da Meta Cloud API](docs/META_CLOUD_API.md)**.
+
 Na tela **Configurar API**, informe:
 
 - `Phone Number ID` (`META_PHONE_NUMBER_ID`)
