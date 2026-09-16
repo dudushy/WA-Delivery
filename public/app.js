@@ -24,11 +24,15 @@ async function loadSettings() {
   status.classList.toggle('ok', settings.hasAccessToken);
 }
 
-document.querySelectorAll('.tab').forEach((button) => button.addEventListener('click', () => {
+function openTab(tabId) {
   document.querySelectorAll('.tab,.panel').forEach((element) => element.classList.remove('active'));
-  button.classList.add('active');
-  $(`#${button.dataset.tab}`).classList.add('active');
-}));
+  document.querySelector(`.tab[data-tab="${tabId}"]`)?.classList.add('active');
+  $(`#${tabId}`)?.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.querySelectorAll('.tab').forEach((button) => button.addEventListener('click', () => openTab(button.dataset.tab)));
+document.querySelectorAll('[data-open-tab]').forEach((button) => button.addEventListener('click', () => openTab(button.dataset.openTab)));
 
 $('#settingsForm').addEventListener('submit', async (event) => {
   event.preventDefault();
