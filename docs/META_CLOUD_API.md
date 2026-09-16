@@ -148,7 +148,7 @@ O token concede acesso à conta e deve ser tratado como uma senha. Não envie po
 4. Clique em **Salvar configuração**.
 5. Clique em **Testar conexão**.
 
-O access token é enviado somente ao backend local e guardado no cofre de credenciais do sistema operacional. Os demais IDs ficam na configuração local do usuário. O frontend não recebe o token de volta depois de salvá-lo.
+O access token é enviado somente ao backend local e guardado no cofre nativo quando disponível. No WSL, é usado um arquivo criptografado com AES-256-GCM e permissões restritas ao usuário. Os demais IDs ficam na configuração local do usuário. O frontend não recebe o token de volta depois de salvá-lo.
 
 ## Etapa 7 — Configurar cobrança e templates
 
@@ -196,4 +196,3 @@ Considere o onboarding concluído quando:
 - [Tokens de acesso para a WhatsApp Business Platform](https://developers.facebook.com/blog/post/2022/12/05/auth-tokens/)
 - [Onboarding de números existentes no WhatsApp Business App](https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users)
 - [Documentação oficial da Cloud API no Postman](https://www.postman.com/meta/whatsapp-business-platform/documentation/wlk6lh4/whatsapp-cloud-api)
-
