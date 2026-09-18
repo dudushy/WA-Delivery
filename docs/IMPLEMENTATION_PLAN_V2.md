@@ -149,6 +149,9 @@ A aplicação inicia por um único comando, abre em localhost, conecta o WhatsAp
 ### Entregas
 
 - upload de CSV, incluindo exportações do Google Contacts;
+- cadastro manual de contatos para quem não possui arquivo de importação;
+- formulário manual com nome e telefone, validação imediata e inclusão de vários contatos;
+- edição e remoção de contatos adicionados manualmente antes de salvar a lista;
 - detectar delimiter, encoding e headers;
 - mostrar tabela de preview antes de persistir;
 - sugerir colunas prováveis de telefone;
@@ -162,7 +165,7 @@ A aplicação inicia por um único comando, abre em localhost, conecta o WhatsAp
 
 ### Critério de conclusão
 
-O usuário importa um CSV, escolhe a coluna de telefone vendo dados reais e recebe totais confiáveis de válidos, inválidos e duplicados antes de salvar.
+O usuário consegue criar uma lista digitando nomes e telefones manualmente ou importar um CSV. Na importação, escolhe a coluna de telefone vendo dados reais e recebe totais confiáveis de válidos, inválidos e duplicados antes de salvar.
 
 ## Fase 3 — criação e simulação de campanha
 
