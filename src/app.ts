@@ -1,33 +1,15 @@
 import { resolve } from 'node:path';
-import qrcode from 'qrcode-terminal';
+import { buildServer } from './web/server.js';
 import { BaileysWhatsAppProvider } from './providers/whatsapp/baileys/BaileysWhatsAppProvider.js';
 
 const provider = new BaileysWhatsAppProvider({
   sessionDirectory: resolve('data/sessions/baileys'),
 });
 
-provider.onConnectionState((state) => {
-  switch (state.status) {
-    case 'qr_pending':
-      console.log('\nEscaneie o QR Code em WhatsApp > Dispositivos conectados:');
-      if (state.qrCode) qrcode.generate(state.qrCode, { small: true });
-      break;
-    case 'connected':
-      console.log('WhatsApp conectado. A sessão foi salva localmente.');
-      break;
-    case 'reconnecting':
-      console.log('Conexão perdida. Tentando reconectar...');
-      break;
-    case 'logged_out':
-    case 'error':
-      console.error(state.error ?? `Estado da conexão: ${state.status}`);
-      break;
-    default:
-      console.log(`Estado da conexão: ${state.status}`);
-  }
-});
+const server = await buildServer(provider);
 
 async function shutdown(): Promise<void> {
+  await server.close();
   await provider.disconnect();
   process.exit(0);
 }
@@ -35,7 +17,9 @@ async function shutdown(): Promise<void> {
 process.once('SIGINT', () => void shutdown());
 process.once('SIGTERM', () => void shutdown());
 
-provider.connect().catch((error: unknown) => {
-  console.error('Não foi possível iniciar a conexão com o WhatsApp.', error);
+server.listen({ host: '127.0.0.1', port: 3000 }).then(() => {
+  console.log('WA-Delivery disponível em http://localhost:3000');
+}).catch((error: unknown) => {
+  console.error('Não foi possível iniciar o WA-Delivery.', error);
   process.exitCode = 1;
 });

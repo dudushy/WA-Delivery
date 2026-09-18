@@ -28,12 +28,14 @@ Resultado esperado: typecheck, 8 testes unitários e build concluídos sem falha
 npm run dev
 ```
 
-No celular, abra **WhatsApp > Dispositivos conectados > Conectar dispositivo** e escaneie o QR Code exibido no terminal.
+Abra `http://localhost:3000` no navegador e clique em **Conectar WhatsApp**.
+
+No celular, abra **WhatsApp > Dispositivos conectados > Conectar dispositivo** e escaneie o QR Code exibido no navegador.
 
 Resultado esperado:
 
 ```text
-WhatsApp conectado. A sessão foi salva localmente.
+Conectado — A sessão está pronta e salva localmente.
 ```
 
 As credenciais devem aparecer apenas em `data/sessions/baileys/`, diretório ignorado pelo Git.
@@ -42,7 +44,8 @@ As credenciais devem aparecer apenas em `data/sessions/baileys/`, diretório ign
 
 1. encerre com `Ctrl+C`;
 2. execute novamente `npm run dev`;
-3. confirme que conecta sem solicitar outro QR Code.
+3. abra a interface e clique em **Conectar WhatsApp**;
+4. confirme que conecta sem solicitar outro QR Code.
 
 ## 4. Envio real
 

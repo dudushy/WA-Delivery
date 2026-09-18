@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WA-Delivery</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <span class="eyebrow">WA-Delivery V2</span>
+        <h1>Conexão do WhatsApp</h1>
+        <p>Conecte o aparelho uma vez. A sessão ficará salva somente neste computador.</p>
+      </header>
+
+      <section class="card" aria-live="polite">
+        <div class="status-row">
+          <span id="status-dot" class="status-dot"></span>
+          <div>
+            <strong id="status-title">Carregando...</strong>
+            <p id="status-description">Consultando o estado da conexão.</p>
+          </div>
+        </div>
+
+        <div id="qr-panel" class="qr-panel" hidden>
+          <img id="qr-code" alt="QR Code para conectar o WhatsApp" />
+          <ol>
+            <li>Abra o WhatsApp no celular.</li>
+            <li>Acesse <strong>Dispositivos conectados</strong>.</li>
+            <li>Toque em <strong>Conectar dispositivo</strong> e escaneie o código.</li>
+          </ol>
+        </div>
+
+        <p id="error-message" class="error" hidden></p>
+
+        <div class="actions">
+          <button id="connect-button" type="button">Conectar WhatsApp</button>
+          <button id="disconnect-button" class="secondary" type="button" hidden>
+            Desconectar aplicação
+          </button>
+        </div>
+      </section>
+
+      <p class="notice">
+        Esta versão não envia mensagens automaticamente. Os disparos reais exigirão seleção de
+        destinatários, prévia e confirmação explícita.
+      </p>
+    </main>
+  </body>
+</html>
