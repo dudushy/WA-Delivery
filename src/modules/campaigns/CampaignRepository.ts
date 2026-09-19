@@ -1,5 +1,9 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { CampaignComposerInput, CampaignSummary } from './campaignTypes.js';
+import type {
+  CampaignComposerInput,
+  CampaignRecipientSnapshot,
+  CampaignSummary,
+} from './campaignTypes.js';
 
 interface CampaignRow {
   id: number;
@@ -13,6 +17,7 @@ interface CampaignRow {
   status: CampaignSummary['status'];
   created_at: string;
   updated_at: string;
+  prepared_at: string | null;
   media_id: number | null;
   media_original_name: string | null;
   media_mimetype: string | null;
@@ -27,6 +32,16 @@ export interface DeletedDraft {
 export interface UpdatedDraft {
   campaign: CampaignSummary;
   removedMediaStorageName?: string;
+}
+
+interface RecipientRow {
+  id: number;
+  campaign_id: number;
+  source_contact_id: number;
+  name: string;
+  phone: string;
+  rendered_message: string;
+  status: CampaignRecipientSnapshot['status'];
 }
 
 export class CampaignRepository {
@@ -125,6 +140,63 @@ export class CampaignRepository {
     }
   }
 
+  public prepareDraft(
+    id: number,
+    recipients: Array<{
+      sourceContactId: number;
+      name: string;
+      phone: string;
+      renderedMessage: string;
+    }>,
+  ): CampaignSummary | undefined {
+    this.database.exec('BEGIN IMMEDIATE');
+    try {
+      const updated = this.database.prepare(`
+        UPDATE campaigns SET status = 'ready', prepared_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND status = 'draft'
+      `).run(id);
+      if (updated.changes === 0) {
+        this.database.exec('ROLLBACK');
+        return undefined;
+      }
+      const insert = this.database.prepare(`
+        INSERT INTO campaign_recipients (
+          campaign_id, source_contact_id, name, phone, rendered_message
+        ) VALUES (?, ?, ?, ?, ?)
+      `);
+      for (const recipient of recipients) {
+        insert.run(
+          id,
+          recipient.sourceContactId,
+          recipient.name,
+          recipient.phone,
+          recipient.renderedMessage,
+        );
+      }
+      this.database.exec('COMMIT');
+      return this.findById(id);
+    } catch (error) {
+      this.database.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  public listRecipients(campaignId: number): CampaignRecipientSnapshot[] {
+    return (this.database.prepare(`
+      SELECT id, campaign_id, source_contact_id, name, phone, rendered_message, status
+      FROM campaign_recipients WHERE campaign_id = ? ORDER BY id
+    `).all(campaignId) as unknown as RecipientRow[]).map((row) => ({
+      id: row.id,
+      campaignId: row.campaign_id,
+      sourceContactId: row.source_contact_id,
+      name: row.name,
+      phone: row.phone,
+      renderedMessage: row.rendered_message,
+      status: row.status,
+    }));
+  }
+
   public deleteDraft(id: number): DeletedDraft | undefined {
     const row = this.database.prepare(`
       SELECT campaigns.status, campaigns.media_id, media.storage_name
@@ -160,18 +232,21 @@ function baseQuery(where = ''): string {
       campaigns.name,
       campaigns.contact_list_id,
       lists.name AS contact_list_name,
-      COUNT(members.id) AS recipient_count,
       campaigns.message_template,
       campaigns.delay_min_seconds,
       campaigns.delay_max_seconds,
       campaigns.status,
       campaigns.created_at,
       campaigns.updated_at
+      , campaigns.prepared_at
       , campaigns.media_id
       , media.original_name AS media_original_name
       , media.mimetype AS media_mimetype
       , media.kind AS media_kind
       , media.size_bytes AS media_size_bytes
+      , CASE WHEN campaigns.status = 'draft' THEN COUNT(members.id)
+          ELSE (SELECT COUNT(*) FROM campaign_recipients recipients WHERE recipients.campaign_id = campaigns.id)
+        END AS recipient_count
     FROM campaigns
     JOIN contact_lists lists ON lists.id = campaigns.contact_list_id
     LEFT JOIN contact_list_members members ON members.contact_list_id = lists.id
@@ -194,6 +269,7 @@ function toSummary(row: CampaignRow): CampaignSummary {
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    ...(row.prepared_at === null ? {} : { preparedAt: row.prepared_at }),
     ...(row.media_id === null || row.media_original_name === null || row.media_mimetype === null
       || row.media_kind === null || row.media_size_bytes === null
       ? {}

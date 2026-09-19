@@ -36,6 +36,7 @@ export interface CampaignSummary {
   status: 'draft' | 'ready' | 'running' | 'paused' | 'completed' | 'cancelled' | 'failed';
   createdAt: string;
   updatedAt: string;
+  preparedAt?: string;
   media?: {
     id: number;
     originalName: string;
@@ -43,6 +44,16 @@ export interface CampaignSummary {
     kind: 'image' | 'video';
     sizeBytes: number;
   };
+}
+
+export interface CampaignRecipientSnapshot {
+  id: number;
+  campaignId: number;
+  sourceContactId: number;
+  name: string;
+  phone: string;
+  renderedMessage: string;
+  status: 'pending' | 'sending' | 'sent' | 'failed' | 'skipped';
 }
 
 export class CampaignValidationError extends Error {

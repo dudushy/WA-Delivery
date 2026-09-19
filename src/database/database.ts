@@ -112,4 +112,25 @@ const migrations = [
       CREATE INDEX idx_media_status_created ON media(status, created_at);
     `,
   },
+  {
+    version: 4,
+    sql: `
+      ALTER TABLE campaigns ADD COLUMN prepared_at TEXT;
+
+      CREATE TABLE campaign_recipients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        campaign_id INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+        source_contact_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        rendered_message TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sending', 'sent', 'failed', 'skipped')),
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (campaign_id, phone)
+      );
+
+      CREATE INDEX idx_campaign_recipients_campaign_status
+        ON campaign_recipients(campaign_id, status);
+    `,
+  },
 ] as const;

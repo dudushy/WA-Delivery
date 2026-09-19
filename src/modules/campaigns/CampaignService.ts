@@ -4,6 +4,7 @@ import { CampaignRepository } from './CampaignRepository.js';
 import {
   CampaignValidationError,
   type CampaignComposerInput,
+  type CampaignRecipientSnapshot,
   type CampaignSimulation,
   type CampaignSummary,
 } from './campaignTypes.js';
@@ -89,6 +90,36 @@ export class CampaignService {
     if (!deleted) return false;
     if (deleted.mediaStorageName) await this.media.removeFile(deleted.mediaStorageName);
     return true;
+  }
+
+  public prepareDraft(id: number, confirmed: boolean): CampaignSummary | undefined {
+    if (confirmed !== true) {
+      throw new CampaignValidationError([
+        { path: 'confirmed', message: 'Confirme que revisou os destinatários e o conteúdo.' },
+      ]);
+    }
+    const campaign = this.repository.findById(id);
+    if (!campaign || campaign.status !== 'draft') return undefined;
+    const list = this.contacts.findById(campaign.contactListId);
+    if (!list || list.contacts.length === 0) {
+      throw new CampaignValidationError([
+        { path: 'contactListId', message: 'A lista selecionada não existe ou está vazia.' },
+      ]);
+    }
+    return this.repository.prepareDraft(
+      id,
+      list.contacts.map((contact) => ({
+        sourceContactId: contact.id,
+        name: contact.name,
+        phone: contact.phone,
+        renderedMessage: renderMessage(campaign.messageTemplate, contact.name),
+      })),
+    );
+  }
+
+  public listRecipients(id: number): CampaignRecipientSnapshot[] | undefined {
+    if (!this.repository.findById(id)) return undefined;
+    return this.repository.listRecipients(id);
   }
 
   private validate(

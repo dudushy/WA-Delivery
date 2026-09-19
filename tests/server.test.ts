@@ -245,6 +245,23 @@ describe('servidor local', () => {
     assert.equal(edited.statusCode, 200);
     assert.equal(edited.json().name, 'Rascunho editado');
     assert.equal(edited.json().delayMinSeconds, 3);
+
+    const unconfirmed = await server.inject({
+      method: 'POST',
+      url: `/api/campaigns/${draft.json().id}/prepare`,
+      payload: { confirmed: false },
+    });
+    assert.equal(unconfirmed.statusCode, 422);
+
+    const prepared = await server.inject({
+      method: 'POST',
+      url: `/api/campaigns/${draft.json().id}/prepare`,
+      payload: { confirmed: true },
+    });
+    assert.equal(prepared.statusCode, 200);
+    assert.equal(prepared.json().campaign.status, 'ready');
+    assert.equal(prepared.json().recipients.length, 2);
+    assert.equal(prepared.json().recipients[0].renderedMessage, 'Olá Ana!');
     assert.equal(provider.connectCalls, 0);
     await server.close();
   });

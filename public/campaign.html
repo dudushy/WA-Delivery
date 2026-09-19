@@ -14,6 +14,7 @@
         <nav><a href="/">WhatsApp</a><a href="/contacts.html">Contatos</a><a class="active" href="/campaigns.html">Campanhas</a></nav>
         <a class="back-link" href="/campaigns.html">← Voltar às campanhas</a>
         <h1 id="campaign-title">Carregando rascunho...</h1>
+        <p id="campaign-status"></p>
       </header>
 
       <div id="campaign-error" class="error" hidden></div>
@@ -44,6 +45,20 @@
           </div>
           <div class="actions"><button id="save-campaign" type="submit">Salvar alterações</button></div>
         </form>
+        <section id="prepare-zone" class="review-zone">
+          <h2>Revisão final</h2>
+          <p>Ao preparar a campanha, nomes, telefones e mensagens personalizadas serão congelados. Alterações posteriores na lista não afetarão este envio.</p>
+          <label class="confirmation-check">
+            <input id="prepare-confirmation" type="checkbox" />
+            Revisei a lista, a mensagem, os intervalos e a mídia desta campanha.
+          </label>
+          <button id="prepare-campaign" type="button" disabled>Preparar para envio</button>
+        </section>
+        <section id="recipient-review" hidden>
+          <h2>Destinatários preparados</h2>
+          <p id="recipient-summary"></p>
+          <div id="recipient-list" class="message-samples"></div>
+        </section>
         <div class="danger-zone">
           <div><strong>Excluir rascunho</strong><p>A campanha e sua mídia vinculada serão removidas.</p></div>
           <button id="delete-campaign" class="danger" type="button">Excluir</button>

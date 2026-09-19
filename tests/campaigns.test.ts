@@ -22,6 +22,7 @@ function setup() {
   });
   return {
     list,
+    contacts,
     campaigns: new CampaignService(
       new CampaignRepository(database),
       contacts,
@@ -85,6 +86,32 @@ describe('CampaignService', () => {
     assert.equal(updated?.messageTemplate, 'Oi {{nome}}, mensagem editada.');
     assert.equal(updated?.delayMinSeconds, 3);
     assert.equal(updated?.delayMaxSeconds, 7);
+  });
+
+  it('prepara um snapshot imutável somente após confirmação explícita', () => {
+    const { list, contacts, campaigns } = setup();
+    const draft = campaigns.createDraft({
+      name: 'Campanha confirmada',
+      contactListId: list.id,
+      messageTemplate: 'Olá {{nome}}!',
+      delayMinSeconds: 5,
+      delayMaxSeconds: 10,
+    });
+
+    assert.throws(() => campaigns.prepareDraft(draft.id, false), CampaignValidationError);
+    const prepared = campaigns.prepareDraft(draft.id, true);
+    assert.equal(prepared?.status, 'ready');
+    assert.equal(campaigns.listRecipients(draft.id)?.[0]?.renderedMessage, 'Olá Ana!');
+
+    contacts.updateContact(list.id, list.contacts[0].id, {
+      name: 'Ana alterada',
+      phone: '16966666666',
+    });
+    const recipients = campaigns.listRecipients(draft.id);
+    assert.equal(recipients?.length, 3);
+    assert.equal(recipients?.[0]?.name, 'Ana');
+    assert.equal(recipients?.[0]?.phone, '5516999999999');
+    assert.equal(campaigns.findById(draft.id)?.recipientCount, 3);
   });
 
   it('rejeita variável desconhecida e intervalos inválidos', () => {

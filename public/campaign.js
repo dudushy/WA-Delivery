@@ -1,4 +1,5 @@
 const title = document.querySelector('#campaign-title');
+const statusText = document.querySelector('#campaign-status');
 const details = document.querySelector('#campaign-details');
 const form = document.querySelector('#campaign-form');
 const campaignName = document.querySelector('#campaign-name');
@@ -14,6 +15,13 @@ const mediaContent = document.querySelector('#campaign-media-content');
 const removeMedia = document.querySelector('#remove-media');
 const saveButton = document.querySelector('#save-campaign');
 const deleteButton = document.querySelector('#delete-campaign');
+const dangerZone = document.querySelector('.danger-zone');
+const prepareZone = document.querySelector('#prepare-zone');
+const prepareConfirmation = document.querySelector('#prepare-confirmation');
+const prepareButton = document.querySelector('#prepare-campaign');
+const recipientReview = document.querySelector('#recipient-review');
+const recipientSummary = document.querySelector('#recipient-summary');
+const recipientList = document.querySelector('#recipient-list');
 const errorPanel = document.querySelector('#campaign-error');
 const campaignId = Number(new URLSearchParams(location.search).get('id'));
 let selectedMedia;
@@ -47,6 +55,40 @@ function renderMedia() {
   mediaContent.replaceChildren(preview, caption);
 }
 
+function renderRecipients(recipients) {
+  recipientSummary.textContent = `${recipients.length} destinatário(s) congelado(s) neste snapshot.`;
+  recipientList.replaceChildren();
+  for (const recipient of recipients.slice(0, 10)) {
+    const article = document.createElement('article');
+    article.className = 'message-sample';
+    const heading = document.createElement('div');
+    const name = document.createElement('strong');
+    name.textContent = recipient.name;
+    const phone = document.createElement('span');
+    phone.textContent = recipient.phone;
+    heading.append(name, phone);
+    const renderedMessage = document.createElement('p');
+    renderedMessage.textContent = recipient.renderedMessage;
+    article.append(heading, renderedMessage);
+    recipientList.append(article);
+  }
+  if (recipients.length > 10) {
+    const remainder = document.createElement('p');
+    remainder.textContent = `Mais ${recipients.length - 10} destinatário(s) fazem parte do snapshot.`;
+    recipientList.append(remainder);
+  }
+  recipientReview.hidden = false;
+}
+
+function applyPreparedState(campaign, recipients) {
+  statusText.textContent = `Status: preparada para envio${campaign.preparedAt ? ` em ${campaign.preparedAt}` : ''}.`;
+  for (const control of form.elements) control.disabled = true;
+  form.querySelector('.actions').hidden = true;
+  prepareZone.hidden = true;
+  dangerZone.hidden = true;
+  renderRecipients(recipients);
+}
+
 async function load() {
   if (!Number.isSafeInteger(campaignId) || campaignId <= 0) throw new Error('Identificador da campanha inválido.');
   const [{ items: lists }, campaign] = await Promise.all([
@@ -70,6 +112,12 @@ async function load() {
   selectedMedia = campaign.media;
   renderMedia();
   details.hidden = false;
+  if (campaign.status === 'ready') {
+    const { items } = await request(`/api/campaigns/${campaignId}/recipients`);
+    applyPreparedState(campaign, items);
+  } else {
+    statusText.textContent = 'Status: rascunho editável.';
+  }
 }
 
 messageTemplate.addEventListener('input', () => {
@@ -104,6 +152,26 @@ removeMedia.addEventListener('click', () => {
   selectedMedia = undefined;
   mediaInput.value = '';
   renderMedia();
+});
+
+prepareConfirmation.addEventListener('change', () => {
+  prepareButton.disabled = !prepareConfirmation.checked;
+});
+
+prepareButton.addEventListener('click', async () => {
+  showError();
+  prepareButton.disabled = true;
+  try {
+    const prepared = await request(`/api/campaigns/${campaignId}/prepare`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmed: prepareConfirmation.checked }),
+    });
+    applyPreparedState(prepared.campaign, prepared.recipients);
+  } catch (error) {
+    showError(error.message);
+    prepareButton.disabled = !prepareConfirmation.checked;
+  }
 });
 
 form.addEventListener('submit', async (event) => {

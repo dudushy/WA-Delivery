@@ -51,6 +51,31 @@ export function registerCampaignRoutes(
     }
   });
 
+  server.post<{ Params: { id: string }; Body: { confirmed?: boolean } }>('/api/campaigns/:id/prepare', async (request, reply) => {
+    const id = Number(request.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return reply.code(400).send({ message: 'Identificador da campanha inválido.' });
+    }
+    try {
+      const campaign = campaigns.prepareDraft(id, request.body?.confirmed === true);
+      if (!campaign) return reply.code(409).send({ message: 'A campanha não está disponível como rascunho.' });
+      return { campaign, recipients: campaigns.listRecipients(id) };
+    } catch (error) {
+      return sendCampaignError(reply, error);
+    }
+  });
+
+  server.get<{ Params: { id: string } }>('/api/campaigns/:id/recipients', async (request, reply) => {
+    const id = Number(request.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return reply.code(400).send({ message: 'Identificador da campanha inválido.' });
+    }
+    const recipients = campaigns.listRecipients(id);
+    return recipients === undefined
+      ? reply.code(404).send({ message: 'Campanha não encontrada.' })
+      : { items: recipients };
+  });
+
   server.delete<{ Params: { id: string } }>('/api/campaigns/:id', async (request, reply) => {
     const id = Number(request.params.id);
     if (!Number.isSafeInteger(id) || id <= 0) {

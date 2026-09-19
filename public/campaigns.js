@@ -103,7 +103,7 @@ async function loadDrafts() {
   drafts.innerHTML = items.length === 0 ? '<p>Nenhum rascunho salvo.</p>' : items.map((item) => `
     <a class="saved-list" href="/campaign.html?id=${item.id}">
       <div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.contactListName)} — ${item.recipientCount} destinatários</span></div>
-      <b>Rascunho</b>
+      <b>${item.status === 'draft' ? 'Rascunho' : 'Preparada'}</b>
     </a>
   `).join('');
 }

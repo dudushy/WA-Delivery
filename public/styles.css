@@ -66,6 +66,10 @@ textarea { resize: vertical; line-height: 1.5; }
 .media-detail { align-items: flex-start; flex-direction: column; }
 .media-detail img, .media-detail video { width: min(520px, 100%); max-height: 420px; object-fit: contain; }
 .message-body { padding: 16px; border-radius: 12px; color: #25362e; background: #f7faf8; white-space: pre-wrap; }
+.review-zone { margin-top: 28px; padding: 20px; border: 1px solid #b9ddcf; border-radius: 16px; background: #f2faf7; }
+.review-zone h2 { margin-top: 0; }
+.confirmation-check { display: flex; grid-template-columns: none; align-items: flex-start; gap: 10px; margin: 16px 0; }
+.confirmation-check input { width: auto; margin-top: 3px; }
 .upload-form { display: flex; align-items: end; gap: 12px; }
 .upload-form label { flex: 1; }
 .file-summary { margin: 22px 0 12px; padding: 12px 14px; border-radius: 10px; color: #315244; background: #edf7f3; }
