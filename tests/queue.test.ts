@@ -216,6 +216,50 @@ describe('CampaignQueueWorker', () => {
   });
 });
 
+describe('CampaignQueueWorker recuperação após reinício', () => {
+  it('marca envios em andamento como interrompidos sem reenviar os já enviados e é idempotente', async () => {
+    const { database, draft, repository, worker } = setup(3);
+    try {
+      const recipients = database
+        .prepare("SELECT id FROM campaign_recipients WHERE campaign_id = ? ORDER BY id")
+        .all(draft.id) as Array<{ id: number }>;
+      // Simula estado logo antes de uma queda: 1 enviado, 1 em envio, 1 pendente.
+      database.prepare("UPDATE campaigns SET status = 'running' WHERE id = ?").run(draft.id);
+      database.prepare("UPDATE campaign_recipients SET status = 'sent', message_id = 'm1' WHERE id = ?").run(recipients[0].id);
+      database.prepare("UPDATE campaign_recipients SET status = 'sending' WHERE id = ?").run(recipients[1].id);
+      database.prepare(`
+        INSERT INTO delivery_attempts (campaign_id, recipient_id, attempt_number, outcome)
+        VALUES (?, ?, 1, 'sending')
+      `).run(draft.id, recipients[1].id);
+
+      const interrupted = worker.recoverInterrupted();
+      assert.equal(interrupted, 1); // apenas o que estava 'sending'
+
+      const rows = database
+        .prepare("SELECT id, status, message_id FROM campaign_recipients WHERE campaign_id = ? ORDER BY id")
+        .all(draft.id) as Array<{ id: number; status: string; message_id: string | null }>;
+      // O já enviado permanece enviado (não é reenviado).
+      assert.equal(rows[0].status, 'sent');
+      assert.equal(rows[0].message_id, 'm1');
+      // O interrompido vira 'failed' (não 'pending' — sem reenvio silencioso).
+      assert.equal(rows[1].status, 'failed');
+      // O pendente continua pendente.
+      assert.equal(rows[2].status, 'pending');
+      // A campanha 'running' virou 'paused'.
+      assert.equal(repository.progress(draft.id)?.status, 'paused');
+      // A tentativa em aberto foi encerrada como falha transitória.
+      const attempt = database
+        .prepare("SELECT outcome, error_kind FROM delivery_attempts WHERE recipient_id = ?")
+        .get(recipients[1].id) as { outcome: string; error_kind: string | null };
+      assert.equal(attempt.outcome, 'failed');
+      assert.equal(attempt.error_kind, 'transient');
+
+      // Idempotência: rodar de novo não altera nada.
+      assert.equal(worker.recoverInterrupted(), 0);
+    } finally { worker.shutdown(); database.close(); }
+  });
+});
+
 describe('CampaignQueueWorker disconnection', () => {
   it('pausa por queda de conexão e retoma automaticamente ao reconectar', async () => {
     const { database, draft, provider, repository, worker } = setup(2);

@@ -9,16 +9,26 @@ interface QueueRecipient extends CampaignRecipientSnapshot {
 export class CampaignQueueRepository {
   public constructor(private readonly database: DatabaseSync) {}
 
+  /**
+   * Recupera o estado após um reinício/encerramento abrupto, de forma idempotente:
+   * - destinatários que ficaram em 'sending' viram 'failed' (marcados como
+   *   interrompidos), pois não é possível confirmar se a mensagem chegou a ser
+   *   enviada; nunca são reenviados silenciosamente (findNext só pega 'pending');
+   * - as tentativas em aberto ('sending') são encerradas como falha transitória;
+   * - campanhas 'running' voltam a 'paused'.
+   * Rodar novamente não produz efeitos (nenhum registro em 'sending'/'running').
+   * Retorna quantos destinatários foram marcados como interrompidos.
+   */
   public recoverInterrupted(): number {
     this.database.exec('BEGIN IMMEDIATE');
     try {
-      const error = 'Envio interrompido durante o encerramento.';
+      const error = 'Envio interrompido durante o encerramento; reenvie manualmente se necessário.';
       const interrupted = Number(this.database.prepare(`
         UPDATE campaign_recipients SET status = 'failed', last_error = ?, updated_at = CURRENT_TIMESTAMP
         WHERE status = 'sending'
-      `).run(error).changes);
+      `).run(`[transient] ${error}`).changes);
       this.database.prepare(`
-        UPDATE delivery_attempts SET outcome = 'failed', error_message = ?, finished_at = CURRENT_TIMESTAMP
+        UPDATE delivery_attempts SET outcome = 'failed', error_message = ?, error_kind = 'transient', finished_at = CURRENT_TIMESTAMP
         WHERE outcome = 'sending'
       `).run(error);
       this.database.prepare(
