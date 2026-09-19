@@ -17,8 +17,33 @@ const simulationCards = document.querySelector('#simulation-cards');
 const durationSummary = document.querySelector('#duration-summary');
 const messageSamples = document.querySelector('#message-samples');
 const drafts = document.querySelector('#campaign-drafts');
+const composer = document.querySelector('#composer');
+const newCampaignButton = document.querySelector('#new-campaign');
+const cancelComposerButton = document.querySelector('#cancel-composer');
 let lastSimulationInput;
 let uploadedMedia;
+let hasCampaigns = false;
+
+function showComposer(show) {
+  composer.hidden = !show;
+  // O botão "Nova campanha" só faz sentido quando o composer está fechado e já
+  // existem campanhas na lista.
+  newCampaignButton.hidden = show || !hasCampaigns;
+  // "Cancelar" só aparece quando há campanhas para voltar (senão o composer é a
+  // única coisa a exibir).
+  cancelComposerButton.hidden = !show || !hasCampaigns;
+  if (show) campaignName.focus();
+}
+
+function resetComposer() {
+  form.reset();
+  uploadedMedia = undefined;
+  lastSimulationInput = undefined;
+  renderMediaPreview();
+  simulationPanel.hidden = true;
+  saveDraft.hidden = true;
+  messageCounter.textContent = '0 / 4096';
+}
 
 function escapeHtml(value) {
   const node = document.createElement('span');
@@ -110,12 +135,25 @@ const CAMPAIGN_STATUS_LABELS = {
 
 async function loadDrafts() {
   const { items } = await request('/api/campaigns');
-  drafts.innerHTML = items.length === 0 ? '<p>Nenhuma campanha salva.</p>' : items.map((item) => `
+  hasCampaigns = items.length > 0;
+  drafts.innerHTML = items.length === 0 ? '<p>Nenhuma campanha salva ainda.</p>' : items.map((item) => `
     <a class="saved-list" href="/campaign.html?id=${item.id}">
       <div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.contactListName)} — ${item.recipientCount} destinatários</span></div>
       <b>${CAMPAIGN_STATUS_LABELS[item.status] ?? item.status}</b>
     </a>
   `).join('');
+  // Sem campanhas: mostra o composer direto. Com campanhas: mostra a lista e o
+  // botão "Nova campanha", mantendo o composer fechado (a não ser que já esteja
+  // aberto por ação do usuário).
+  if (!hasCampaigns) {
+    showComposer(true);
+  } else if (composer.hidden) {
+    showComposer(false);
+  } else {
+    // Composer já aberto pelo usuário: apenas garante o botão coerente.
+    newCampaignButton.hidden = true;
+    cancelComposerButton.hidden = false;
+  }
 }
 
 form.addEventListener('input', () => {
@@ -189,10 +227,23 @@ saveDraft.addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(lastSimulationInput),
     });
+    resetComposer();
+    showComposer(false);
     await loadDrafts();
-    saveDraft.hidden = true;
   } catch (error) { showError(error.message); }
   finally { saveDraft.disabled = false; }
+});
+
+newCampaignButton.addEventListener('click', () => {
+  showError();
+  resetComposer();
+  showComposer(true);
+});
+
+cancelComposerButton.addEventListener('click', () => {
+  showError();
+  resetComposer();
+  showComposer(false);
 });
 
 Promise.all([loadLists(), loadDrafts()]).catch((error) => showError(error.message));
