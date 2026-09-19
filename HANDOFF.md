@@ -6,7 +6,7 @@ telefones reais nem mensagens reais.
 ## Estado atual
 
 - **Branch**: `feat/v2-baileys-local-web-app`
-- **HEAD**: `0ed6848` (docs/release: 2.0.0-rc.1)
+- **HEAD**: `dd772cb` (docs/handoff)
 - **Versão**: `2.0.0-rc.1`
 - **Working tree**: limpo
 - **Checkpoint atual**: todos os checkpoints automatizáveis (A–H) concluídos.
@@ -48,6 +48,7 @@ telefones reais nem mensagens reais.
 11. `be2b429` style: formatação Prettier (commit isolado)
 12. `812458e` fix(security): CSV formula injection + resumo de auditoria
 13. `0ed6848` docs(release): documentação completa + versão 2.0.0-rc.1
+14. `dd772cb` docs(handoff): HANDOFF.md + descrição do PR
 
 ## Pendências (dependem do usuário)
 
