@@ -20,9 +20,16 @@ const drafts = document.querySelector('#campaign-drafts');
 const composer = document.querySelector('#composer');
 const newCampaignButton = document.querySelector('#new-campaign');
 const cancelComposerButton = document.querySelector('#cancel-composer');
+const listsSection = document.querySelector('.lists-section');
 let lastSimulationInput;
 let uploadedMedia;
 let hasCampaigns = false;
+
+// Exibe o formulário de nova campanha acima da lista, para o usuário não
+// precisar rolar toda a lista até chegar ao formulário.
+if (composer && listsSection && listsSection.parentNode) {
+  listsSection.parentNode.insertBefore(composer, listsSection);
+}
 
 function showComposer(show) {
   composer.hidden = !show;
@@ -32,7 +39,10 @@ function showComposer(show) {
   // "Cancelar" só aparece quando há campanhas para voltar (senão o composer é a
   // única coisa a exibir).
   cancelComposerButton.hidden = !show || !hasCampaigns;
-  if (show) campaignName.focus();
+  if (show) {
+    composer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    campaignName.focus();
+  }
 }
 
 function resetComposer() {
