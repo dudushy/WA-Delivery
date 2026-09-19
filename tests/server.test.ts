@@ -107,6 +107,15 @@ describe('servidor local', () => {
     await server.close();
   });
 
+  it('serve o favicon da aplicação', async () => {
+    const server = await createServer();
+    const response = await server.inject({ method: 'GET', url: '/favicon.svg' });
+    assert.equal(response.statusCode, 200);
+    assert.match(response.headers['content-type'] ?? '', /image\/svg\+xml/);
+    assert.match(response.body, /WA-Delivery/);
+    await server.close();
+  });
+
   it('cria e lista contatos manuais pela API', async () => {
     const server = await createServer();
     const created = await server.inject({
