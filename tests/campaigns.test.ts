@@ -48,6 +48,32 @@ describe('CampaignService', () => {
     assert.equal(simulation.samples[0]?.message, 'Olá Ana, temos novidades!');
   });
 
+  it('exclui contatos com opt-out da simulação e do snapshot', () => {
+    const { list, contacts, campaigns } = setup();
+    // Marca a Ana (primeiro contato) como opt-out.
+    const ana = list.contacts[0];
+    contacts.setOptOut(list.id, ana.id, true);
+
+    const simulation = campaigns.simulate({
+      contactListId: list.id,
+      messageTemplate: 'Olá {{nome}}!',
+      delayMinSeconds: 1,
+      delayMaxSeconds: 1,
+    });
+    assert.equal(simulation.recipientCount, 2);
+    assert.equal(simulation.optedOutCount, 1);
+    assert.ok(!simulation.samples.some((sample) => sample.name === 'Ana'));
+
+    const draft = campaigns.createDraft({
+      name: 'Sem opt-out', contactListId: list.id,
+      messageTemplate: 'Olá {{nome}}!', delayMinSeconds: 1, delayMaxSeconds: 1,
+    });
+    campaigns.prepareDraft(draft.id, true);
+    const recipients = campaigns.listRecipients(draft.id) ?? [];
+    assert.equal(recipients.length, 2);
+    assert.ok(!recipients.some((r) => r.phone === '5516999999999'));
+  });
+
   it('salva campanha somente como rascunho', () => {
     const { list, campaigns } = setup();
     const draft = campaigns.createDraft({

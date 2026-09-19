@@ -33,11 +33,21 @@ export class CampaignService {
       ]);
     }
 
-    const intervals = Math.max(0, list.contacts.length - 1);
+    // Contatos com opt-out são bloqueados: não entram na simulação nem no snapshot.
+    const eligible = list.contacts.filter((contact) => !contact.optedOut);
+    const optedOutCount = list.contacts.length - eligible.length;
+    if (eligible.length === 0) {
+      throw new CampaignValidationError([
+        { path: 'contactListId', message: 'Todos os contatos da lista estão marcados como opt-out.' },
+      ]);
+    }
+
+    const intervals = Math.max(0, eligible.length - 1);
     return {
       contactListId: list.id,
       contactListName: list.name,
-      recipientCount: list.contacts.length,
+      recipientCount: eligible.length,
+      optedOutCount,
       delayMinSeconds: validated.delayMinSeconds,
       delayMaxSeconds: validated.delayMaxSeconds,
       durationMinSeconds: intervals * validated.delayMinSeconds,
@@ -45,7 +55,7 @@ export class CampaignService {
         intervals * ((validated.delayMinSeconds + validated.delayMaxSeconds) / 2),
       ),
       durationMaxSeconds: intervals * validated.delayMaxSeconds,
-      samples: list.contacts.slice(0, 3).map((contact) => ({
+      samples: eligible.slice(0, 3).map((contact) => ({
         contactId: contact.id,
         name: contact.name,
         phone: contact.phone,
@@ -114,12 +124,13 @@ export class CampaignService {
       ]);
     }
     // Pendentes = destinatários que não foram enviados com sucesso.
+    const optedOut = this.contacts.optedOutPhones();
     const pending = this.repository.listRecipients(id).filter(
-      (recipient) => recipient.status !== 'sent',
+      (recipient) => recipient.status !== 'sent' && !optedOut.has(recipient.phone),
     );
     if (pending.length === 0) {
       throw new CampaignValidationError([
-        { path: 'recipients', message: 'Não há destinatários pendentes para reenviar nesta campanha.' },
+        { path: 'recipients', message: 'Não há destinatários pendentes elegíveis para reenviar nesta campanha.' },
       ]);
     }
     return this.repository.createFollowUp(
@@ -147,9 +158,16 @@ export class CampaignService {
         { path: 'contactListId', message: 'A lista selecionada não existe ou está vazia.' },
       ]);
     }
+    // Bloqueia contatos com opt-out: não são incluídos no snapshot imutável.
+    const eligible = list.contacts.filter((contact) => !contact.optedOut);
+    if (eligible.length === 0) {
+      throw new CampaignValidationError([
+        { path: 'contactListId', message: 'Todos os contatos da lista estão marcados como opt-out.' },
+      ]);
+    }
     return this.repository.prepareDraft(
       id,
-      list.contacts.map((contact) => ({
+      eligible.map((contact) => ({
         sourceContactId: contact.id,
         name: contact.name,
         phone: contact.phone,

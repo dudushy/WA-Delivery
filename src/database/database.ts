@@ -185,4 +185,11 @@ const migrations = [
       );
     `,
   },
+  {
+    version: 9,
+    sql: `
+      ALTER TABLE contacts ADD COLUMN opted_out INTEGER NOT NULL DEFAULT 0
+        CHECK (opted_out IN (0, 1));
+    `,
+  },
 ] as const;

@@ -19,6 +19,9 @@ describe('migrações do banco', () => {
         CREATE TABLE campaigns (
           id INTEGER PRIMARY KEY, status TEXT NOT NULL, updated_at TEXT NOT NULL
         );
+        CREATE TABLE contacts (
+          id INTEGER PRIMARY KEY, normalized_phone TEXT NOT NULL UNIQUE, created_at TEXT
+        );
         CREATE TABLE campaign_recipients (
           id INTEGER PRIMARY KEY,
           campaign_id INTEGER NOT NULL,
@@ -41,7 +44,7 @@ describe('migrações do banco', () => {
       const migrated = openDatabase(filename);
       assert.equal(
         migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
-        8,
+        9,
       );
       const recipient = migrated.prepare(`
         SELECT attempt_count, updated_at FROM campaign_recipients WHERE id = 1
@@ -69,6 +72,9 @@ describe('migrações do banco', () => {
         CREATE TABLE campaigns (
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, status TEXT NOT NULL, updated_at TEXT NOT NULL
         );
+        CREATE TABLE contacts (
+          id INTEGER PRIMARY KEY, normalized_phone TEXT NOT NULL UNIQUE, created_at TEXT
+        );
         CREATE TABLE delivery_attempts (
           id INTEGER PRIMARY KEY, campaign_id INTEGER NOT NULL, recipient_id INTEGER NOT NULL,
           attempt_number INTEGER NOT NULL, outcome TEXT NOT NULL, message_id TEXT,
@@ -85,7 +91,7 @@ describe('migrações do banco', () => {
       const migrated = openDatabase(filename);
       assert.equal(
         migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
-        8,
+        9,
       );
       // A coluna nova existe e a campanha populada foi preservada.
       const row = migrated.prepare(
@@ -116,6 +122,9 @@ describe('migrações do banco', () => {
         INSERT INTO schema_migrations (version, applied_at) VALUES
           (1, CURRENT_TIMESTAMP), (2, CURRENT_TIMESTAMP), (3, CURRENT_TIMESTAMP),
           (4, CURRENT_TIMESTAMP), (5, CURRENT_TIMESTAMP), (6, CURRENT_TIMESTAMP);
+        CREATE TABLE contacts (
+          id INTEGER PRIMARY KEY, normalized_phone TEXT NOT NULL UNIQUE, created_at TEXT
+        );
         CREATE TABLE delivery_attempts (
           id INTEGER PRIMARY KEY, campaign_id INTEGER NOT NULL, recipient_id INTEGER NOT NULL,
           attempt_number INTEGER NOT NULL, outcome TEXT NOT NULL, message_id TEXT,
@@ -132,7 +141,7 @@ describe('migrações do banco', () => {
       const migrated = openDatabase(filename);
       assert.equal(
         migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
-        8,
+        9,
       );
       // A tentativa existente foi preservada e a coluna nova aceita a classificação.
       const before = migrated.prepare('SELECT error_kind FROM delivery_attempts WHERE id = 1').get() as { error_kind: string | null };
@@ -141,6 +150,48 @@ describe('migrações do banco', () => {
       assert.equal(
         (migrated.prepare('SELECT error_kind FROM delivery_attempts WHERE id = 1').get() as { error_kind: string }).error_kind,
         'transient',
+      );
+      migrated.close();
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('aplica a versão 9 (opt-out) sobre um banco na versão 8 com contatos', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'wa-delivery-migration-v9-'));
+    const filename = join(directory, 'v8.db');
+    const oldDatabase = new DatabaseSync(filename);
+    try {
+      oldDatabase.exec(`
+        CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT);
+        INSERT INTO schema_migrations (version, applied_at) VALUES
+          (1, CURRENT_TIMESTAMP), (2, CURRENT_TIMESTAMP), (3, CURRENT_TIMESTAMP),
+          (4, CURRENT_TIMESTAMP), (5, CURRENT_TIMESTAMP), (6, CURRENT_TIMESTAMP),
+          (7, CURRENT_TIMESTAMP), (8, CURRENT_TIMESTAMP);
+        CREATE TABLE contacts (
+          id INTEGER PRIMARY KEY, normalized_phone TEXT NOT NULL UNIQUE, created_at TEXT
+        );
+        INSERT INTO contacts (id, normalized_phone) VALUES (1, '5516999999999');
+      `);
+    } finally {
+      oldDatabase.close();
+    }
+
+    try {
+      const migrated = openDatabase(filename);
+      assert.equal(
+        migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
+        9,
+      );
+      // O contato existente foi preservado com opt-out = 0 (default seguro).
+      const row = migrated.prepare('SELECT normalized_phone, opted_out FROM contacts WHERE id = 1')
+        .get() as { normalized_phone: string; opted_out: number };
+      assert.equal(row.normalized_phone, '5516999999999');
+      assert.equal(row.opted_out, 0);
+      migrated.prepare('UPDATE contacts SET opted_out = 1 WHERE id = 1').run();
+      assert.equal(
+        (migrated.prepare('SELECT opted_out FROM contacts WHERE id = 1').get() as { opted_out: number }).opted_out,
+        1,
       );
       migrated.close();
     } finally {

@@ -1,7 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type {
   ContactListDetails,
-  ContactListMember,
   ContactListSummary,
 } from './contactTypes.js';
 
@@ -95,14 +94,28 @@ export class ContactRepository {
     if (!row) return undefined;
 
     const members = this.database.prepare(`
-      SELECT members.id, members.name, contacts.normalized_phone AS phone
+      SELECT members.id, members.name, contacts.normalized_phone AS phone,
+        contacts.opted_out AS opted_out
       FROM contact_list_members members
       JOIN contacts ON contacts.id = members.contact_id
       WHERE members.contact_list_id = ?
       ORDER BY members.id
-    `).all(id) as unknown as ContactListMember[];
+    `).all(id) as unknown as Array<{
+      id: number;
+      name: string;
+      phone: string;
+      opted_out: number;
+    }>;
 
-    return { ...toSummary(row), contacts: members };
+    return {
+      ...toSummary(row),
+      contacts: members.map((member) => ({
+        id: member.id,
+        name: member.name,
+        phone: member.phone,
+        optedOut: member.opted_out === 1,
+      })),
+    };
   }
 
   public renameList(id: number, name: string): ContactListDetails | undefined {
@@ -195,6 +208,33 @@ export class ContactRepository {
       this.database.exec('ROLLBACK');
       throw error;
     }
+  }
+
+  /**
+   * Define o opt-out de um contato (por telefone, global a todas as listas)
+   * a partir de um membro específico. Retorna a lista atualizada.
+   */
+  public setOptOutByMember(
+    listId: number,
+    memberId: number,
+    optedOut: boolean,
+  ): ContactListDetails | undefined {
+    const member = this.database.prepare(`
+      SELECT contact_id FROM contact_list_members WHERE id = ? AND contact_list_id = ?
+    `).get(memberId, listId) as { contact_id: number } | undefined;
+    if (!member) return undefined;
+    this.database
+      .prepare('UPDATE contacts SET opted_out = ? WHERE id = ?')
+      .run(optedOut ? 1 : 0, member.contact_id);
+    return this.findById(listId);
+  }
+
+  /** Retorna o conjunto de telefones (normalizados) marcados como opt-out. */
+  public listOptedOutPhones(): Set<string> {
+    const rows = this.database
+      .prepare('SELECT normalized_phone FROM contacts WHERE opted_out = 1')
+      .all() as unknown as Array<{ normalized_phone: string }>;
+    return new Set(rows.map((row) => row.normalized_phone));
   }
 
   private findOrCreateContact(normalizedPhone: string): number {

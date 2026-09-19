@@ -115,6 +115,20 @@ export class ContactService {
     return this.repository.deleteMember(listId, memberId);
   }
 
+  /** Marca/desmarca um contato como opt-out (global por telefone). */
+  public setOptOut(
+    listId: number,
+    memberId: number,
+    optedOut: boolean,
+  ): ContactListDetails | undefined {
+    return this.repository.setOptOutByMember(listId, memberId, optedOut);
+  }
+
+  /** Conjunto de telefones marcados como opt-out (para bloqueio em campanhas). */
+  public optedOutPhones(): Set<string> {
+    return this.repository.listOptedOutPhones();
+  }
+
   private prepareContact(contact: { name: string; phone: string }): {
     name: string;
     normalizedPhone: string;

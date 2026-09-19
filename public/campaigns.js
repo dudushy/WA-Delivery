@@ -111,6 +111,7 @@ function formatDuration(totalSeconds) {
 function renderSimulation(simulation) {
   simulationCards.innerHTML = [
     ['Destinatários', simulation.recipientCount],
+    ['Opt-outs ignorados', simulation.optedOutCount ?? 0],
     ['Intervalo mínimo', `${simulation.delayMinSeconds}s`],
     ['Intervalo médio', `${(simulation.delayMinSeconds + simulation.delayMaxSeconds) / 2}s`],
     ['Intervalo máximo', `${simulation.delayMaxSeconds}s`],

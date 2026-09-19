@@ -52,12 +52,16 @@ function render(list) {
   contactRows.innerHTML = list.contacts.length === 0
     ? '<p>Esta lista ainda não possui contatos.</p>'
     : list.contacts.map((contact) => `
-      <form class="contact-row persisted-row" data-member-id="${contact.id}">
+      <form class="contact-row persisted-row${contact.optedOut ? ' opted-out' : ''}" data-member-id="${contact.id}">
         <label>Nome<input class="member-name" value="${escapeAttribute(contact.name)}" required /></label>
         <label>Telefone<input class="member-phone" value="${escapeAttribute(contact.phone)}" inputmode="tel" required /></label>
         <div class="row-actions">
           <button type="submit">Salvar</button>
           <button class="danger remove-member" type="button">Remover</button>
+          <label class="opt-out-toggle" title="Contatos com opt-out não recebem campanhas">
+            <input class="member-opt-out" type="checkbox" ${contact.optedOut ? 'checked' : ''} />
+            Opt-out
+          </label>
         </div>
       </form>
     `).join('');
@@ -65,6 +69,9 @@ function render(list) {
   for (const row of contactRows.querySelectorAll('.persisted-row')) {
     row.addEventListener('submit', (event) => updateMember(event, row));
     row.querySelector('.remove-member').addEventListener('click', () => removeMember(row));
+    row.querySelector('.member-opt-out').addEventListener('change', (event) =>
+      setOptOut(row, event.target.checked),
+    );
   }
 }
 
@@ -109,6 +116,17 @@ async function updateMember(event, row) {
         name: row.querySelector('.member-name').value,
         phone: row.querySelector('.member-phone').value,
       }),
+    }));
+  } catch (error) { showError(error.message); }
+}
+
+async function setOptOut(row, optedOut) {
+  showError();
+  try {
+    render(await request(`/api/contact-lists/${listId}/contacts/${row.dataset.memberId}/opt-out`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ optedOut }),
     }));
   } catch (error) { showError(error.message); }
 }

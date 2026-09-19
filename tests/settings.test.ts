@@ -79,11 +79,11 @@ describe('SettingsService', () => {
 });
 
 describe('migração da tabela settings (v8)', () => {
-  it('mantém MAX(version) = 8 e permite ler/gravar configurações', () => {
+  it('mantém MAX(version) atualizado e permite ler/gravar configurações', () => {
     const database = openDatabase(':memory:');
     assert.equal(
       database.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
-      8,
+      9,
     );
     const repository = new SettingsRepository(database);
     repository.setAll({ defaultCountryCode: '55' });

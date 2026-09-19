@@ -167,3 +167,10 @@ tbody tr:last-child td { border-bottom: 0; }
 #settings-form label.checkbox { display: flex; flex-direction: row; align-items: center; gap: 10px; }
 #settings-form label.checkbox input { width: auto; }
 .success { color: #087f5b; padding: 12px 14px; border-radius: 10px; background: #e4f4ee; }
+
+/* Opt-out de contatos */
+.row-actions { align-items: center; }
+.opt-out-toggle { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 700; color: #6741d9; }
+.opt-out-toggle input { width: auto; margin: 0; }
+.contact-row.opted-out { border-color: #d0c4f2; background: #f7f3ff; }
+.contact-row.opted-out .member-name, .contact-row.opted-out .member-phone { color: #8a7bbd; }

@@ -107,6 +107,17 @@ export function registerContactRoutes(
       return updated ?? reply.code(404).send({ message: 'Contato não encontrado.' });
     },
   );
+
+  server.put<{
+    Params: { id: string; memberId: string };
+    Body: { optedOut?: boolean };
+  }>('/api/contact-lists/:id/contacts/:memberId/opt-out', async (request, reply) => {
+    const id = parseId(request.params.id);
+    const memberId = parseId(request.params.memberId);
+    if (!id || !memberId) return reply.code(400).send({ message: 'Identificador inválido.' });
+    const updated = contacts.setOptOut(id, memberId, Boolean(request.body?.optedOut));
+    return updated ?? reply.code(404).send({ message: 'Contato não encontrado.' });
+  });
 }
 
 function parseId(raw: string): number | undefined {

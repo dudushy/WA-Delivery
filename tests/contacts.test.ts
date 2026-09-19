@@ -113,4 +113,26 @@ describe('ContactService', () => {
       /já existe/,
     );
   });
+
+  it('marca e desmarca opt-out (global por telefone)', () => {
+    const service = createService();
+    const created = service.createManualList({
+      name: 'Opt-out',
+      contacts: [
+        { name: 'Ana', phone: '16999999999' },
+        { name: 'Maria', phone: '16988888888' },
+      ],
+    });
+    const ana = created.contacts[0];
+    assert.equal(ana.optedOut, false);
+
+    const updated = service.setOptOut(created.id, ana.id, true);
+    assert.equal(updated?.contacts.find((c) => c.id === ana.id)?.optedOut, true);
+    // O conjunto global reflete o telefone marcado.
+    assert.ok(service.optedOutPhones().has('5516999999999'));
+
+    const reverted = service.setOptOut(created.id, ana.id, false);
+    assert.equal(reverted?.contacts.find((c) => c.id === ana.id)?.optedOut, false);
+    assert.equal(service.optedOutPhones().has('5516999999999'), false);
+  });
 });

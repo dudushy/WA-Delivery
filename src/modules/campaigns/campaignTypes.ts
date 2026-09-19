@@ -11,6 +11,7 @@ export interface CampaignSimulation {
   contactListId: number;
   contactListName: string;
   recipientCount: number;
+  optedOutCount: number;
   delayMinSeconds: number;
   delayMaxSeconds: number;
   durationMinSeconds: number;

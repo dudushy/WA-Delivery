@@ -20,6 +20,7 @@ export interface ContactListMember {
   id: number;
   name: string;
   phone: string;
+  optedOut: boolean;
 }
 
 export interface ContactListDetails extends ContactListSummary {
