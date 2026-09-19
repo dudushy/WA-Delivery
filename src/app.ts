@@ -37,7 +37,7 @@ const provider = new BaileysWhatsAppProvider({
   sessionDirectory: resolve('data/sessions/baileys'),
 });
 const dataDir = resolve('data');
-let database = openDatabase(resolve('data/database/wa-delivery.db'));
+const database = openDatabase(resolve('data/database/wa-delivery.db'));
 const settings = new SettingsService(new SettingsRepository(database));
 const contacts = new ContactService(new ContactRepository(database), settings);
 const csvImports = new CsvImportService(contacts, settings);

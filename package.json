@@ -9,8 +9,13 @@
     "dev": "tsx src/app.ts",
     "start": "node dist/app.js",
     "test": "node --import tsx --test tests/*.test.ts",
+    "test:coverage": "node --import tsx --test --experimental-test-coverage --test-coverage-lines=0.7 --test-coverage-functions=0.7 --test-coverage-branches=0.6 tests/*.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "check": "npm run typecheck && npm test && npm run build"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"scripts/**/*.{ts,mjs}\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"scripts/**/*.{ts,mjs}\" \"tests/**/*.ts\"",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run build"
   },
   "engines": {
     "node": ">=24.14.0"
@@ -19,7 +24,11 @@
     "type": "git",
     "url": "git+https://github.com/dudushy/WA-Delivery.git"
   },
-  "keywords": ["whatsapp", "baileys", "campaigns"],
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "campaigns"
+  ],
   "author": "dudushy",
   "license": "ISC",
   "bugs": {
@@ -39,9 +48,15 @@
     "qrcode": "1.5.4"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "@types/node": "24.10.1",
     "@types/qrcode": "1.5.6",
+    "eslint": "10.11.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.12.0",
+    "prettier": "3.9.8",
     "tsx": "4.20.6",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0"
   }
 }
