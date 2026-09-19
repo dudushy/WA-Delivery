@@ -15,12 +15,15 @@ import type { ConnectionListener, ConnectionState, DeliveryResult, MediaMessage,
 class QueueWhatsAppProvider implements WhatsAppProvider {
   public sent: string[] = [];
   public state: ConnectionState = { status: 'connected' };
+  public registeredHandler: (phone: string) => Promise<boolean> = async () => true;
+  public sendTextHandler: ((phone: string, message: string) => Promise<DeliveryResult>) | undefined;
   public async connect(): Promise<void> {}
   public async disconnect(): Promise<void> {}
   public getConnectionState(): ConnectionState { return this.state; }
   public onConnectionState(_listener: ConnectionListener): () => void { return () => undefined; }
-  public async isRegisteredNumber(_phone: string): Promise<boolean> { return true; }
-  public async sendText(phone: string, _message: string): Promise<DeliveryResult> {
+  public async isRegisteredNumber(phone: string): Promise<boolean> { return this.registeredHandler(phone); }
+  public async sendText(phone: string, message: string): Promise<DeliveryResult> {
+    if (this.sendTextHandler) return this.sendTextHandler(phone, message);
     this.sent.push(phone);
     return { messageId: `message-${this.sent.length}`, sentAt: new Date() };
   }
@@ -29,7 +32,7 @@ class QueueWhatsAppProvider implements WhatsAppProvider {
   }
 }
 
-function setup(contactCount = 1) {
+function setup(contactCount = 1, operationTimeoutMs?: number) {
   const database = openDatabase(':memory:');
   const contacts = new ContactService(new ContactRepository(database));
   const list = contacts.createManualList({
@@ -48,7 +51,7 @@ function setup(contactCount = 1) {
   campaigns.prepareDraft(draft.id, true);
   const provider = new QueueWhatsAppProvider();
   const repository = new CampaignQueueRepository(database);
-  const worker = new CampaignQueueWorker(repository, campaigns, media, provider, () => 0);
+  const worker = new CampaignQueueWorker(repository, campaigns, media, provider, () => 0, operationTimeoutMs);
   return { database, draft, provider, repository, worker };
 }
 
@@ -110,5 +113,50 @@ describe('CampaignQueueWorker', () => {
       worker.shutdown();
       database.close();
     }
+  });
+
+  it('classifica timeout de envio como falha transitória', async () => {
+    const { database, draft, provider, repository, worker } = setup(1, 20);
+    // O envio nunca resolve: força o timeout do worker.
+    provider.sendTextHandler = () => new Promise<never>(() => {});
+    try {
+      worker.start(draft.id, true);
+      await waitUntil(() => repository.progress(draft.id)?.failed === 1);
+      const progress = repository.progress(draft.id);
+      assert.equal(progress?.failed, 1);
+      assert.equal(progress?.sent, 0);
+      const row = database
+        .prepare("SELECT last_error FROM campaign_recipients WHERE campaign_id = ?")
+        .get(draft.id) as { last_error: string };
+      assert.match(row.last_error, /^\[transient\]/);
+      assert.match(row.last_error, /tempo limite/i);
+    } finally { worker.shutdown(); database.close(); }
+  });
+
+  it('classifica número não registrado como skip sem falhar', async () => {
+    const { database, draft, provider, repository, worker } = setup(1);
+    provider.registeredHandler = async () => false;
+    try {
+      worker.start(draft.id, true);
+      await waitUntil(() => repository.progress(draft.id)?.status === 'completed');
+      const progress = repository.progress(draft.id);
+      assert.equal(progress?.skipped, 1);
+      assert.equal(progress?.failed, 0);
+    } finally { worker.shutdown(); database.close(); }
+  });
+
+  it('classifica erro permanente de envio como falha permanente', async () => {
+    const { database, draft, provider, repository, worker } = setup(1);
+    provider.sendTextHandler = async () => {
+      throw new Error('A mensagem não pode estar vazia.');
+    };
+    try {
+      worker.start(draft.id, true);
+      await waitUntil(() => repository.progress(draft.id)?.failed === 1);
+      const row = database
+        .prepare("SELECT last_error FROM campaign_recipients WHERE campaign_id = ?")
+        .get(draft.id) as { last_error: string };
+      assert.match(row.last_error, /^\[permanent\]/);
+    } finally { worker.shutdown(); database.close(); }
   });
 });

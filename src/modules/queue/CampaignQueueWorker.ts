@@ -2,16 +2,22 @@ import { EventEmitter } from 'node:events';
 import type { CampaignService } from '../campaigns/CampaignService.js';
 import type { MediaService } from '../media/MediaService.js';
 import type { WhatsAppProvider } from '../../providers/whatsapp/WhatsAppProvider.js';
+import { withTimeout } from '../../shared/withTimeout.js';
 import { CampaignQueueRepository } from './CampaignQueueRepository.js';
+import { classifyError } from './errorClassification.js';
 import { QueueStateError, type QueueProgress } from './queueTypes.js';
 
 const PROGRESS_EVENT = 'progress';
+
+/** Tempo limite padrão para cada operação do WhatsAppProvider (30 segundos). */
+export const DEFAULT_OPERATION_TIMEOUT_MS = 30_000;
 
 export class CampaignQueueWorker {
   private readonly events = new EventEmitter();
   private activeCampaignId: number | undefined;
   private delayTimer: NodeJS.Timeout | undefined;
   private releaseDelay: (() => void) | undefined;
+  private readonly operationTimeoutMs: number;
 
   public constructor(
     private readonly repository: CampaignQueueRepository,
@@ -19,7 +25,10 @@ export class CampaignQueueWorker {
     private readonly media: MediaService,
     private readonly whatsapp: WhatsAppProvider,
     private readonly random: () => number = Math.random,
-  ) {}
+    operationTimeoutMs: number = DEFAULT_OPERATION_TIMEOUT_MS,
+  ) {
+    this.operationTimeoutMs = operationTimeoutMs;
+  }
 
   public recoverInterrupted(): number {
     return this.repository.recoverInterrupted();
@@ -107,7 +116,11 @@ export class CampaignQueueWorker {
       const attemptId = this.repository.markSending(recipient);
       this.emit(campaignId);
       try {
-        const registered = await this.whatsapp.isRegisteredNumber(recipient.phone);
+        const registered = await withTimeout(
+          () => this.whatsapp.isRegisteredNumber(recipient.phone),
+          this.operationTimeoutMs,
+          'A verificação do número excedeu o tempo limite.',
+        );
         if (!registered) {
           this.repository.finishAttempt(attemptId, recipient.id, 'skipped', {
             error: 'O número não está registrado no WhatsApp.',
@@ -117,12 +130,18 @@ export class CampaignQueueWorker {
           if (!campaign) throw new Error('Campanha não encontrada durante o envio.');
           const result = campaign.media
             ? await this.sendMedia(campaign.media.id, recipient.phone, recipient.renderedMessage)
-            : await this.whatsapp.sendText(recipient.phone, recipient.renderedMessage);
+            : await withTimeout(
+                () => this.whatsapp.sendText(recipient.phone, recipient.renderedMessage),
+                this.operationTimeoutMs,
+                'O envio da mensagem excedeu o tempo limite.',
+              );
           this.repository.finishAttempt(attemptId, recipient.id, 'sent', { messageId: result.messageId });
         }
       } catch (error) {
+        const kind = classifyError(error);
+        const message = error instanceof Error ? error.message : String(error);
         this.repository.finishAttempt(attemptId, recipient.id, 'failed', {
-          error: error instanceof Error ? error.message : String(error),
+          error: `[${kind}] ${message}`,
         });
         if (this.whatsapp.getConnectionState().status !== 'connected') {
           this.repository.setStatus(campaignId, 'running', 'paused');
@@ -145,12 +164,17 @@ export class CampaignQueueWorker {
   private async sendMedia(mediaId: number, phone: string, caption: string) {
     const stored = this.media.findById(mediaId);
     if (!stored) throw new Error('A mídia da campanha não foi encontrada.');
-    return this.whatsapp.sendMedia(phone, {
-      path: this.media.resolvePath(stored),
-      kind: stored.kind,
-      caption,
-      mimetype: stored.mimetype,
-    });
+    return withTimeout(
+      () =>
+        this.whatsapp.sendMedia(phone, {
+          path: this.media.resolvePath(stored),
+          kind: stored.kind,
+          caption,
+          mimetype: stored.mimetype,
+        }),
+      this.operationTimeoutMs,
+      'O envio da mídia excedeu o tempo limite.',
+    );
   }
 
   private wait(milliseconds: number): Promise<void> {
