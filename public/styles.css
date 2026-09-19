@@ -177,3 +177,15 @@ tbody tr:last-child td { border-bottom: 0; }
 
 /* Dica de variáveis de template no composer */
 .variables-hint { margin: -8px 0 16px; font-size: 0.82rem; color: #6741d9; background: #f2eefb; padding: 8px 12px; border-radius: 8px; }
+
+/* Onboarding / guia de primeiro uso */
+#open-onboarding { margin-top: 8px; }
+.onboarding-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15, 32, 26, 0.55); }
+.onboarding-dialog { width: min(560px, 100%); max-height: 90vh; overflow-y: auto; background: #fff; border-radius: 18px; padding: 26px; box-shadow: 0 24px 60px rgba(20, 53, 40, 0.25); }
+.onboarding-dialog h2 { margin-top: 0; }
+.onboarding-warning { padding: 12px 14px; border-radius: 10px; background: #fff4d6; color: #8a6d00; }
+.onboarding-consent { padding: 12px 14px; border-radius: 10px; background: #f2eefb; color: #4a367d; }
+.onboarding-steps { margin: 16px 0; padding-left: 22px; line-height: 1.8; color: #34423b; }
+@media (max-width: 480px) {
+  .onboarding-dialog { padding: 18px; }
+}

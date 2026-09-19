@@ -421,6 +421,21 @@ describe('servidor local', () => {
     await server.close();
   });
 
+  it('persiste o estado de onboarding concluído', async () => {
+    const server = await createServer();
+    const before = await server.inject({ method: 'GET', url: '/api/settings' });
+    assert.equal(before.json().onboardingCompleted, false);
+
+    const updated = await server.inject({
+      method: 'PUT', url: '/api/settings', payload: { onboardingCompleted: true },
+    });
+    assert.equal(updated.json().onboardingCompleted, true);
+
+    const after = await server.inject({ method: 'GET', url: '/api/settings' });
+    assert.equal(after.json().onboardingCompleted, true);
+    await server.close();
+  });
+
   it('aplica o país/DDD configurado na normalização de contatos manuais', async () => {
     const server = await createServer();
     await server.inject({

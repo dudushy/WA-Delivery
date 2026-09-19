@@ -22,6 +22,8 @@ export interface AppSettings {
   retentionDays: number;
   /** Preferência de efeitos sonoros na interface. */
   soundEnabled: boolean;
+  /** Indica se o guia de primeiro uso já foi concluído/dispensado. */
+  onboardingCompleted: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -33,6 +35,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   retryBackoffCapMs: 30_000,
   retentionDays: 0,
   soundEnabled: true,
+  onboardingCompleted: false,
 };
 
 export interface SettingsValidationIssue {

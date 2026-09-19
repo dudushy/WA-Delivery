@@ -73,6 +73,9 @@ export class SettingsService {
     if (input.soundEnabled !== undefined) {
       merged.soundEnabled = Boolean(input.soundEnabled);
     }
+    if (input.onboardingCompleted !== undefined) {
+      merged.onboardingCompleted = Boolean(input.onboardingCompleted);
+    }
 
     if (merged.retryBackoffCapMs < merged.retryBackoffMs) {
       issues.push({

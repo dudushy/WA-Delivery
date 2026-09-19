@@ -11,6 +11,7 @@ import type { SettingsService } from '../modules/settings/SettingsService.js';
 import type { BackupService } from '../modules/backup/BackupService.js';
 import type { WhatsAppProvider } from '../providers/whatsapp/WhatsAppProvider.js';
 import { toConnectionStateDto } from './connectionDto.js';
+import { logger, maskSensitive } from '../shared/logger.js';
 import { registerContactRoutes } from './contactRoutes.js';
 import { registerCsvImportRoutes } from './csvImportRoutes.js';
 import { registerCampaignRoutes } from './campaignRoutes.js';
@@ -99,6 +100,20 @@ export async function buildServer(
   registerQueueRoutes(server, queue);
   registerSettingsRoutes(server, settings);
   if (backup) registerBackupRoutes(server, backup, { ...(dependencies.onRestored ? { onRestored: dependencies.onRestored } : {}) });
+
+  // Tratador de erros: nunca expõe stack trace ao usuário final. Erros de
+  // validação (4xx) preservam a mensagem; erros inesperados retornam uma
+  // mensagem genérica e o detalhe (mascarado) vai apenas para os logs.
+  server.setErrorHandler((error: Error & { statusCode?: number }, _request, reply) => {
+    const status = typeof error.statusCode === 'number' ? error.statusCode : 500;
+    if (status >= 500) {
+      logger.error({ err: maskSensitive(error.message) }, 'Erro interno ao processar a requisição.');
+      return reply.code(500).send({
+        message: 'Ocorreu um erro interno. Verifique os logs da aplicação e tente novamente.',
+      });
+    }
+    return reply.code(status).send({ message: error.message });
+  });
 
   return server;
 }
