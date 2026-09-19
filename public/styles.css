@@ -159,3 +159,11 @@ tbody tr:last-child td { border-bottom: 0; }
   .upload-form { align-items: stretch; flex-direction: column; }
   .mapping-grid, .analysis-cards { grid-template-columns: 1fr 1fr; }
 }
+
+/* Página de configurações */
+#settings-form fieldset { border: 1px solid #dce4df; border-radius: 14px; padding: 18px 18px 6px; margin: 0 0 18px; }
+#settings-form legend { padding: 0 8px; font-weight: 800; color: #087f5b; font-size: 0.9rem; }
+#settings-form label { margin-bottom: 14px; }
+#settings-form label.checkbox { display: flex; flex-direction: row; align-items: center; gap: 10px; }
+#settings-form label.checkbox input { width: auto; }
+.success { color: #087f5b; padding: 12px 14px; border-radius: 10px; background: #e4f4ee; }

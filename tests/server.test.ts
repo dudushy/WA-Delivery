@@ -9,6 +9,8 @@ import type {
 } from '../src/providers/whatsapp/WhatsAppProvider.js';
 import { buildServer } from '../src/web/server.js';
 import { openDatabase } from '../src/database/database.js';
+import { SettingsRepository } from '../src/modules/settings/SettingsRepository.js';
+import { SettingsService } from '../src/modules/settings/SettingsService.js';
 import { ContactRepository } from '../src/modules/contacts/ContactRepository.js';
 import { ContactService } from '../src/modules/contacts/ContactService.js';
 import { CsvImportService } from '../src/modules/contacts/CsvImportService.js';
@@ -49,7 +51,8 @@ class FakeWhatsAppProvider implements WhatsAppProvider {
 describe('servidor local', () => {
   async function createServer(provider = new FakeWhatsAppProvider()) {
     const database = openDatabase(':memory:');
-    const contacts = new ContactService(new ContactRepository(database));
+    const settings = new SettingsService(new SettingsRepository(database));
+    const contacts = new ContactService(new ContactRepository(database), settings);
     const media = new MediaService(
       new MediaRepository(database),
       '/tmp/wa-delivery-server-tests',
@@ -60,8 +63,9 @@ describe('servidor local', () => {
     );
     return buildServer({
       whatsappProvider: provider,
+      settings,
       contacts,
-      csvImports: new CsvImportService(contacts),
+      csvImports: new CsvImportService(contacts, settings),
       campaigns,
       media,
       queue,
@@ -363,6 +367,62 @@ describe('servidor local', () => {
 
     const missing = await server.inject({ method: 'GET', url: '/api/campaigns/999999/export' });
     assert.equal(missing.statusCode, 404);
+    await server.close();
+  });
+
+  it('lê e grava configurações operacionais pela API', async () => {
+    const server = await createServer();
+    const defaults = await server.inject({ method: 'GET', url: '/api/settings' });
+    assert.equal(defaults.statusCode, 200);
+    assert.equal(defaults.json().defaultCountryCode, '55');
+    assert.equal(defaults.json().maxAttempts, 3);
+
+    const updated = await server.inject({
+      method: 'PUT',
+      url: '/api/settings',
+      payload: { defaultCountryCode: '1', defaultAreaCode: '11', maxAttempts: 5, soundEnabled: false },
+    });
+    assert.equal(updated.statusCode, 200);
+    assert.equal(updated.json().defaultCountryCode, '1');
+    assert.equal(updated.json().defaultAreaCode, '11');
+    assert.equal(updated.json().maxAttempts, 5);
+    assert.equal(updated.json().soundEnabled, false);
+
+    // Persistiu: uma nova leitura reflete os valores salvos.
+    const reread = await server.inject({ method: 'GET', url: '/api/settings' });
+    assert.equal(reread.json().maxAttempts, 5);
+
+    await server.close();
+  });
+
+  it('retorna 422 para configurações inválidas', async () => {
+    const server = await createServer();
+    const invalid = await server.inject({
+      method: 'PUT',
+      url: '/api/settings',
+      payload: { maxAttempts: 0, defaultCountryCode: 'abc' },
+    });
+    assert.equal(invalid.statusCode, 422);
+    assert.ok(Array.isArray(invalid.json().issues));
+    assert.ok(invalid.json().issues.length >= 1);
+    await server.close();
+  });
+
+  it('aplica o país/DDD configurado na normalização de contatos manuais', async () => {
+    const server = await createServer();
+    await server.inject({
+      method: 'PUT',
+      url: '/api/settings',
+      payload: { defaultCountryCode: '55', defaultAreaCode: '16' },
+    });
+    // Número local sem DDD deve receber DDD (16) e país (55).
+    const created = await server.inject({
+      method: 'POST',
+      url: '/api/contact-lists/manual',
+      payload: { name: 'Sem DDD', contacts: [{ name: 'Ana', phone: '99999-9999' }] },
+    });
+    assert.equal(created.statusCode, 201);
+    assert.equal(created.json().contacts[0].phone, '5516999999999');
     await server.close();
   });
 });

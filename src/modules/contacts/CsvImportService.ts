@@ -2,8 +2,9 @@ import { randomUUID } from 'node:crypto';
 import chardet from 'chardet';
 import { parse } from 'csv-parse/sync';
 import iconv from 'iconv-lite';
-import { normalizePhone } from './phone.js';
+import { normalizePhone, type NormalizePhoneOptions } from './phone.js';
 import { ContactService } from './ContactService.js';
+import type { SettingsService } from '../settings/SettingsService.js';
 import type { ContactListDetails, ManualContactInput } from './contactTypes.js';
 
 const MAX_ROWS = 20_000;
@@ -59,7 +60,15 @@ export interface CsvAnalysis {
 export class CsvImportService {
   private readonly sessions = new Map<string, ImportSession>();
 
-  public constructor(private readonly contacts: ContactService) {}
+  public constructor(
+    private readonly contacts: ContactService,
+    _settings?: SettingsService,
+  ) {}
+
+  /** Opções de normalização derivadas das configurações (país/DDD). */
+  private normalizeOptions(): NormalizePhoneOptions {
+    return this.contacts.normalizeOptions();
+  }
 
   public createPreview(filename: string, buffer: Buffer): CsvPreview {
     this.clearExpired();
@@ -96,7 +105,7 @@ export class CsvImportService {
       headers,
       rows: dataRows.slice(0, PREVIEW_ROWS).map((row) => rowToRecord(headers, row)),
       rowCount: dataRows.length,
-      phoneCandidates: rankPhoneColumns(headers, dataRows),
+      phoneCandidates: rankPhoneColumns(headers, dataRows, this.normalizeOptions()),
       nameCandidates: rankNameColumns(headers),
     };
   }
@@ -118,7 +127,7 @@ export class CsvImportService {
       const phone = row[phoneIndex]?.trim() ?? '';
       const name = nameIndex === undefined ? phone : (row[nameIndex]?.trim() || phone);
       try {
-        const normalizedPhone = normalizePhone(phone);
+        const normalizedPhone = normalizePhone(phone, this.normalizeOptions());
         if (seen.has(normalizedPhone)) {
           duplicates += 1;
           return {
@@ -175,7 +184,7 @@ export class CsvImportService {
       for (const row of session.rows.slice(analysis.sample.length)) {
         const phone = row[phoneIndex]?.trim() ?? '';
         try {
-          const normalized = normalizePhone(phone);
+          const normalized = normalizePhone(phone, this.normalizeOptions());
           if (seen.has(normalized)) continue;
           seen.add(normalized);
           validRows.push({
@@ -261,12 +270,16 @@ function rowToRecord(headers: string[], row: string[]): Record<string, string> {
   return Object.fromEntries(headers.map((header, index) => [header, row[index] ?? '']));
 }
 
-function rankPhoneColumns(headers: string[], rows: string[][]): ColumnCandidate[] {
+function rankPhoneColumns(
+  headers: string[],
+  rows: string[][],
+  options: NormalizePhoneOptions,
+): ColumnCandidate[] {
   const keywords = /phone|telefone|celular|mobile|whatsapp|fone|número|numero/i;
   return headers.map((header, index) => {
     const values = rows.slice(0, 100).map((row) => row[index] ?? '').filter(Boolean);
     const valid = values.filter((value) => {
-      try { normalizePhone(value); return true; } catch { return false; }
+      try { normalizePhone(value, options); return true; } catch { return false; }
     }).length;
     const ratio = values.length === 0 ? 0 : valid / values.length;
     return { header, score: Math.round((keywords.test(header) ? 50 : 0) + ratio * 50) };

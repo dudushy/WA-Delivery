@@ -41,7 +41,7 @@ describe('migrações do banco', () => {
       const migrated = openDatabase(filename);
       assert.equal(
         migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
-        7,
+        8,
       );
       const recipient = migrated.prepare(`
         SELECT attempt_count, updated_at FROM campaign_recipients WHERE id = 1
@@ -85,7 +85,7 @@ describe('migrações do banco', () => {
       const migrated = openDatabase(filename);
       assert.equal(
         migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
-        7,
+        8,
       );
       // A coluna nova existe e a campanha populada foi preservada.
       const row = migrated.prepare(
@@ -132,7 +132,7 @@ describe('migrações do banco', () => {
       const migrated = openDatabase(filename);
       assert.equal(
         migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
-        7,
+        8,
       );
       // A tentativa existente foi preservada e a coluna nova aceita a classificação.
       const before = migrated.prepare('SELECT error_kind FROM delivery_attempts WHERE id = 1').get() as { error_kind: string | null };

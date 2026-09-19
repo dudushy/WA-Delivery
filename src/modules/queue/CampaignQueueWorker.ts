@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import type { CampaignService } from '../campaigns/CampaignService.js';
 import type { MediaService } from '../media/MediaService.js';
+import type { SettingsService } from '../settings/SettingsService.js';
 import type { WhatsAppProvider } from '../../providers/whatsapp/WhatsAppProvider.js';
 import { withTimeout } from '../../shared/withTimeout.js';
 import { CampaignQueueRepository } from './CampaignQueueRepository.js';
@@ -37,10 +38,11 @@ export class CampaignQueueWorker {
   private activeCampaignId: number | undefined;
   private delayTimer: NodeJS.Timeout | undefined;
   private releaseDelay: (() => void) | undefined;
-  private readonly operationTimeoutMs: number;
-  private readonly maxAttempts: number;
-  private readonly retryBackoffMs: number;
-  private readonly retryBackoffCapMs: number;
+  private readonly fallbackOperationTimeoutMs: number;
+  private readonly fallbackMaxAttempts: number;
+  private readonly fallbackRetryBackoffMs: number;
+  private readonly fallbackRetryBackoffCapMs: number;
+  private readonly settings: SettingsService | undefined;
   /** Campanhas pausadas automaticamente por queda de conexão (auto-retomáveis). */
   private readonly autoPausedCampaigns = new Set<number>();
   private readonly unsubscribeConnection: () => void;
@@ -55,16 +57,41 @@ export class CampaignQueueWorker {
     maxAttempts: number = DEFAULT_MAX_ATTEMPTS,
     retryBackoffMs: number = DEFAULT_RETRY_BACKOFF_MS,
     retryBackoffCapMs: number = DEFAULT_RETRY_BACKOFF_CAP_MS,
+    settings?: SettingsService,
   ) {
-    this.operationTimeoutMs = operationTimeoutMs;
-    this.maxAttempts = Math.max(1, maxAttempts);
-    this.retryBackoffMs = Math.max(0, retryBackoffMs);
-    this.retryBackoffCapMs = Math.max(this.retryBackoffMs, retryBackoffCapMs);
+    this.fallbackOperationTimeoutMs = operationTimeoutMs;
+    this.fallbackMaxAttempts = Math.max(1, maxAttempts);
+    this.fallbackRetryBackoffMs = Math.max(0, retryBackoffMs);
+    this.fallbackRetryBackoffCapMs = Math.max(this.fallbackRetryBackoffMs, retryBackoffCapMs);
+    this.settings = settings;
     // Retoma automaticamente campanhas que foram pausadas por queda de conexão
     // assim que o WhatsApp reconectar.
     this.unsubscribeConnection = this.whatsapp.onConnectionState((state) => {
       if (state.status === 'connected') this.resumeAutoPaused();
     });
+  }
+
+  /** Tempo limite atual das operações do provider (respeita as configurações). */
+  private get operationTimeoutMs(): number {
+    return this.settings?.getAll().operationTimeoutMs ?? this.fallbackOperationTimeoutMs;
+  }
+
+  /** Limite atual de tentativas por destinatário (respeita as configurações). */
+  private get maxAttempts(): number {
+    return Math.max(1, this.settings?.getAll().maxAttempts ?? this.fallbackMaxAttempts);
+  }
+
+  /** Backoff base atual entre tentativas transitórias (respeita as configurações). */
+  private get retryBackoffMs(): number {
+    return Math.max(0, this.settings?.getAll().retryBackoffMs ?? this.fallbackRetryBackoffMs);
+  }
+
+  /** Teto atual do backoff entre tentativas (respeita as configurações). */
+  private get retryBackoffCapMs(): number {
+    return Math.max(
+      this.retryBackoffMs,
+      this.settings?.getAll().retryBackoffCapMs ?? this.fallbackRetryBackoffCapMs,
+    );
   }
 
   private resumeAutoPaused(): void {

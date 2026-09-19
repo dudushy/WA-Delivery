@@ -1,5 +1,7 @@
 import { resolve } from 'node:path';
 import { openDatabase } from './database/database.js';
+import { SettingsRepository } from './modules/settings/SettingsRepository.js';
+import { SettingsService } from './modules/settings/SettingsService.js';
 import { ContactRepository } from './modules/contacts/ContactRepository.js';
 import { ContactService } from './modules/contacts/ContactService.js';
 import { CsvImportService } from './modules/contacts/CsvImportService.js';
@@ -8,7 +10,13 @@ import { CampaignService } from './modules/campaigns/CampaignService.js';
 import { MediaRepository } from './modules/media/MediaRepository.js';
 import { MediaService } from './modules/media/MediaService.js';
 import { CampaignQueueRepository } from './modules/queue/CampaignQueueRepository.js';
-import { CampaignQueueWorker } from './modules/queue/CampaignQueueWorker.js';
+import {
+  CampaignQueueWorker,
+  DEFAULT_OPERATION_TIMEOUT_MS,
+  DEFAULT_MAX_ATTEMPTS,
+  DEFAULT_RETRY_BACKOFF_MS,
+  DEFAULT_RETRY_BACKOFF_CAP_MS,
+} from './modules/queue/CampaignQueueWorker.js';
 import { buildServer } from './web/server.js';
 import { BaileysWhatsAppProvider } from './providers/whatsapp/baileys/BaileysWhatsAppProvider.js';
 
@@ -16,18 +24,26 @@ const provider = new BaileysWhatsAppProvider({
   sessionDirectory: resolve('data/sessions/baileys'),
 });
 const database = openDatabase(resolve('data/database/wa-delivery.db'));
-const contacts = new ContactService(new ContactRepository(database));
-const csvImports = new CsvImportService(contacts);
+const settings = new SettingsService(new SettingsRepository(database));
+const contacts = new ContactService(new ContactRepository(database), settings);
+const csvImports = new CsvImportService(contacts, settings);
 const media = new MediaService(new MediaRepository(database), resolve('data/media'));
 const campaigns = new CampaignService(new CampaignRepository(database), contacts, media);
 const queue = new CampaignQueueWorker(
   new CampaignQueueRepository(database), campaigns, media, provider,
+  Math.random,
+  DEFAULT_OPERATION_TIMEOUT_MS,
+  DEFAULT_MAX_ATTEMPTS,
+  DEFAULT_RETRY_BACKOFF_MS,
+  DEFAULT_RETRY_BACKOFF_CAP_MS,
+  settings,
 );
 queue.recoverInterrupted();
 await media.cleanupExpiredTemporary();
 
 const server = await buildServer({
   whatsappProvider: provider,
+  settings,
   contacts,
   csvImports,
   campaigns,

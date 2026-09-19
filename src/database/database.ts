@@ -175,4 +175,14 @@ const migrations = [
         CHECK (error_kind IN ('transient', 'permanent'));
     `,
   },
+  {
+    version: 8,
+    sql: `
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `,
+  },
 ] as const;

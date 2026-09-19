@@ -1,5 +1,6 @@
-import { normalizePhone } from './phone.js';
+import { normalizePhone, type NormalizePhoneOptions } from './phone.js';
 import { ContactRepository } from './ContactRepository.js';
+import type { SettingsService } from '../settings/SettingsService.js';
 import {
   ContactValidationError,
   type ContactListDetails,
@@ -9,7 +10,19 @@ import {
 } from './contactTypes.js';
 
 export class ContactService {
-  public constructor(private readonly repository: ContactRepository) {}
+  public constructor(
+    private readonly repository: ContactRepository,
+    private readonly settings?: SettingsService,
+  ) {}
+
+  /** Opções de normalização derivadas das configurações persistentes (país/DDD). */
+  public normalizeOptions(): NormalizePhoneOptions {
+    const current = this.settings?.getAll();
+    return {
+      defaultCountryCode: current?.defaultCountryCode || '55',
+      defaultAreaCode: current?.defaultAreaCode || '',
+    };
+  }
 
   public createManualList(input: CreateManualContactListInput): ContactListDetails {
     return this.createList(input, 'manual');
@@ -42,7 +55,7 @@ export class ContactService {
 
       let normalizedPhone = '';
       try {
-        normalizedPhone = normalizePhone(rawPhone);
+        normalizedPhone = normalizePhone(rawPhone, this.normalizeOptions());
         const firstIndex = seenPhones.get(normalizedPhone);
         if (firstIndex !== undefined) {
           issues.push({
@@ -112,7 +125,10 @@ export class ContactService {
 
     let normalizedPhone = '';
     try {
-      normalizedPhone = normalizePhone(typeof contact?.phone === 'string' ? contact.phone : '');
+      normalizedPhone = normalizePhone(
+        typeof contact?.phone === 'string' ? contact.phone : '',
+        this.normalizeOptions(),
+      );
     } catch (error) {
       issues.push({
         path: 'phone',

@@ -16,6 +16,24 @@ describe('normalizePhone', () => {
     assert.throws(() => normalizePhone('1234'), /8 e 15 dígitos/);
     assert.throws(() => normalizePhone('1234567890123456'), /8 e 15 dígitos/);
   });
+  it('usa um código de país configurável', () => {
+    assert.equal(
+      normalizePhone('(415) 555-2671', { defaultCountryCode: '1' }),
+      '14155552671',
+    );
+  });
+  it('prefixa o DDD padrão a números locais sem DDD', () => {
+    // Celular local de 9 dígitos recebe DDD (16) e país (55).
+    assert.equal(
+      normalizePhone('99999-9999', { defaultCountryCode: '55', defaultAreaCode: '16' }),
+      '5516999999999',
+    );
+    // Fixo local de 8 dígitos recebe DDD (16) e país (55).
+    assert.equal(
+      normalizePhone('3333-4444', { defaultCountryCode: '55', defaultAreaCode: '16' }),
+      '551633334444',
+    );
+  });
 });
 
 describe('toWhatsAppJid', () => {
