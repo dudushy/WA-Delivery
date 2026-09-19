@@ -1,6 +1,6 @@
 # Progresso da implementação — WA-Delivery V2
 
-Última atualização: 2026-09-19
+Última atualização: 2026-09-19 (Fases 4 e 5 concluídas)
 
 ## Concluído
 
@@ -56,13 +56,12 @@
 - [x] confirmação explícita antes de preparar/iniciar;
 - [x] prévia preserva quebras de linha da mensagem (`white-space: pre-wrap`).
 
-### Fase 4 — fila de disparos resiliente (em andamento)
+### Fase 4 — fila de disparos resiliente
 
 - [x] fila persistente processada por um único worker;
 - [x] intervalo aleatório dentro da faixa configurada;
 - [x] pause, resume e cancelamento;
 - [x] bloqueio contra duas campanhas simultâneas;
-- [x] recuperação após reinício (itens em `sending` viram `failed`, sem reenvio silencioso);
 - [x] progresso via SSE e registro de cada tentativa;
 - [x] **checkpoint 1 — timeout e classificação de erros**:
   - timeout configurável em todas as operações do `WhatsAppProvider`
@@ -70,10 +69,29 @@
   - classificação de erros em transitórios e permanentes (`classifyError`);
   - a categoria é registrada como prefixo (`[transient]` / `[permanent]`) no
     `last_error` do destinatário.
-- [ ] checkpoint 2 — retry apenas para falhas transitórias, com limite;
-- [ ] checkpoint 3 — backoff controlado entre tentativas;
-- [ ] checkpoint 4 — tratamento reforçado de desconexão/reconexão durante a fila;
-- [ ] checkpoint 5 — idempotência adicional após reinício.
+- [x] **checkpoint 2 — retry apenas para falhas transitórias, com limite**:
+  - falhas transitórias são reprocessadas até `DEFAULT_MAX_ATTEMPTS` (3);
+  - falhas permanentes, desconexão ou limite atingido resultam em `failed`;
+  - `error_kind` persistido em `delivery_attempts` (migration v7).
+- [x] **checkpoint 3 — backoff controlado entre tentativas**:
+  - backoff exponencial `base * 2^(tentativa-1)` limitado por um teto,
+    interrompível por pausa/cancelamento.
+- [x] **checkpoint 4 — desconexão e reconexão durante a fila**:
+  - detecção proativa da queda (antes de consumir tentativas);
+  - retomada automática ao reconectar; pausas manuais não são retomadas.
+- [x] **checkpoint 5 — idempotência após reinício**:
+  - `recoverInterrupted` idempotente: `sending` → `failed` (interrompido),
+    `sent` preservado, `running` → `paused`; sem reenvio silencioso.
+
+### Fase 5 — monitoramento, histórico e relatórios
+
+- [x] progresso da campanha (total, enviados, falhas, ignorados, pendentes);
+- [x] detalhe por destinatário: status, tentativas, último erro e data de envio;
+- [x] filtro por status na página da campanha, com atualização em tempo real (SSE);
+- [x] histórico de campanhas na listagem, com rótulo de status;
+- [x] exportação CSV completa e somente falhas (`/api/campaigns/:id/export`),
+  com escape RFC 4180;
+- [x] campanhas de reenvio (follow-up) vinculadas à origem preservam o histórico.
 
 ## Ciclo de vida da campanha (comportamento atual)
 
@@ -94,21 +112,24 @@ Estados: `draft -> ready -> running -> paused -> completed/cancelled/failed`.
 
 ## Banco de dados
 
-- Migration atual: **versão 6**.
+- Migration atual: **versão 7**.
 - v6 adiciona `campaigns.source_campaign_id` (nullable, `ON DELETE SET NULL`) para o
-  vínculo de reenvio. Todas as migrations são incrementais e compatíveis com banco
-  já populado; há teste de upgrade para a v5 e para a v6 sobre dados existentes.
+  vínculo de reenvio.
+- v7 adiciona `delivery_attempts.error_kind` (`transient`/`permanent`) para
+  rastrear a classificação de cada tentativa.
+- Todas as migrations são incrementais e compatíveis com banco já populado; há
+  testes de upgrade para as versões 5, 6 e 7 sobre dados existentes.
 
 ## Estado dos testes
 
-- 64 testes automatizados aprovados;
+- 78 testes automatizados aprovados;
 - typecheck aprovado;
 - build aprovado;
 - `npm audit --omit=dev` sem vulnerabilidades conhecidas;
-- testes de upgrade de migration (v5 e v6) sobre banco populado aprovados;
+- testes de upgrade de migration (v5, v6 e v7) sobre banco populado aprovados;
 - fila coberta por `FakeWhatsAppProvider` (nenhuma conta real é usada nos testes).
 
 ## Próximo checkpoint
 
-Fase 4 — checkpoint 2: retry apenas para falhas transitórias, com limite de
-tentativas, aproveitando a classificação de erros já implementada.
+Fase 6 — experiência de instalação e operação (scripts, guia de primeiro uso,
+backup/restauração), seguida da Fase 7 (qualidade e preparação da release).

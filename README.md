@@ -38,7 +38,12 @@ cadastre contatos, monte a campanha, revise a prévia e confirme o envio.
   (falhas e ignorados). A campanha original é mantida como histórico e a nova fica
   vinculada a ela.
 - **Fila resiliente**: worker sequencial persistente, com timeout e classificação de
-  erros (transitórios/permanentes); sobrevive a reinício sem reenviar silenciosamente.
+  erros (transitórios/permanentes), retry com limite e backoff exponencial para
+  falhas transitórias, detecção de desconexão com retomada automática ao reconectar,
+  e recuperação idempotente após reinício (sem reenvio silencioso).
+- **Monitoramento e relatórios**: acompanhamento em tempo real do progresso, detalhe
+  por destinatário (status, tentativas, último erro, data de envio), filtro por status
+  e exportação CSV completa ou somente das falhas.
 
 O progresso detalhado e as fases estão em
 [`docs/PROGRESS_V2.md`](docs/PROGRESS_V2.md) e
