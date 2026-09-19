@@ -76,6 +76,24 @@ export function registerCampaignRoutes(
       : { items: recipients };
   });
 
+  server.get<{ Params: { id: string }; Querystring: { onlyFailures?: string } }>(
+    '/api/campaigns/:id/export',
+    async (request, reply) => {
+      const id = Number(request.params.id);
+      if (!Number.isSafeInteger(id) || id <= 0) {
+        return reply.code(400).send({ message: 'Identificador da campanha inválido.' });
+      }
+      const onlyFailures = request.query.onlyFailures === 'true';
+      const csv = campaigns.exportRecipientsCsv(id, onlyFailures);
+      if (csv === undefined) return reply.code(404).send({ message: 'Campanha não encontrada.' });
+      const suffix = onlyFailures ? '-falhas' : '';
+      return reply
+        .header('Content-Type', 'text/csv; charset=utf-8')
+        .header('Content-Disposition', `attachment; filename="campanha-${id}${suffix}.csv"`)
+        .send(csv);
+    },
+  );
+
   server.delete<{ Params: { id: string } }>('/api/campaigns/:id', async (request, reply) => {
     const id = Number(request.params.id);
     if (!Number.isSafeInteger(id) || id <= 0) {

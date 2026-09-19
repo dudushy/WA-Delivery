@@ -57,8 +57,23 @@
           <button id="prepare-campaign" type="button" disabled>Preparar para envio</button>
         </section>
         <section id="recipient-review" hidden>
-          <h2>Destinatários preparados</h2>
+          <h2>Destinatários</h2>
           <p id="recipient-summary"></p>
+          <div class="recipient-toolbar">
+            <label>Filtrar por status
+              <select id="recipient-filter">
+                <option value="">Todos</option>
+                <option value="pending">Pendentes</option>
+                <option value="sent">Enviados</option>
+                <option value="failed">Falhas</option>
+                <option value="skipped">Ignorados</option>
+              </select>
+            </label>
+            <div class="recipient-export">
+              <a id="export-all" class="secondary button-link" href="#">Exportar CSV</a>
+              <a id="export-failures" class="secondary button-link" href="#">Exportar só falhas</a>
+            </div>
+          </div>
           <div id="recipient-list" class="message-samples"></div>
         </section>
         <section id="execution-zone" class="review-zone execution-zone" hidden>

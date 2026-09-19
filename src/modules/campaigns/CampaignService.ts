@@ -163,6 +163,32 @@ export class CampaignService {
     return this.repository.listRecipients(id);
   }
 
+  /**
+   * Gera um relatório CSV dos destinatários da campanha. Quando `onlyFailures`
+   * é verdadeiro, inclui apenas os destinatários com falha ou ignorados
+   * (lista acionável de reenvio). Retorna undefined se a campanha não existir.
+   */
+  public exportRecipientsCsv(id: number, onlyFailures = false): string | undefined {
+    const recipients = this.listRecipients(id);
+    if (recipients === undefined) return undefined;
+    const rows = onlyFailures
+      ? recipients.filter((r) => r.status === 'failed' || r.status === 'skipped')
+      : recipients;
+    const header = ['nome', 'telefone', 'status', 'tentativas', 'enviado_em', 'ultimo_erro'];
+    const lines = [header.map(csvCell).join(',')];
+    for (const r of rows) {
+      lines.push([
+        r.name,
+        r.phone,
+        r.status,
+        String(r.attemptCount),
+        r.sentAt ?? '',
+        r.lastError ?? '',
+      ].map(csvCell).join(','));
+    }
+    return `${lines.join('\r\n')}\r\n`;
+  }
+
   private validate(
     input: CampaignComposerInput,
     requireName: boolean,
@@ -231,4 +257,13 @@ export class CampaignService {
 
 export function renderMessage(template: string, name: string): string {
   return template.replace(/\{\{\s*nome\s*\}\}/gi, name);
+}
+
+/**
+ * Escapa um valor para uma célula CSV: envolve em aspas quando contém aspas,
+ * vírgula ou quebra de linha, dobrando as aspas internas (RFC 4180).
+ */
+function csvCell(value: string): string {
+  if (/[",\r\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+  return value;
 }

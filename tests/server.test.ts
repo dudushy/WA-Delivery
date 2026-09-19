@@ -332,4 +332,37 @@ describe('servidor local', () => {
     assert.equal(missingMedia.statusCode, 404);
     await server.close();
   });
+
+  it('exporta os destinatários de uma campanha em CSV', async () => {
+    const server = await createServer();
+    const list = await server.inject({
+      method: 'POST',
+      url: '/api/contact-lists/manual',
+      payload: { name: 'Lista export', contacts: [{ name: 'Ana', phone: '16999999999' }] },
+    });
+    const draft = await server.inject({
+      method: 'POST',
+      url: '/api/campaigns',
+      payload: {
+        name: 'Campanha export', contactListId: list.json().id,
+        messageTemplate: 'Olá {{nome}}!', delayMinSeconds: 2, delayMaxSeconds: 4,
+      },
+    });
+    const id = draft.json().id;
+    await server.inject({ method: 'POST', url: `/api/campaigns/${id}/prepare`, payload: { confirmed: true } });
+
+    const csv = await server.inject({ method: 'GET', url: `/api/campaigns/${id}/export` });
+    assert.equal(csv.statusCode, 200);
+    assert.ok(csv.headers['content-type']?.includes('text/csv'));
+    assert.ok(csv.headers['content-disposition']?.includes(`campanha-${id}.csv`));
+    assert.ok(csv.body.startsWith('nome,telefone,status,tentativas,enviado_em,ultimo_erro'));
+
+    const failures = await server.inject({ method: 'GET', url: `/api/campaigns/${id}/export?onlyFailures=true` });
+    assert.equal(failures.statusCode, 200);
+    assert.ok(failures.headers['content-disposition']?.includes(`campanha-${id}-falhas.csv`));
+
+    const missing = await server.inject({ method: 'GET', url: '/api/campaigns/999999/export' });
+    assert.equal(missing.statusCode, 404);
+    await server.close();
+  });
 });

@@ -132,6 +132,62 @@ describe('CampaignService', () => {
   });
 });
 
+describe('CampaignService.exportRecipientsCsv', () => {
+  function build() {
+    const database = openDatabase(':memory:');
+    const contacts = new ContactService(new ContactRepository(database));
+    const list = contacts.createManualList({
+      name: 'Clientes',
+      contacts: [
+        { name: 'Ana', phone: '16999999999' },
+        { name: 'Maria, teste', phone: '16988888888' },
+      ],
+    });
+    const campaigns = new CampaignService(
+      new CampaignRepository(database), contacts,
+      new MediaService(new MediaRepository(database), '/tmp/wa-delivery-export-tests'),
+    );
+    const draft = campaigns.createDraft({
+      name: 'C', contactListId: list.id, messageTemplate: 'Olá {{nome}}!', delayMinSeconds: 1, delayMaxSeconds: 1,
+    });
+    campaigns.prepareDraft(draft.id, true);
+    return { database, campaigns, draft };
+  }
+
+  it('exporta todos os destinatários com cabeçalho e escapa vírgulas', () => {
+    const { database, campaigns, draft } = build();
+    try {
+      const csv = campaigns.exportRecipientsCsv(draft.id);
+      assert.ok(csv);
+      const lines = csv.trim().split('\r\n');
+      assert.equal(lines[0], 'nome,telefone,status,tentativas,enviado_em,ultimo_erro');
+      assert.equal(lines.length, 3); // header + 2 destinatários
+      assert.ok(lines.some((l) => l.startsWith('"Maria, teste"'))); // escapa vírgula
+    } finally { database.close(); }
+  });
+
+  it('exporta somente falhas e ignorados quando solicitado', () => {
+    const { database, campaigns, draft } = build();
+    try {
+      const recipients = campaigns.listRecipients(draft.id) ?? [];
+      database.prepare("UPDATE campaign_recipients SET status = 'sent' WHERE id = ?").run(recipients[0].id);
+      database.prepare("UPDATE campaign_recipients SET status = 'failed', last_error = 'x' WHERE id = ?").run(recipients[1].id);
+      const csv = campaigns.exportRecipientsCsv(draft.id, true);
+      assert.ok(csv);
+      const lines = csv.trim().split('\r\n');
+      assert.equal(lines.length, 2); // header + 1 falha
+      assert.ok(lines[1].includes('failed'));
+    } finally { database.close(); }
+  });
+
+  it('retorna undefined para campanha inexistente', () => {
+    const { database, campaigns } = build();
+    try {
+      assert.equal(campaigns.exportRecipientsCsv(999999), undefined);
+    } finally { database.close(); }
+  });
+});
+
 describe('renderMessage', () => {
   it('substitui nome ignorando espaços e caixa', () => {
     assert.equal(renderMessage('Oi {{ NOME }}!', 'Andrea'), 'Oi Andrea!');

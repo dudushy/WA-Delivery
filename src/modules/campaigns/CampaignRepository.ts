@@ -43,6 +43,10 @@ interface RecipientRow {
   phone: string;
   rendered_message: string;
   status: CampaignRecipientSnapshot['status'];
+  attempt_count: number;
+  last_error: string | null;
+  sent_at: string | null;
+  updated_at: string | null;
 }
 
 export class CampaignRepository {
@@ -185,7 +189,8 @@ export class CampaignRepository {
 
   public listRecipients(campaignId: number): CampaignRecipientSnapshot[] {
     return (this.database.prepare(`
-      SELECT id, campaign_id, source_contact_id, name, phone, rendered_message, status
+      SELECT id, campaign_id, source_contact_id, name, phone, rendered_message, status,
+        attempt_count, last_error, sent_at, updated_at
       FROM campaign_recipients WHERE campaign_id = ? ORDER BY id
     `).all(campaignId) as unknown as RecipientRow[]).map((row) => ({
       id: row.id,
@@ -195,6 +200,10 @@ export class CampaignRepository {
       phone: row.phone,
       renderedMessage: row.rendered_message,
       status: row.status,
+      attemptCount: row.attempt_count,
+      ...(row.last_error === null ? {} : { lastError: row.last_error }),
+      ...(row.sent_at === null ? {} : { sentAt: row.sent_at }),
+      ...(row.updated_at === null ? {} : { updatedAt: row.updated_at }),
     }));
   }
 

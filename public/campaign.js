@@ -22,6 +22,9 @@ const prepareButton = document.querySelector('#prepare-campaign');
 const recipientReview = document.querySelector('#recipient-review');
 const recipientSummary = document.querySelector('#recipient-summary');
 const recipientList = document.querySelector('#recipient-list');
+const recipientFilter = document.querySelector('#recipient-filter');
+const exportAll = document.querySelector('#export-all');
+const exportFailures = document.querySelector('#export-failures');
 const executionZone = document.querySelector('#execution-zone');
 const executionMetrics = document.querySelector('#execution-metrics');
 const startConfirmationLabel = document.querySelector('#start-confirmation-label');
@@ -67,10 +70,23 @@ function renderMedia() {
   mediaContent.replaceChildren(preview, caption);
 }
 
+const RECIPIENT_STATUS_LABELS = {
+  pending: 'Pendente', sending: 'Enviando', sent: 'Enviado', failed: 'Falha', skipped: 'Ignorado',
+};
+let allRecipients = [];
+
 function renderRecipients(recipients) {
-  recipientSummary.textContent = `${recipients.length} destinatário(s) nesta campanha. A lista foi fixada no momento do preparo e não muda se a lista de contatos for alterada depois.`;
+  allRecipients = recipients;
+  paintRecipients();
+  recipientReview.hidden = false;
+}
+
+function paintRecipients() {
+  const filter = recipientFilter?.value || '';
+  const filtered = filter ? allRecipients.filter((r) => r.status === filter) : allRecipients;
+  recipientSummary.textContent = `${allRecipients.length} destinatário(s) nesta campanha (lista fixada no preparo). Exibindo ${filtered.length}.`;
   recipientList.replaceChildren();
-  for (const recipient of recipients.slice(0, 10)) {
+  for (const recipient of filtered.slice(0, 50)) {
     const article = document.createElement('article');
     article.className = 'message-sample';
     const heading = document.createElement('div');
@@ -79,18 +95,37 @@ function renderRecipients(recipients) {
     const phone = document.createElement('span');
     phone.textContent = recipient.phone;
     heading.append(name, phone);
+
+    const meta = document.createElement('div');
+    meta.className = 'recipient-meta';
+    const badge = document.createElement('span');
+    badge.className = `status-badge status-${recipient.status}`;
+    badge.textContent = RECIPIENT_STATUS_LABELS[recipient.status] ?? recipient.status;
+    meta.append(badge);
+    if (recipient.attemptCount) {
+      const attempts = document.createElement('span');
+      attempts.className = 'recipient-attempts';
+      attempts.textContent = `${recipient.attemptCount} tentativa(s)`;
+      meta.append(attempts);
+    }
+
     const renderedMessage = document.createElement('p');
     renderedMessage.className = 'message-body';
     renderedMessage.textContent = recipient.renderedMessage;
-    article.append(heading, renderedMessage);
+    article.append(heading, meta, renderedMessage);
+    if (recipient.lastError) {
+      const error = document.createElement('p');
+      error.className = 'recipient-error';
+      error.textContent = recipient.lastError;
+      article.append(error);
+    }
     recipientList.append(article);
   }
-  if (recipients.length > 10) {
+  if (filtered.length > 50) {
     const remainder = document.createElement('p');
-    remainder.textContent = `Mais ${recipients.length - 10} destinatário(s) fazem parte desta campanha.`;
+    remainder.textContent = `Mais ${filtered.length - 50} destinatário(s) neste filtro. Exporte o CSV para a lista completa.`;
     recipientList.append(remainder);
   }
-  recipientReview.hidden = false;
 }
 
 function applyLockedState(campaign, recipients) {
@@ -271,8 +306,17 @@ cancelCampaign.addEventListener('click', () => {
 const events = new EventSource('/api/events');
 events.addEventListener('campaign-progress', (event) => {
   const progress = JSON.parse(event.data);
-  if (progress.campaignId === campaignId) renderProgress(progress);
+  if (progress.campaignId !== campaignId) return;
+  renderProgress(progress);
+  // Atualiza a lista de destinatários para refletir status/erros em tempo real.
+  void request(`/api/campaigns/${campaignId}/recipients`)
+    .then(({ items }) => { if (!recipientReview.hidden) renderRecipients(items); })
+    .catch(() => {});
 });
+
+if (recipientFilter) recipientFilter.addEventListener('change', paintRecipients);
+if (exportAll) exportAll.setAttribute('href', `/api/campaigns/${campaignId}/export`);
+if (exportFailures) exportFailures.setAttribute('href', `/api/campaigns/${campaignId}/export?onlyFailures=true`);
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();

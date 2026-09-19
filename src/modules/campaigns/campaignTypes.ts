@@ -55,6 +55,10 @@ export interface CampaignRecipientSnapshot {
   phone: string;
   renderedMessage: string;
   status: 'pending' | 'sending' | 'sent' | 'failed' | 'skipped';
+  attemptCount: number;
+  lastError?: string;
+  sentAt?: string;
+  updatedAt?: string;
 }
 
 export class CampaignValidationError extends Error {
