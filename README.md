@@ -4,6 +4,56 @@ Bot para WhatsApp que envia uma mensagem para uma lista de contatos usando um ar
 
 ---
 
+## WA-Delivery V2 (em desenvolvimento)
+
+A V2 é uma aplicação local em Node.js + TypeScript com interface web em `localhost`,
+Baileys (integração não oficial), SQLite e sem Chrome/Puppeteer. Ela substitui a
+configuração por `config.json` por uma interface web.
+
+### Como rodar a V2
+
+```bash
+npm ci
+npm run dev     # ambiente de desenvolvimento (http://localhost:3000)
+# ou
+npm run build && npm start
+```
+
+Depois abra `http://localhost:3000`, conecte o WhatsApp pelo QR Code, importe ou
+cadastre contatos, monte a campanha, revise a prévia e confirme o envio.
+
+### Comportamentos principais da V2
+
+- **Conexão**: ao abrir a aplicação, ela reconecta automaticamente se já houver uma
+  sessão salva; caso contrário, exibe o QR Code. A sessão fica apenas neste computador.
+- **Contatos**: página com abas "Importar CSV" e "Adicionar manualmente".
+- **Campanhas**: monte, simule e prepare. Uma campanha só é editável enquanto é
+  rascunho (`draft`); após preparada, iniciada ou pausada, não é mais editável.
+- **Prévia**: a prévia por destinatário preserva as quebras de linha da mensagem.
+- **Envio real**: sempre exige confirmação explícita na interface. O checkbox de
+  confirmação some quando a campanha inicia, e o estado "Campanha em execução" é exibido.
+- **Exclusão**: permitida em qualquer estado, exceto enquanto a campanha está em execução.
+- **Reenvio (follow-up)**: a partir de uma campanha finalizada, cancelada ou com falha,
+  é possível criar uma nova campanha contendo apenas os destinatários pendentes
+  (falhas e ignorados). A campanha original é mantida como histórico e a nova fica
+  vinculada a ela.
+- **Fila resiliente**: worker sequencial persistente, com timeout e classificação de
+  erros (transitórios/permanentes); sobrevive a reinício sem reenviar silenciosamente.
+
+O progresso detalhado e as fases estão em
+[`docs/PROGRESS_V2.md`](docs/PROGRESS_V2.md) e
+[`docs/IMPLEMENTATION_PLAN_V2.md`](docs/IMPLEMENTATION_PLAN_V2.md).
+
+> Baileys é uma integração não oficial. Use apenas com contatos que consentiram, respeite
+> pedidos de opt-out e considere o risco de restrição da conta pelo WhatsApp.
+
+---
+
+## Documentação legada (V1)
+
+> A seção abaixo descreve a V1 baseada em `config.json` e arquivos locais. Ela será
+> substituída quando a V2 atingir os critérios de release (Fase 6/7 do plano).
+
 ## Requisitos
 
 - [Node.js](https://nodejs.org/)
