@@ -84,7 +84,7 @@ function renderSimulation(simulation) {
   messageSamples.innerHTML = simulation.samples.map((sample) => `
     <article class="message-sample">
       <div><strong>${escapeHtml(sample.name)}</strong><span>${escapeHtml(sample.phone)}</span></div>
-      <p>${escapeHtml(sample.message).replaceAll('\n', '<br>')}</p>
+      <p>${escapeHtml(sample.message)}</p>
     </article>
   `).join('');
   simulationPanel.hidden = false;
@@ -98,12 +98,22 @@ async function loadLists() {
   ).join('');
 }
 
+const CAMPAIGN_STATUS_LABELS = {
+  draft: 'Não iniciada',
+  ready: 'Pronta para envio',
+  running: 'Em execução',
+  paused: 'Pausada',
+  completed: 'Concluída',
+  cancelled: 'Cancelada',
+  failed: 'Com falha',
+};
+
 async function loadDrafts() {
   const { items } = await request('/api/campaigns');
-  drafts.innerHTML = items.length === 0 ? '<p>Nenhum rascunho salvo.</p>' : items.map((item) => `
+  drafts.innerHTML = items.length === 0 ? '<p>Nenhuma campanha salva.</p>' : items.map((item) => `
     <a class="saved-list" href="/campaign.html?id=${item.id}">
       <div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.contactListName)} — ${item.recipientCount} destinatários</span></div>
-      <b>${item.status === 'draft' ? 'Rascunho' : 'Preparada'}</b>
+      <b>${CAMPAIGN_STATUS_LABELS[item.status] ?? item.status}</b>
     </a>
   `).join('');
 }

@@ -58,7 +58,7 @@ textarea { resize: vertical; line-height: 1.5; }
 .message-sample { padding: 16px; border: 1px solid #dce4df; border-radius: 14px; background: #f7faf8; }
 .message-sample div { display: flex; justify-content: space-between; gap: 12px; }
 .message-sample span { color: #6b7972; font-size: 0.85rem; }
-.message-sample p { margin-bottom: 0; color: #25362e; }
+.message-sample p { margin-bottom: 0; color: #25362e; white-space: pre-wrap; overflow-wrap: anywhere; }
 .media-preview { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 12px 0 20px; padding: 14px; border-radius: 14px; background: #f2f5f3; }
 .media-preview > div, .media-detail { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .media-preview img, .media-preview video, .media-detail img, .media-detail video { width: 120px; max-height: 100px; border-radius: 10px; object-fit: cover; background: #17201c; }

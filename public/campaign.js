@@ -64,7 +64,7 @@ function renderMedia() {
 }
 
 function renderRecipients(recipients) {
-  recipientSummary.textContent = `${recipients.length} destinatário(s) congelado(s) neste snapshot.`;
+  recipientSummary.textContent = `${recipients.length} destinatário(s) nesta campanha. A lista foi fixada no momento do preparo e não muda se a lista de contatos for alterada depois.`;
   recipientList.replaceChildren();
   for (const recipient of recipients.slice(0, 10)) {
     const article = document.createElement('article');
@@ -76,13 +76,14 @@ function renderRecipients(recipients) {
     phone.textContent = recipient.phone;
     heading.append(name, phone);
     const renderedMessage = document.createElement('p');
+    renderedMessage.className = 'message-body';
     renderedMessage.textContent = recipient.renderedMessage;
     article.append(heading, renderedMessage);
     recipientList.append(article);
   }
   if (recipients.length > 10) {
     const remainder = document.createElement('p');
-    remainder.textContent = `Mais ${recipients.length - 10} destinatário(s) fazem parte do snapshot.`;
+    remainder.textContent = `Mais ${recipients.length - 10} destinatário(s) fazem parte desta campanha.`;
     recipientList.append(remainder);
   }
   recipientReview.hidden = false;
