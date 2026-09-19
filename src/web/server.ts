@@ -90,7 +90,7 @@ export async function buildServer(
 
   registerContactRoutes(server, contacts);
   registerCsvImportRoutes(server, csvImports);
-  registerCampaignRoutes(server, campaigns);
+  registerCampaignRoutes(server, campaigns, settings);
   registerMediaRoutes(server, media);
   registerQueueRoutes(server, queue);
   registerSettingsRoutes(server, settings);

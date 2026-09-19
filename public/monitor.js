@@ -82,12 +82,21 @@ function renderProgress(progress) {
   }
   statusEl.textContent = `Status: ${STATUS_LABELS[progress.status] || progress.status}.`;
 
-  // Estimativa de tempo restante pelos pendentes e intervalo médio.
+  // Estimativa de tempo restante: considera cada pendente (incluindo o envio em
+  // andamento) e adiciona uma folga de retentativas proporcional à taxa de
+  // falhas transitórias observada, mais o backoff médio configurado.
   if (campaign) {
     const avgInterval = (campaign.delayMinSeconds + campaign.delayMaxSeconds) / 2;
-    const remainingSends = Math.max(0, progress.pending - 1);
+    const processed = progress.sent + progress.failed + progress.skipped;
+    // Taxa de falhas observada (limitada a 50%) para estimar retentativas extras.
+    const failureRate = processed > 0 ? Math.min(0.5, progress.failed / processed) : 0;
+    const pending = progress.pending;
+    // Cada pendente incorre em um intervalo; as retentativas adicionam um
+    // intervalo extra proporcional à taxa de falhas observada.
+    const baseSeconds = pending * avgInterval;
+    const retrySeconds = pending * failureRate * avgInterval;
     factRemaining.textContent = progress.status === 'running'
-      ? formatDuration(remainingSends * avgInterval)
+      ? formatDuration(baseSeconds + retrySeconds)
       : '—';
   }
 }

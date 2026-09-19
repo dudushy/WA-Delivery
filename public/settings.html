@@ -74,6 +74,20 @@
           </div>
         </form>
       </section>
+
+      <section class="card">
+        <h2>Limpeza por retenção</h2>
+        <p>
+          Remove definitivamente campanhas finalizadas (concluídas, canceladas ou com
+          falha) mais antigas que a retenção configurada acima, junto com seus
+          destinatários, tentativas e mídias. Esta ação é explícita e não pode ser desfeita.
+        </p>
+        <p id="cleanup-message" class="success" hidden></p>
+        <p id="cleanup-error" class="error" hidden></p>
+        <div class="actions">
+          <button id="cleanup-button" class="danger" type="button">Executar limpeza agora</button>
+        </div>
+      </section>
     </main>
     <footer class="app-footer">
       WA-Delivery V2 — <a href="https://github.com/dudushy/WA-Delivery" target="_blank" rel="noopener">github.com/dudushy/WA-Delivery</a>

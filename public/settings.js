@@ -82,3 +82,33 @@ form.addEventListener('submit', async (event) => {
 });
 
 void load();
+
+const cleanupButton = document.querySelector('#cleanup-button');
+const cleanupMessage = document.querySelector('#cleanup-message');
+const cleanupError = document.querySelector('#cleanup-error');
+
+cleanupButton.addEventListener('click', async () => {
+  if (!confirm('Remover definitivamente as campanhas finalizadas mais antigas que a retenção configurada? Esta ação não pode ser desfeita.')) {
+    return;
+  }
+  cleanupButton.disabled = true;
+  cleanupMessage.hidden = true;
+  cleanupError.hidden = true;
+  try {
+    const response = await fetch('/api/campaigns/cleanup', { method: 'POST' });
+    const body = await response.json();
+    if (response.status === 422) {
+      cleanupError.textContent = body.message || 'Retenção desativada.';
+      cleanupError.hidden = false;
+      return;
+    }
+    if (!response.ok) throw new Error(`Falha HTTP ${response.status}`);
+    cleanupMessage.textContent = `${body.removed} campanha(s) removida(s) (retenção de ${body.retentionDays} dias).`;
+    cleanupMessage.hidden = false;
+  } catch (error) {
+    cleanupError.textContent = `Não foi possível executar a limpeza: ${error.message}`;
+    cleanupError.hidden = false;
+  } finally {
+    cleanupButton.disabled = false;
+  }
+});

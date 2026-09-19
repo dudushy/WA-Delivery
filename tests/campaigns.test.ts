@@ -379,3 +379,67 @@ describe('CampaignService.deleteCampaign', () => {
     } finally { database.close(); }
   });
 });
+
+describe('CampaignService.cleanupOldCampaigns', () => {
+  function makeService() {
+    const database = openDatabase(':memory:');
+    const contacts = new ContactService(new ContactRepository(database));
+    const list = contacts.createManualList({ name: 'L', contacts: [{ name: 'Ana', phone: '16999999999' }] });
+    const campaigns = new CampaignService(
+      new CampaignRepository(database), contacts,
+      new MediaService(new MediaRepository(database), '/tmp/wa-delivery-cleanup-tests'),
+    );
+    return { database, list, campaigns };
+  }
+
+  it('remove campanhas finalizadas antigas e preserva as recentes', async () => {
+    const { database, list, campaigns } = makeService();
+    try {
+      const old = campaigns.createDraft({
+        name: 'Antiga', contactListId: list.id, messageTemplate: 'Oi', delayMinSeconds: 1, delayMaxSeconds: 1,
+      });
+      const recent = campaigns.createDraft({
+        name: 'Recente', contactListId: list.id, messageTemplate: 'Oi', delayMinSeconds: 1, delayMaxSeconds: 1,
+      });
+      // Antiga: finalizada há 60 dias. Recente: finalizada agora.
+      database.prepare(
+        "UPDATE campaigns SET status = 'completed', finished_at = datetime('now', '-60 days') WHERE id = ?",
+      ).run(old.id);
+      database.prepare(
+        "UPDATE campaigns SET status = 'completed', finished_at = datetime('now') WHERE id = ?",
+      ).run(recent.id);
+
+      const removed = await campaigns.cleanupOldCampaigns(30);
+      assert.equal(removed, 1);
+      assert.equal(campaigns.findById(old.id), undefined);
+      assert.ok(campaigns.findById(recent.id));
+    } finally { database.close(); }
+  });
+
+  it('não remove nada quando a retenção está desativada (0)', async () => {
+    const { database, list, campaigns } = makeService();
+    try {
+      const campaign = campaigns.createDraft({
+        name: 'X', contactListId: list.id, messageTemplate: 'Oi', delayMinSeconds: 1, delayMaxSeconds: 1,
+      });
+      database.prepare(
+        "UPDATE campaigns SET status = 'completed', finished_at = datetime('now', '-999 days') WHERE id = ?",
+      ).run(campaign.id);
+      assert.equal(await campaigns.cleanupOldCampaigns(0), 0);
+      assert.ok(campaigns.findById(campaign.id));
+    } finally { database.close(); }
+  });
+
+  it('não remove campanhas ativas mesmo que antigas', async () => {
+    const { database, list, campaigns } = makeService();
+    try {
+      const campaign = campaigns.createDraft({
+        name: 'Ativa', contactListId: list.id, messageTemplate: 'Oi', delayMinSeconds: 1, delayMaxSeconds: 1,
+      });
+      // draft antigo não tem finished_at; não deve ser removido.
+      database.prepare("UPDATE campaigns SET created_at = datetime('now', '-999 days') WHERE id = ?").run(campaign.id);
+      assert.equal(await campaigns.cleanupOldCampaigns(30), 0);
+      assert.ok(campaigns.findById(campaign.id));
+    } finally { database.close(); }
+  });
+});

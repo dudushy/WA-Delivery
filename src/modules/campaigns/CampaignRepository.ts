@@ -289,6 +289,42 @@ export class CampaignRepository {
       throw error;
     }
   }
+
+  /**
+   * Remove campanhas finalizadas (completed/cancelled/failed) cujo término
+   * ocorreu há mais de `retentionDays` dias. Retorna o storage das mídias
+   * removidas para limpeza no serviço. Nunca remove campanhas ativas.
+   */
+  public deleteFinishedBefore(retentionDays: number): { deletedCount: number; mediaStorageNames: string[] } {
+    const rows = this.database.prepare(`
+      SELECT campaigns.id, media.storage_name
+      FROM campaigns
+      LEFT JOIN media ON media.id = campaigns.media_id
+      WHERE campaigns.status IN ('completed', 'cancelled', 'failed')
+        AND campaigns.finished_at IS NOT NULL
+        AND campaigns.finished_at < datetime('now', ?)
+    `).all(`-${retentionDays} days`) as unknown as Array<{ id: number; storage_name: string | null }>;
+
+    if (rows.length === 0) return { deletedCount: 0, mediaStorageNames: [] };
+
+    this.database.exec('BEGIN IMMEDIATE');
+    try {
+      const deleteCampaign = this.database.prepare('DELETE FROM campaigns WHERE id = ?');
+      const deleteMedia = this.database.prepare('DELETE FROM media WHERE id IN (SELECT media_id FROM campaigns WHERE id = ?)');
+      for (const row of rows) {
+        deleteMedia.run(row.id);
+        deleteCampaign.run(row.id);
+      }
+      this.database.exec('COMMIT');
+    } catch (error) {
+      this.database.exec('ROLLBACK');
+      throw error;
+    }
+    return {
+      deletedCount: rows.length,
+      mediaStorageNames: rows.map((r) => r.storage_name).filter((name): name is string => Boolean(name)),
+    };
+  }
 }
 
 function baseQuery(where = ''): string {

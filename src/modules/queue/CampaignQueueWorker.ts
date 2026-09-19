@@ -4,6 +4,7 @@ import type { MediaService } from '../media/MediaService.js';
 import type { SettingsService } from '../settings/SettingsService.js';
 import type { WhatsAppProvider } from '../../providers/whatsapp/WhatsAppProvider.js';
 import { withTimeout } from '../../shared/withTimeout.js';
+import { logger, maskPhone, maskSensitive } from '../../shared/logger.js';
 import { CampaignQueueRepository } from './CampaignQueueRepository.js';
 import { classifyError } from './errorClassification.js';
 import { QueueStateError, type QueueProgress } from './queueTypes.js';
@@ -231,6 +232,10 @@ export class CampaignQueueWorker {
           this.repository.finishAttempt(attemptId, recipient.id, 'skipped', {
             error: 'O número não está registrado no WhatsApp.',
           });
+          logger.info(
+            { campaignId, phone: maskPhone(recipient.phone), outcome: 'skipped' },
+            'Destinatário ignorado: número não registrado.',
+          );
         } else {
           const campaign = this.campaigns.findById(campaignId);
           if (!campaign) throw new Error('Campanha não encontrada durante o envio.');
@@ -242,6 +247,10 @@ export class CampaignQueueWorker {
                 'O envio da mensagem excedeu o tempo limite.',
               );
           this.repository.finishAttempt(attemptId, recipient.id, 'sent', { messageId: result.messageId });
+          logger.info(
+            { campaignId, phone: maskPhone(recipient.phone), outcome: 'sent' },
+            'Mensagem enviada.',
+          );
         }
       } catch (error) {
         const kind = classifyError(error);
@@ -258,12 +267,20 @@ export class CampaignQueueWorker {
             `[transient] tentativa ${currentAttempt}/${this.maxAttempts}: ${message}`,
           );
           backoffMs = this.computeBackoffMs(currentAttempt);
+          logger.warn(
+            { campaignId, phone: maskPhone(recipient.phone), attempt: currentAttempt, kind },
+            `Falha transitória; reprocessando: ${maskSensitive(message)}`,
+          );
         } else {
           // Erro permanente, sem conexão, ou limite de tentativas atingido.
           this.repository.finishAttempt(attemptId, recipient.id, 'failed', {
             error: `[${kind}] ${message}`,
             kind,
           });
+          logger.warn(
+            { campaignId, phone: maskPhone(recipient.phone), kind },
+            `Envio falhou: ${maskSensitive(message)}`,
+          );
         }
         if (disconnected) {
           this.pauseForDisconnect(campaignId);

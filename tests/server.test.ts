@@ -408,6 +408,19 @@ describe('servidor local', () => {
     await server.close();
   });
 
+  it('recusa limpeza por retenção quando desativada e aceita quando configurada', async () => {
+    const server = await createServer();
+    const disabled = await server.inject({ method: 'POST', url: '/api/campaigns/cleanup' });
+    assert.equal(disabled.statusCode, 422);
+
+    await server.inject({ method: 'PUT', url: '/api/settings', payload: { retentionDays: 30 } });
+    const enabled = await server.inject({ method: 'POST', url: '/api/campaigns/cleanup' });
+    assert.equal(enabled.statusCode, 200);
+    assert.equal(enabled.json().retentionDays, 30);
+    assert.equal(enabled.json().removed, 0);
+    await server.close();
+  });
+
   it('aplica o país/DDD configurado na normalização de contatos manuais', async () => {
     const server = await createServer();
     await server.inject({

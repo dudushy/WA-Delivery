@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { CampaignService } from '../modules/campaigns/CampaignService.js';
+import type { SettingsService } from '../modules/settings/SettingsService.js';
 import {
   CampaignValidationError,
   type CampaignComposerInput,
@@ -8,8 +9,21 @@ import {
 export function registerCampaignRoutes(
   server: FastifyInstance,
   campaigns: CampaignService,
+  settings?: SettingsService,
 ): void {
   server.get('/api/campaigns', async () => ({ items: campaigns.list() }));
+
+  // Limpeza explícita por retenção (usa a política configurada em Configurações).
+  server.post('/api/campaigns/cleanup', async (_request, reply) => {
+    const retentionDays = settings?.getAll().retentionDays ?? 0;
+    if (retentionDays <= 0) {
+      return reply.code(422).send({
+        message: 'A retenção está desativada. Defina os dias de retenção em Configurações.',
+      });
+    }
+    const removed = await campaigns.cleanupOldCampaigns(retentionDays);
+    return { removed, retentionDays };
+  });
 
   server.get<{ Params: { id: string } }>('/api/campaigns/:id', async (request, reply) => {
     const id = Number(request.params.id);

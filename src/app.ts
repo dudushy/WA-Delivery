@@ -18,6 +18,7 @@ import {
   DEFAULT_RETRY_BACKOFF_CAP_MS,
 } from './modules/queue/CampaignQueueWorker.js';
 import { buildServer } from './web/server.js';
+import { logger } from './shared/logger.js';
 import { BaileysWhatsAppProvider } from './providers/whatsapp/baileys/BaileysWhatsAppProvider.js';
 
 const provider = new BaileysWhatsAppProvider({
@@ -63,9 +64,9 @@ process.once('SIGINT', () => void shutdown());
 process.once('SIGTERM', () => void shutdown());
 
 server.listen({ host: '127.0.0.1', port: 3000 }).then(() => {
-  console.log('WA-Delivery disponível em http://localhost:3000');
+  logger.info({ url: 'http://localhost:3000' }, 'WA-Delivery disponível.');
 }).catch((error: unknown) => {
-  console.error('Não foi possível iniciar o WA-Delivery.', error);
+  logger.error({ err: error }, 'Não foi possível iniciar o WA-Delivery.');
   process.exitCode = 1;
 });
 
@@ -74,7 +75,7 @@ server.listen({ host: '127.0.0.1', port: 3000 }).then(() => {
 void provider.hasSavedSession().then((hasSession) => {
   if (hasSession) {
     void provider.connect().catch((error: unknown) => {
-      console.error('Não foi possível reconectar a sessão salva do WhatsApp.', error);
+      logger.error({ err: error }, 'Não foi possível reconectar a sessão salva do WhatsApp.');
     });
   }
 });

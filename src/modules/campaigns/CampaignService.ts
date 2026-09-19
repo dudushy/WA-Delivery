@@ -121,6 +121,20 @@ export class CampaignService {
   }
 
   /**
+   * Limpeza explícita por retenção: remove campanhas finalizadas há mais de
+   * `retentionDays` dias, junto com destinatários, tentativas e mídias. Retorna
+   * quantas foram removidas. `retentionDays <= 0` desativa a limpeza (no-op).
+   */
+  public async cleanupOldCampaigns(retentionDays: number): Promise<number> {
+    if (!Number.isFinite(retentionDays) || retentionDays <= 0) return 0;
+    const { deletedCount, mediaStorageNames } = this.repository.deleteFinishedBefore(retentionDays);
+    for (const storageName of mediaStorageNames) {
+      await this.media.removeFile(storageName);
+    }
+    return deletedCount;
+  }
+
+  /**
    * Cria uma nova campanha (rascunho) a partir de uma campanha terminal,
    * contendo apenas os destinatários pendentes (que não foram enviados com
    * sucesso). A campanha de origem é preservada como histórico e a nova fica
