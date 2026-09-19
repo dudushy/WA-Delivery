@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contatos — WA-Delivery</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/contacts.js" defer></script>
+  </head>
+  <body>
+    <main class="container wide">
+      <header>
+        <span class="eyebrow">WA-Delivery V2</span>
+        <nav><a href="/">WhatsApp</a><a class="active" href="/contacts.html">Contatos</a></nav>
+        <h1>Contatos</h1>
+        <p>Crie uma lista digitando os contatos. A importação por CSV será adicionada em seguida.</p>
+      </header>
+
+      <section class="card">
+        <form id="manual-list-form">
+          <label for="list-name">Nome da lista</label>
+          <input id="list-name" name="name" placeholder="Ex.: Clientes setembro" required />
+
+          <div class="section-heading">
+            <div><strong>Contatos da lista</strong><p>Informe nome, DDD e telefone.</p></div>
+            <button id="add-contact" class="secondary" type="button">Adicionar contato</button>
+          </div>
+
+          <div id="contact-rows" class="contact-rows"></div>
+          <div id="form-errors" class="error" hidden></div>
+          <div class="actions"><button type="submit">Salvar lista</button></div>
+        </form>
+      </section>
+
+      <section class="lists-section">
+        <h2>Listas salvas</h2>
+        <div id="saved-lists" class="saved-lists"><p>Carregando...</p></div>
+      </section>
+    </main>
+  </body>
+</html>

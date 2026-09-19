@@ -10,8 +10,13 @@
 body { margin: 0; min-height: 100vh; }
 
 .container { width: min(720px, calc(100% - 32px)); margin: 64px auto; }
+.container.wide { width: min(960px, calc(100% - 32px)); }
 
 header { margin-bottom: 28px; }
+
+nav { display: flex; gap: 8px; margin: 18px 0 28px; }
+nav a { color: #53615a; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: 700; }
+nav a.active, nav a:hover { color: #087f5b; background: #e4f4ee; }
 
 .eyebrow { color: #087f5b; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
 
@@ -39,6 +44,20 @@ button { appearance: none; border: 0; border-radius: 10px; padding: 12px 18px; b
 button:hover { background: #066b4c; }
 button:disabled { cursor: wait; opacity: 0.6; }
 button.secondary { color: #24332c; background: #e7ece9; }
+button.danger { color: #a72424; background: #fff0f0; }
+
+label { display: grid; gap: 7px; color: #34423b; font-size: 0.9rem; font-weight: 700; }
+input { width: 100%; border: 1px solid #cfd9d3; border-radius: 10px; padding: 11px 12px; color: #17201c; background: #fff; font: inherit; }
+input:focus { outline: 3px solid #cceee1; border-color: #087f5b; }
+.section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-top: 28px; }
+.section-heading p { margin: 4px 0 0; }
+.contact-rows { display: grid; gap: 10px; margin-top: 14px; }
+.contact-row { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto; align-items: end; gap: 10px; padding: 12px; border: 1px solid #e0e7e3; border-radius: 12px; }
+.lists-section { margin-top: 32px; }
+.saved-lists { display: grid; gap: 10px; }
+.saved-list { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; border: 1px solid #dce4df; border-radius: 12px; background: #fff; }
+.saved-list div { display: grid; gap: 4px; }
+.saved-list span { color: #6b7972; font-size: 0.82rem; }
 
 .error { color: #a72424; padding: 12px 14px; border-radius: 10px; background: #fff0f0; }
 .notice { margin: 20px 4px; font-size: 0.9rem; }
@@ -46,4 +65,6 @@ button.secondary { color: #24332c; background: #e7ece9; }
 @media (max-width: 520px) {
   .container { margin: 28px auto; }
   .card { padding: 20px; }
+  .section-heading { align-items: stretch; flex-direction: column; }
+  .contact-row { grid-template-columns: 1fr; }
 }
