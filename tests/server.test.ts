@@ -145,4 +145,49 @@ describe('servidor local', () => {
     assert.equal(response.json().phoneCandidates[0].header, 'Telefone');
     await server.close();
   });
+
+  it('gerencia lista e contatos persistidos pela API', async () => {
+    const server = await createServer();
+    const createdResponse = await server.inject({
+      method: 'POST',
+      url: '/api/contact-lists/manual',
+      payload: { name: 'Lista', contacts: [{ name: 'Ana', phone: '16999999999' }] },
+    });
+    const created = createdResponse.json();
+
+    const renamed = await server.inject({
+      method: 'PATCH',
+      url: `/api/contact-lists/${created.id}`,
+      payload: { name: 'Lista renomeada' },
+    });
+    assert.equal(renamed.json().name, 'Lista renomeada');
+
+    const added = await server.inject({
+      method: 'POST',
+      url: `/api/contact-lists/${created.id}/contacts`,
+      payload: { name: 'Maria', phone: '16988888888' },
+    });
+    assert.equal(added.statusCode, 201);
+    const maria = added.json().contacts.find((contact: { name: string }) => contact.name === 'Maria');
+
+    const edited = await server.inject({
+      method: 'PUT',
+      url: `/api/contact-lists/${created.id}/contacts/${maria.id}`,
+      payload: { name: 'Maria Silva', phone: '16977777777' },
+    });
+    assert.equal(edited.json().contacts[1].name, 'Maria Silva');
+
+    const removed = await server.inject({
+      method: 'DELETE',
+      url: `/api/contact-lists/${created.id}/contacts/${maria.id}`,
+    });
+    assert.equal(removed.json().contactCount, 1);
+
+    const deleted = await server.inject({
+      method: 'DELETE',
+      url: `/api/contact-lists/${created.id}`,
+    });
+    assert.equal(deleted.statusCode, 204);
+    await server.close();
+  });
 });

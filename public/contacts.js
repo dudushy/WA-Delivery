@@ -91,10 +91,10 @@ async function loadLists() {
   savedLists.innerHTML = items.length === 0
     ? '<p>Nenhuma lista cadastrada.</p>'
     : items.map((item) => `
-        <article class="saved-list">
+        <a class="saved-list" href="/contact-list.html?id=${item.id}">
           <div><strong>${escapeHtml(item.name)}</strong><span>${item.source === 'manual' ? 'Manual' : 'CSV'}</span></div>
           <b>${item.contactCount} contato${item.contactCount === 1 ? '' : 's'}</b>
-        </article>
+        </a>
       `).join('');
 }
 

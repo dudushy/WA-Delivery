@@ -71,4 +71,46 @@ describe('ContactService', () => {
       },
     );
   });
+
+  it('renomeia lista e permite adicionar, editar e remover contatos', () => {
+    const service = createService();
+    const created = service.createManualList({
+      name: 'Original',
+      contacts: [{ name: 'Ana', phone: '16999999999' }],
+    });
+    const renamed = service.renameList(created.id, 'Clientes atualizados');
+    assert.equal(renamed?.name, 'Clientes atualizados');
+
+    const withNewContact = service.addContact(created.id, {
+      name: 'Maria',
+      phone: '16988888888',
+    });
+    assert.equal(withNewContact?.contactCount, 2);
+    const maria = withNewContact?.contacts.find((contact) => contact.name === 'Maria');
+    assert.ok(maria);
+
+    const edited = service.updateContact(created.id, maria.id, {
+      name: 'Maria Silva',
+      phone: '16977777777',
+    });
+    assert.equal(edited?.contacts.find((contact) => contact.id === maria.id)?.phone, '5516977777777');
+
+    const afterRemoval = service.deleteContact(created.id, maria.id);
+    assert.equal(afterRemoval?.contactCount, 1);
+    assert.equal(service.deleteList(created.id), true);
+    assert.equal(service.findById(created.id), undefined);
+  });
+
+  it('impede duplicar telefone ao editar ou adicionar na mesma lista', () => {
+    const service = createService();
+    const created = service.createManualList({
+      name: 'Sem duplicados',
+      contacts: [{ name: 'Ana', phone: '16999999999' }],
+    });
+
+    assert.throws(
+      () => service.addContact(created.id, { name: 'Repetida', phone: '(16) 99999-9999' }),
+      /já existe/,
+    );
+  });
 });

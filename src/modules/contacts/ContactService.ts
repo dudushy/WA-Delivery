@@ -73,4 +73,54 @@ export class ContactService {
   public findById(id: number): ContactListDetails | undefined {
     return this.repository.findById(id);
   }
+
+  public renameList(id: number, rawName: string): ContactListDetails | undefined {
+    const name = typeof rawName === 'string' ? rawName.trim() : '';
+    if (!name) {
+      throw new ContactValidationError([{ path: 'name', message: 'Informe o nome da lista.' }]);
+    }
+    return this.repository.renameList(id, name);
+  }
+
+  public deleteList(id: number): boolean {
+    return this.repository.deleteList(id);
+  }
+
+  public addContact(id: number, contact: { name: string; phone: string }): ContactListDetails | undefined {
+    return this.repository.addMember(id, this.prepareContact(contact));
+  }
+
+  public updateContact(
+    listId: number,
+    memberId: number,
+    contact: { name: string; phone: string },
+  ): ContactListDetails | undefined {
+    return this.repository.updateMember(listId, memberId, this.prepareContact(contact));
+  }
+
+  public deleteContact(listId: number, memberId: number): ContactListDetails | undefined {
+    return this.repository.deleteMember(listId, memberId);
+  }
+
+  private prepareContact(contact: { name: string; phone: string }): {
+    name: string;
+    normalizedPhone: string;
+  } {
+    const name = typeof contact?.name === 'string' ? contact.name.trim() : '';
+    const issues: ValidationIssue[] = [];
+    if (!name) issues.push({ path: 'name', message: 'Informe o nome.' });
+
+    let normalizedPhone = '';
+    try {
+      normalizedPhone = normalizePhone(typeof contact?.phone === 'string' ? contact.phone : '');
+    } catch (error) {
+      issues.push({
+        path: 'phone',
+        message: error instanceof Error ? error.message : 'Telefone inválido.',
+      });
+    }
+
+    if (issues.length > 0) throw new ContactValidationError(issues);
+    return { name, normalizedPhone };
+  }
 }

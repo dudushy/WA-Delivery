@@ -104,6 +104,119 @@ export class ContactRepository {
 
     return { ...toSummary(row), contacts: members };
   }
+
+  public renameList(id: number, name: string): ContactListDetails | undefined {
+    const result = this.database
+      .prepare('UPDATE contact_lists SET name = ? WHERE id = ?')
+      .run(name, id);
+    return result.changes === 0 ? undefined : this.findById(id);
+  }
+
+  public deleteList(id: number): boolean {
+    this.database.exec('BEGIN IMMEDIATE');
+    try {
+      const result = this.database.prepare('DELETE FROM contact_lists WHERE id = ?').run(id);
+      this.deleteOrphanContacts();
+      this.database.exec('COMMIT');
+      return result.changes > 0;
+    } catch (error) {
+      this.database.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  public addMember(
+    listId: number,
+    contact: PreparedContact,
+  ): ContactListDetails | undefined {
+    if (!this.findById(listId)) return undefined;
+    const contactId = this.findOrCreateContact(contact.normalizedPhone);
+    const duplicate = this.database.prepare(`
+      SELECT 1 FROM contact_list_members
+      WHERE contact_list_id = ? AND contact_id = ?
+    `).get(listId, contactId);
+    if (duplicate) throw new Error('Este telefone já existe na lista.');
+
+    this.database.prepare(`
+      INSERT INTO contact_list_members (contact_list_id, contact_id, name)
+      VALUES (?, ?, ?)
+    `).run(listId, contactId, contact.name);
+    return this.findById(listId);
+  }
+
+  public updateMember(
+    listId: number,
+    memberId: number,
+    contact: PreparedContact,
+  ): ContactListDetails | undefined {
+    const current = this.database.prepare(`
+      SELECT contact_id FROM contact_list_members
+      WHERE id = ? AND contact_list_id = ?
+    `).get(memberId, listId) as { contact_id: number } | undefined;
+    if (!current) return undefined;
+
+    this.database.exec('BEGIN IMMEDIATE');
+    try {
+      const contactId = this.findOrCreateContact(contact.normalizedPhone);
+      const duplicate = this.database.prepare(`
+        SELECT 1 FROM contact_list_members
+        WHERE contact_list_id = ? AND contact_id = ? AND id != ?
+      `).get(listId, contactId, memberId);
+      if (duplicate) throw new Error('Este telefone já existe na lista.');
+
+      this.database.prepare(`
+        UPDATE contact_list_members SET name = ?, contact_id = ?
+        WHERE id = ? AND contact_list_id = ?
+      `).run(contact.name, contactId, memberId, listId);
+      this.deleteOrphanContacts();
+      this.database.exec('COMMIT');
+      return this.findById(listId);
+    } catch (error) {
+      this.database.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  public deleteMember(listId: number, memberId: number): ContactListDetails | undefined {
+    if (!this.findById(listId)) return undefined;
+    this.database.exec('BEGIN IMMEDIATE');
+    try {
+      const result = this.database.prepare(`
+        DELETE FROM contact_list_members WHERE id = ? AND contact_list_id = ?
+      `).run(memberId, listId);
+      if (result.changes === 0) {
+        this.database.exec('ROLLBACK');
+        return undefined;
+      }
+      this.deleteOrphanContacts();
+      this.database.exec('COMMIT');
+      return this.findById(listId);
+    } catch (error) {
+      this.database.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  private findOrCreateContact(normalizedPhone: string): number {
+    const existing = this.database
+      .prepare('SELECT id FROM contacts WHERE normalized_phone = ?')
+      .get(normalizedPhone) as { id: number } | undefined;
+    return existing?.id
+      ?? Number(
+        this.database
+          .prepare('INSERT INTO contacts (normalized_phone) VALUES (?)')
+          .run(normalizedPhone).lastInsertRowid,
+      );
+  }
+
+  private deleteOrphanContacts(): void {
+    this.database.exec(`
+      DELETE FROM contacts
+      WHERE NOT EXISTS (
+        SELECT 1 FROM contact_list_members members WHERE members.contact_id = contacts.id
+      )
+    `);
+  }
 }
 
 function toSummary(row: SummaryRow): ContactListSummary {
