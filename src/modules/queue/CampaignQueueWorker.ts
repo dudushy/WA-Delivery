@@ -41,6 +41,9 @@ export class CampaignQueueWorker {
   private readonly maxAttempts: number;
   private readonly retryBackoffMs: number;
   private readonly retryBackoffCapMs: number;
+  /** Campanhas pausadas automaticamente por queda de conexão (auto-retomáveis). */
+  private readonly autoPausedCampaigns = new Set<number>();
+  private readonly unsubscribeConnection: () => void;
 
   public constructor(
     private readonly repository: CampaignQueueRepository,
@@ -57,6 +60,34 @@ export class CampaignQueueWorker {
     this.maxAttempts = Math.max(1, maxAttempts);
     this.retryBackoffMs = Math.max(0, retryBackoffMs);
     this.retryBackoffCapMs = Math.max(this.retryBackoffMs, retryBackoffCapMs);
+    // Retoma automaticamente campanhas que foram pausadas por queda de conexão
+    // assim que o WhatsApp reconectar.
+    this.unsubscribeConnection = this.whatsapp.onConnectionState((state) => {
+      if (state.status === 'connected') this.resumeAutoPaused();
+    });
+  }
+
+  private resumeAutoPaused(): void {
+    for (const campaignId of [...this.autoPausedCampaigns]) {
+      try {
+        this.resume(campaignId);
+      } catch {
+        // A campanha pode ter mudado de estado nesse meio-tempo; ignora e mantém
+        // o registro apenas se ainda estiver pausada.
+      }
+      if (this.repository.progress(campaignId)?.status !== 'paused') {
+        this.autoPausedCampaigns.delete(campaignId);
+      }
+    }
+  }
+
+  /** Pausa a campanha por queda de conexão, marcando-a para auto-retomada. */
+  private pauseForDisconnect(campaignId: number): void {
+    if (this.repository.setStatus(campaignId, 'running', 'paused')) {
+      this.autoPausedCampaigns.add(campaignId);
+      this.interruptDelay();
+      this.emit(campaignId);
+    }
   }
 
   /**
@@ -87,6 +118,8 @@ export class CampaignQueueWorker {
     if (!this.repository.setStatus(campaignId, 'running', 'paused')) {
       throw new QueueStateError('A campanha não está em execução.');
     }
+    // Pausa manual: não deve ser retomada automaticamente ao reconectar.
+    this.autoPausedCampaigns.delete(campaignId);
     this.interruptDelay();
     this.emit(campaignId);
     return this.requireProgress(campaignId);
@@ -99,6 +132,7 @@ export class CampaignQueueWorker {
     if (!this.repository.start(campaignId, 'paused')) {
       throw new QueueStateError('A campanha não está pausada ou já existe outra campanha em execução.');
     }
+    this.autoPausedCampaigns.delete(campaignId);
     this.run(campaignId);
     return this.requireProgress(campaignId);
   }
@@ -111,6 +145,7 @@ export class CampaignQueueWorker {
     if (!this.repository.setStatus(campaignId, progress.status, 'cancelled')) {
       throw new QueueStateError('Não foi possível cancelar a campanha.');
     }
+    this.autoPausedCampaigns.delete(campaignId);
     this.repository.skipPending(campaignId);
     this.interruptDelay();
     this.emit(campaignId);
@@ -127,6 +162,7 @@ export class CampaignQueueWorker {
   }
 
   public shutdown(): void {
+    this.unsubscribeConnection();
     if (this.activeCampaignId !== undefined) {
       this.repository.setStatus(this.activeCampaignId, 'running', 'paused');
     }
@@ -143,6 +179,11 @@ export class CampaignQueueWorker {
 
   private async process(campaignId: number): Promise<void> {
     while (this.repository.progress(campaignId)?.status === 'running') {
+      // Detecção proativa: se a conexão caiu, pausa antes de consumir tentativas.
+      if (this.whatsapp.getConnectionState().status !== 'connected') {
+        this.pauseForDisconnect(campaignId);
+        return;
+      }
       const recipient = this.repository.findNext(campaignId);
       if (!recipient) {
         this.repository.setStatus(campaignId, 'running', 'completed');
@@ -198,8 +239,7 @@ export class CampaignQueueWorker {
           });
         }
         if (disconnected) {
-          this.repository.setStatus(campaignId, 'running', 'paused');
-          this.emit(campaignId);
+          this.pauseForDisconnect(campaignId);
           return;
         }
       }

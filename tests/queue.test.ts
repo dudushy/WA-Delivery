@@ -17,10 +17,19 @@ class QueueWhatsAppProvider implements WhatsAppProvider {
   public state: ConnectionState = { status: 'connected' };
   public registeredHandler: (phone: string) => Promise<boolean> = async () => true;
   public sendTextHandler: ((phone: string, message: string) => Promise<DeliveryResult>) | undefined;
+  private readonly listeners = new Set<ConnectionListener>();
   public async connect(): Promise<void> {}
   public async disconnect(): Promise<void> {}
   public getConnectionState(): ConnectionState { return this.state; }
-  public onConnectionState(_listener: ConnectionListener): () => void { return () => undefined; }
+  public onConnectionState(listener: ConnectionListener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+  /** Emula uma mudança de estado da conexão notificando os assinantes. */
+  public setConnectionState(state: ConnectionState): void {
+    this.state = state;
+    for (const listener of this.listeners) listener(state);
+  }
   public async hasSavedSession(): Promise<boolean> { return false; }
   public async isRegisteredNumber(phone: string): Promise<boolean> { return this.registeredHandler(phone); }
   public async sendText(phone: string, message: string): Promise<DeliveryResult> {
@@ -204,6 +213,53 @@ describe('CampaignQueueWorker', () => {
       assert.equal(progress?.failed, 0);
       assert.equal(attempts, 2); // falhou 1x, sucesso na 2ª
     } finally { worker.shutdown(); database.close(); }
+  });
+});
+
+describe('CampaignQueueWorker disconnection', () => {
+  it('pausa por queda de conexão e retoma automaticamente ao reconectar', async () => {
+    const { database, draft, provider, repository, worker } = setup(2);
+    let sends = 0;
+    provider.sendTextHandler = async (phone) => {
+      sends += 1;
+      if (sends === 1) {
+        // Após o primeiro envio, simula a queda da conexão (sem notificar ainda).
+        provider.state = { status: 'disconnected' };
+        provider.sent.push(phone);
+        return { messageId: 'm1', sentAt: new Date() };
+      }
+      provider.sent.push(phone);
+      return { messageId: `m${sends}`, sentAt: new Date() };
+    };
+    try {
+      worker.start(draft.id, true);
+      // A campanha deve pausar ao detectar a desconexão.
+      await waitUntil(() => repository.progress(draft.id)?.status === 'paused');
+      assert.equal(repository.progress(draft.id)?.sent, 1);
+      // Reconecta: deve retomar automaticamente e concluir.
+      provider.setConnectionState({ status: 'connected' });
+      await waitUntil(() => repository.progress(draft.id)?.status === 'completed');
+      assert.equal(repository.progress(draft.id)?.sent, 2);
+    } finally { worker.shutdown(); database.close(); }
+  });
+
+  it('não retoma automaticamente uma campanha pausada manualmente', async () => {
+    const { database, draft, provider, worker, repository } = setup(2);
+    let paused = false;
+    const unsubscribe = worker.onProgress((progress) => {
+      if (!paused && progress.sent === 1 && progress.status === 'running') {
+        paused = true;
+        worker.pause(draft.id);
+      }
+    });
+    try {
+      worker.start(draft.id, true);
+      await waitUntil(() => repository.progress(draft.id)?.status === 'paused');
+      // Uma notificação de conexão não deve retomar uma pausa manual.
+      provider.setConnectionState({ status: 'connected' });
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      assert.equal(repository.progress(draft.id)?.status, 'paused');
+    } finally { unsubscribe(); worker.shutdown(); database.close(); }
   });
 });
 
