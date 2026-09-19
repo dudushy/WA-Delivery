@@ -17,7 +17,12 @@
         <p>Crie uma lista digitando os contatos ou importe um arquivo CSV.</p>
       </header>
 
-      <section class="card import-card">
+      <div class="tabs" role="tablist" aria-label="Como adicionar contatos">
+        <button id="tab-import" class="tab active" type="button" role="tab" aria-selected="true" aria-controls="panel-import">Importar CSV</button>
+        <button id="tab-manual" class="tab" type="button" role="tab" aria-selected="false" aria-controls="panel-manual">Adicionar manualmente</button>
+      </div>
+
+      <section id="panel-import" class="card import-card" role="tabpanel" aria-labelledby="tab-import">
         <h2>Importar arquivo CSV</h2>
         <p>O arquivo será analisado antes de qualquer contato ser salvo.</p>
         <form id="csv-upload-form" class="upload-form">
@@ -48,7 +53,7 @@
         </div>
       </section>
 
-      <section class="card">
+      <section id="panel-manual" class="card" role="tabpanel" aria-labelledby="tab-manual" hidden>
         <h2>Adicionar manualmente</h2>
         <p>Use esta opção quando não tiver um arquivo de importação.</p>
         <form id="manual-list-form">

@@ -20,6 +20,24 @@ const analyzeMapping = document.querySelector('#analyze-mapping');
 const confirmImport = document.querySelector('#confirm-import');
 let currentPreview;
 
+const tabImport = document.querySelector('#tab-import');
+const tabManual = document.querySelector('#tab-manual');
+const panelImport = document.querySelector('#panel-import');
+const panelManual = document.querySelector('#panel-manual');
+
+function selectTab(target) {
+  const showImport = target === 'import';
+  tabImport.classList.toggle('active', showImport);
+  tabManual.classList.toggle('active', !showImport);
+  tabImport.setAttribute('aria-selected', String(showImport));
+  tabManual.setAttribute('aria-selected', String(!showImport));
+  panelImport.hidden = !showImport;
+  panelManual.hidden = showImport;
+}
+
+tabImport.addEventListener('click', () => selectTab('import'));
+tabManual.addEventListener('click', () => selectTab('manual'));
+
 function addContactRow(contact = { name: '', phone: '' }) {
   const row = document.createElement('div');
   row.className = 'contact-row';
