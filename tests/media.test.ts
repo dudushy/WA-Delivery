@@ -71,7 +71,7 @@ describe('MediaService', () => {
       });
       assert.equal(withoutMedia?.media, undefined);
       assert.equal(existsSync(replacementPath), false);
-      assert.equal(await campaigns.deleteDraft(draft.id), true);
+      assert.equal(await campaigns.deleteCampaign(draft.id), true);
     } finally {
       database.close();
       await rm(directory, { recursive: true, force: true });

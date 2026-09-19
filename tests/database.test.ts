@@ -41,13 +41,59 @@ describe('migrações do banco', () => {
       const migrated = openDatabase(filename);
       assert.equal(
         migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
-        5,
+        6,
       );
       const recipient = migrated.prepare(`
         SELECT attempt_count, updated_at FROM campaign_recipients WHERE id = 1
       `).get() as { attempt_count: number; updated_at: string | null };
       assert.equal(recipient.attempt_count, 0);
       assert.ok(recipient.updated_at);
+      migrated.close();
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('aplica a versão 6 sobre um banco já na versão 5 com campanhas', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'wa-delivery-migration-v6-'));
+    const filename = join(directory, 'v5.db');
+    // Monta manualmente um banco parado na versão 5 (sem source_campaign_id),
+    // populado com uma campanha, para exercitar o upgrade sobre dados reais.
+    const oldDatabase = new DatabaseSync(filename);
+    try {
+      oldDatabase.exec(`
+        CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT);
+        INSERT INTO schema_migrations (version, applied_at) VALUES
+          (1, CURRENT_TIMESTAMP), (2, CURRENT_TIMESTAMP), (3, CURRENT_TIMESTAMP),
+          (4, CURRENT_TIMESTAMP), (5, CURRENT_TIMESTAMP);
+        CREATE TABLE campaigns (
+          id INTEGER PRIMARY KEY, name TEXT NOT NULL, status TEXT NOT NULL, updated_at TEXT NOT NULL
+        );
+        INSERT INTO campaigns (id, name, status, updated_at)
+          VALUES (1, 'Campanha', 'completed', CURRENT_TIMESTAMP);
+      `);
+    } finally {
+      oldDatabase.close();
+    }
+
+    try {
+      const migrated = openDatabase(filename);
+      assert.equal(
+        migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
+        6,
+      );
+      // A coluna nova existe e a campanha populada foi preservada.
+      const row = migrated.prepare(
+        'SELECT name, source_campaign_id FROM campaigns WHERE id = 1',
+      ).get() as { name: string; source_campaign_id: number | null };
+      assert.equal(row.name, 'Campanha');
+      assert.equal(row.source_campaign_id, null);
+      // A coluna aceita o vínculo de origem.
+      migrated.prepare('UPDATE campaigns SET source_campaign_id = 1 WHERE id = 1').run();
+      assert.equal(
+        (migrated.prepare('SELECT source_campaign_id FROM campaigns WHERE id = 1').get() as { source_campaign_id: number }).source_campaign_id,
+        1,
+      );
       migrated.close();
     } finally {
       await rm(directory, { recursive: true, force: true });

@@ -85,11 +85,52 @@ export class CampaignService {
     return updated.campaign;
   }
 
-  public async deleteDraft(id: number): Promise<boolean> {
-    const deleted = this.repository.deleteDraft(id);
+  public async deleteCampaign(id: number): Promise<boolean> {
+    const deleted = this.repository.deleteCampaign(id);
     if (!deleted) return false;
     if (deleted.mediaStorageName) await this.media.removeFile(deleted.mediaStorageName);
     return true;
+  }
+
+  /**
+   * Cria uma nova campanha (rascunho) a partir de uma campanha terminal,
+   * contendo apenas os destinatários pendentes (que não foram enviados com
+   * sucesso). A campanha de origem é preservada como histórico e a nova fica
+   * vinculada a ela.
+   */
+  public createFollowUp(id: number): CampaignSummary {
+    const source = this.repository.findById(id);
+    if (!source) {
+      throw new CampaignValidationError([
+        { path: 'id', message: 'Campanha não encontrada.' },
+      ]);
+    }
+    const terminal = source.status === 'completed'
+      || source.status === 'cancelled'
+      || source.status === 'failed';
+    if (!terminal) {
+      throw new CampaignValidationError([
+        { path: 'status', message: 'Só é possível reenviar a partir de uma campanha finalizada, cancelada ou com falha.' },
+      ]);
+    }
+    // Pendentes = destinatários que não foram enviados com sucesso.
+    const pending = this.repository.listRecipients(id).filter(
+      (recipient) => recipient.status !== 'sent',
+    );
+    if (pending.length === 0) {
+      throw new CampaignValidationError([
+        { path: 'recipients', message: 'Não há destinatários pendentes para reenviar nesta campanha.' },
+      ]);
+    }
+    return this.repository.createFollowUp(
+      source,
+      pending.map((recipient) => ({
+        sourceContactId: recipient.sourceContactId,
+        name: recipient.name,
+        phone: recipient.phone,
+        renderedMessage: recipient.renderedMessage,
+      })),
+    );
   }
 
   public prepareDraft(id: number, confirmed: boolean): CampaignSummary | undefined {

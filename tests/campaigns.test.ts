@@ -137,3 +137,107 @@ describe('renderMessage', () => {
     assert.equal(renderMessage('Oi {{ NOME }}!', 'Andrea'), 'Oi Andrea!');
   });
 });
+
+describe('CampaignService.createFollowUp', () => {
+  function prepareAndReady(campaigns: CampaignService, listId: number) {
+    const campaign = campaigns.createDraft({
+      name: 'Original', contactListId: listId, messageTemplate: 'Olá {{nome}}!',
+      delayMinSeconds: 5, delayMaxSeconds: 10,
+    });
+    campaigns.prepareDraft(campaign.id, true);
+    return campaign;
+  }
+
+  function buildWithList(contactsList: Array<{ name: string; phone: string }>) {
+    const database = openDatabase(':memory:');
+    const contacts = new ContactService(new ContactRepository(database));
+    const list = contacts.createManualList({ name: 'Clientes', contacts: contactsList });
+    const campaigns = new CampaignService(
+      new CampaignRepository(database), contacts,
+      new MediaService(new MediaRepository(database), '/tmp/wa-delivery-followup-tests'),
+    );
+    return { database, list, campaigns };
+  }
+
+  it('cria uma nova campanha vinculada apenas com os pendentes', () => {
+    const { database, list, campaigns } = buildWithList([
+      { name: 'Ana', phone: '16999999999' },
+      { name: 'Maria', phone: '16988888888' },
+      { name: 'João', phone: '16977777777' },
+    ]);
+    try {
+      const original = prepareAndReady(campaigns, list.id);
+      const recipients = campaigns.listRecipients(original.id) ?? [];
+      database.prepare("UPDATE campaign_recipients SET status = 'sent' WHERE id = ?").run(recipients[0].id);
+      database.prepare("UPDATE campaign_recipients SET status = 'failed' WHERE id = ?").run(recipients[1].id);
+      database.prepare("UPDATE campaign_recipients SET status = 'skipped' WHERE id = ?").run(recipients[2].id);
+      database.prepare("UPDATE campaigns SET status = 'completed' WHERE id = ?").run(original.id);
+
+      const followUp = campaigns.createFollowUp(original.id);
+      assert.equal(followUp.status, 'ready');
+      assert.equal(followUp.sourceCampaignId, original.id);
+      const followUpRecipients = campaigns.listRecipients(followUp.id) ?? [];
+      assert.equal(followUpRecipients.length, 2); // apenas failed + skipped
+      assert.ok(followUpRecipients.every((r) => r.status === 'pending'));
+      // A campanha original permanece intacta.
+      assert.equal(campaigns.listRecipients(original.id)?.length, 3);
+      assert.equal(campaigns.findById(original.id)?.status, 'completed');
+    } finally { database.close(); }
+  });
+
+  it('rejeita reenvio quando a campanha não é terminal', () => {
+    const { database, list, campaigns } = buildWithList([{ name: 'Ana', phone: '16999999999' }]);
+    try {
+      const original = prepareAndReady(campaigns, list.id); // fica em 'ready'
+      assert.throws(() => campaigns.createFollowUp(original.id), CampaignValidationError);
+    } finally { database.close(); }
+  });
+
+  it('rejeita reenvio quando não há pendentes', () => {
+    const { database, list, campaigns } = buildWithList([{ name: 'Ana', phone: '16999999999' }]);
+    try {
+      const original = prepareAndReady(campaigns, list.id);
+      const recipients = campaigns.listRecipients(original.id) ?? [];
+      database.prepare("UPDATE campaign_recipients SET status = 'sent' WHERE id = ?").run(recipients[0].id);
+      database.prepare("UPDATE campaigns SET status = 'completed' WHERE id = ?").run(original.id);
+      assert.throws(() => campaigns.createFollowUp(original.id), CampaignValidationError);
+    } finally { database.close(); }
+  });
+});
+
+describe('CampaignService.deleteCampaign', () => {
+  function makeService() {
+    const database = openDatabase(':memory:');
+    const contacts = new ContactService(new ContactRepository(database));
+    const list = contacts.createManualList({ name: 'L', contacts: [{ name: 'Ana', phone: '16999999999' }] });
+    const campaigns = new CampaignService(
+      new CampaignRepository(database), contacts,
+      new MediaService(new MediaRepository(database), '/tmp/wa-delivery-delete-tests'),
+    );
+    return { database, list, campaigns };
+  }
+
+  it('exclui uma campanha em estado terminal', async () => {
+    const { database, list, campaigns } = makeService();
+    try {
+      const campaign = campaigns.createDraft({
+        name: 'X', contactListId: list.id, messageTemplate: 'Olá!', delayMinSeconds: 1, delayMaxSeconds: 1,
+      });
+      database.prepare("UPDATE campaigns SET status = 'completed' WHERE id = ?").run(campaign.id);
+      assert.equal(await campaigns.deleteCampaign(campaign.id), true);
+      assert.equal(campaigns.findById(campaign.id), undefined);
+    } finally { database.close(); }
+  });
+
+  it('não exclui uma campanha em execução', async () => {
+    const { database, list, campaigns } = makeService();
+    try {
+      const campaign = campaigns.createDraft({
+        name: 'X', contactListId: list.id, messageTemplate: 'Olá!', delayMinSeconds: 1, delayMaxSeconds: 1,
+      });
+      database.prepare("UPDATE campaigns SET status = 'running' WHERE id = ?").run(campaign.id);
+      assert.equal(await campaigns.deleteCampaign(campaign.id), false);
+      assert.ok(campaigns.findById(campaign.id));
+    } finally { database.close(); }
+  });
+});

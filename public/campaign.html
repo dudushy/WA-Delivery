@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rascunho — WA-Delivery</title>
+    <title>Campanha — WA-Delivery</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
     <script src="/campaign.js" defer></script>
@@ -14,8 +14,9 @@
         <span class="eyebrow">WA-Delivery V2</span>
         <nav><a href="/">WhatsApp</a><a href="/contacts.html">Contatos</a><a class="active" href="/campaigns.html">Campanhas</a></nav>
         <a class="back-link" href="/campaigns.html">← Voltar às campanhas</a>
-        <h1 id="campaign-title">Carregando rascunho...</h1>
+        <h1 id="campaign-title">Carregando campanha...</h1>
         <p id="campaign-status"></p>
+        <p id="source-link" class="notice" hidden></p>
       </header>
 
       <div id="campaign-error" class="error" hidden></div>
@@ -62,6 +63,7 @@
         </section>
         <section id="execution-zone" class="review-zone execution-zone" hidden>
           <h2>Execução da campanha</h2>
+          <p id="execution-notice" class="notice" hidden></p>
           <div id="execution-metrics" class="analysis-cards"></div>
           <label id="start-confirmation-label" class="confirmation-check">
             <input id="start-confirmation" type="checkbox" />
@@ -74,8 +76,13 @@
             <button id="cancel-campaign" class="danger" type="button">Cancelar campanha</button>
           </div>
         </section>
+        <section id="follow-up-zone" class="review-zone" hidden>
+          <h2>Reenviar aos pendentes</h2>
+          <p>Cria uma nova campanha igual a esta, porém apenas com os destinatários que falharam ou foram ignorados. Esta campanha é mantida como histórico e a nova fica vinculada a ela.</p>
+          <button id="follow-up-campaign" type="button">Criar campanha de reenvio</button>
+        </section>
         <div class="danger-zone">
-          <div><strong>Excluir rascunho</strong><p>A campanha e sua mídia vinculada serão removidas.</p></div>
+          <div><strong>Excluir campanha</strong><p>A campanha, seus destinatários e a mídia vinculada serão removidos. Não é possível excluir uma campanha em execução.</p></div>
           <button id="delete-campaign" class="danger" type="button">Excluir</button>
         </div>
       </section>

@@ -18,6 +18,7 @@ interface CampaignRow {
   created_at: string;
   updated_at: string;
   prepared_at: string | null;
+  source_campaign_id: number | null;
   media_id: number | null;
   media_original_name: string | null;
   media_mimetype: string | null;
@@ -197,7 +198,7 @@ export class CampaignRepository {
     }));
   }
 
-  public deleteDraft(id: number): DeletedDraft | undefined {
+  public deleteCampaign(id: number): DeletedDraft | undefined {
     const row = this.database.prepare(`
       SELECT campaigns.status, campaigns.media_id, media.storage_name
       FROM campaigns
@@ -208,7 +209,8 @@ export class CampaignRepository {
       media_id: number | null;
       storage_name: string | null;
     } | undefined;
-    if (!row || row.status !== 'draft') return undefined;
+    // Uma campanha em execução não pode ser excluída; cancele-a antes.
+    if (!row || row.status === 'running') return undefined;
 
     this.database.exec('BEGIN IMMEDIATE');
     try {
@@ -218,6 +220,59 @@ export class CampaignRepository {
       return {
         ...(row.storage_name === null ? {} : { mediaStorageName: row.storage_name }),
       };
+    } catch (error) {
+      this.database.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  /**
+   * Cria uma nova campanha vinculada a uma campanha de origem, já preparada
+   * (status 'ready') e contendo apenas os destinatários informados como
+   * pendentes, como snapshot imutável. A campanha de origem permanece intacta
+   * como histórico. A mídia da origem, se houver, é reaproveitada.
+   */
+  public createFollowUp(
+    source: CampaignSummary,
+    pending: Array<{
+      sourceContactId: number;
+      name: string;
+      phone: string;
+      renderedMessage: string;
+    }>,
+  ): CampaignSummary {
+    this.database.exec('BEGIN IMMEDIATE');
+    try {
+      const result = this.database.prepare(`
+        INSERT INTO campaigns (
+          name, contact_list_id, message_template, delay_min_seconds, delay_max_seconds,
+          media_id, source_campaign_id, status, prepared_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'ready', CURRENT_TIMESTAMP)
+      `).run(
+        `${source.name} (reenvio)`,
+        source.contactListId,
+        source.messageTemplate,
+        source.delayMinSeconds,
+        source.delayMaxSeconds,
+        source.media?.id ?? null,
+        source.id,
+      );
+      const newId = Number(result.lastInsertRowid);
+      if (source.media?.id !== undefined) {
+        this.database.prepare("UPDATE media SET status = 'attached' WHERE id = ?").run(source.media.id);
+      }
+      const insert = this.database.prepare(`
+        INSERT INTO campaign_recipients (
+          campaign_id, source_contact_id, name, phone, rendered_message
+        ) VALUES (?, ?, ?, ?, ?)
+      `);
+      for (const recipient of pending) {
+        insert.run(newId, recipient.sourceContactId, recipient.name, recipient.phone, recipient.renderedMessage);
+      }
+      this.database.exec('COMMIT');
+      const created = this.findById(newId);
+      if (!created) throw new Error('A campanha de reenvio não pôde ser recuperada.');
+      return created;
     } catch (error) {
       this.database.exec('ROLLBACK');
       throw error;
@@ -239,6 +294,7 @@ function baseQuery(where = ''): string {
       campaigns.created_at,
       campaigns.updated_at
       , campaigns.prepared_at
+      , campaigns.source_campaign_id
       , campaigns.media_id
       , media.original_name AS media_original_name
       , media.mimetype AS media_mimetype
@@ -270,6 +326,7 @@ function toSummary(row: CampaignRow): CampaignSummary {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     ...(row.prepared_at === null ? {} : { preparedAt: row.prepared_at }),
+    ...(row.source_campaign_id === null ? {} : { sourceCampaignId: row.source_campaign_id }),
     ...(row.media_id === null || row.media_original_name === null || row.media_mimetype === null
       || row.media_kind === null || row.media_size_bytes === null
       ? {}

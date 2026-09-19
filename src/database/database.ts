@@ -160,4 +160,12 @@ const migrations = [
       CREATE INDEX idx_delivery_attempts_campaign ON delivery_attempts(campaign_id, id);
     `,
   },
+  {
+    version: 6,
+    sql: `
+      ALTER TABLE campaigns ADD COLUMN source_campaign_id INTEGER
+        REFERENCES campaigns(id) ON DELETE SET NULL;
+      CREATE INDEX idx_campaigns_source ON campaigns(source_campaign_id);
+    `,
+  },
 ] as const;

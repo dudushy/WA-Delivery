@@ -81,10 +81,22 @@ export function registerCampaignRoutes(
     if (!Number.isSafeInteger(id) || id <= 0) {
       return reply.code(400).send({ message: 'Identificador da campanha inválido.' });
     }
-    if (!await campaigns.deleteDraft(id)) {
-      return reply.code(404).send({ message: 'Rascunho não encontrado.' });
+    if (!await campaigns.deleteCampaign(id)) {
+      return reply.code(409).send({ message: 'A campanha não pode ser excluída enquanto está em execução.' });
     }
     return reply.code(204).send();
+  });
+
+  server.post<{ Params: { id: string } }>('/api/campaigns/:id/follow-up', async (request, reply) => {
+    const id = Number(request.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return reply.code(400).send({ message: 'Identificador da campanha inválido.' });
+    }
+    try {
+      return reply.code(201).send(campaigns.createFollowUp(id));
+    } catch (error) {
+      return sendCampaignError(reply, error);
+    }
   });
 }
 

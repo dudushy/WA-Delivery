@@ -30,6 +30,10 @@ const startCampaign = document.querySelector('#start-campaign');
 const pauseCampaign = document.querySelector('#pause-campaign');
 const resumeCampaign = document.querySelector('#resume-campaign');
 const cancelCampaign = document.querySelector('#cancel-campaign');
+const executionNotice = document.querySelector('#execution-notice');
+const followUpZone = document.querySelector('#follow-up-zone');
+const followUpButton = document.querySelector('#follow-up-campaign');
+const sourceLink = document.querySelector('#source-link');
 const errorPanel = document.querySelector('#campaign-error');
 const campaignId = Number(new URLSearchParams(location.search).get('id'));
 let selectedMedia;
@@ -93,13 +97,14 @@ function applyLockedState(campaign, recipients) {
   for (const control of form.elements) control.disabled = true;
   form.querySelector('.actions').hidden = true;
   prepareZone.hidden = true;
-  dangerZone.hidden = true;
   renderRecipients(recipients);
   executionZone.hidden = false;
+  // Exclusão continua disponível em qualquer estado, exceto em execução.
+  dangerZone.hidden = campaign.status === 'running';
 }
 
 function renderProgress(progress) {
-  const labels = { ready: 'preparada', running: 'em execução', paused: 'pausada', completed: 'concluída', cancelled: 'cancelada', failed: 'com falha' };
+  const labels = { ready: 'pronta para envio', running: 'em execução', paused: 'pausada', completed: 'concluída', cancelled: 'cancelada', failed: 'com falha' };
   statusText.textContent = `Status: ${labels[progress.status] || progress.status}.`;
   executionMetrics.replaceChildren();
   for (const [label, value] of [
@@ -116,11 +121,24 @@ function renderProgress(progress) {
     executionMetrics.append(metric);
   }
   const ready = progress.status === 'ready';
+  const running = progress.status === 'running';
+  const terminal = ['completed', 'cancelled', 'failed'].includes(progress.status);
+  // O checkbox de confirmação só aparece quando a campanha está pronta e ainda
+  // não iniciou. Ao iniciar, ele some e o estado fica claro.
   startConfirmationLabel.hidden = !ready;
   startCampaign.hidden = !ready;
-  pauseCampaign.hidden = progress.status !== 'running';
+  pauseCampaign.hidden = !running;
   resumeCampaign.hidden = progress.status !== 'paused';
   cancelCampaign.hidden = !['ready', 'running', 'paused'].includes(progress.status);
+  if (executionNotice) {
+    executionNotice.hidden = !running;
+    executionNotice.textContent = running ? 'Campanha em execução. Os envios estão sendo processados.' : '';
+  }
+  // Reenvio dos pendentes só a partir de uma campanha finalizada.
+  if (followUpZone) {
+    const hasPending = (progress.failed + progress.skipped) > 0;
+    followUpZone.hidden = !(terminal && hasPending);
+  }
 }
 
 async function load() {
@@ -146,6 +164,18 @@ async function load() {
   selectedMedia = campaign.media;
   renderMedia();
   details.hidden = false;
+  if (sourceLink) {
+    if (campaign.sourceCampaignId) {
+      sourceLink.hidden = false;
+      sourceLink.innerHTML = '';
+      const link = document.createElement('a');
+      link.href = `/campaign.html?id=${campaign.sourceCampaignId}`;
+      link.textContent = `campanha de origem #${campaign.sourceCampaignId}`;
+      sourceLink.append('Reenvio criado a partir da ', link, '.');
+    } else {
+      sourceLink.hidden = true;
+    }
+  }
   if (campaign.status !== 'draft') {
     const [{ items }, progress] = await Promise.all([
       request(`/api/campaigns/${campaignId}/recipients`),
@@ -275,7 +305,7 @@ form.addEventListener('submit', async (event) => {
 });
 
 deleteButton.addEventListener('click', async () => {
-  if (!confirm('Excluir este rascunho?')) return;
+  if (!confirm('Excluir esta campanha? Esta ação não pode ser desfeita e removerá o histórico dos envios.')) return;
   deleteButton.disabled = true;
   try {
     await request(`/api/campaigns/${campaignId}`, { method: 'DELETE' });
@@ -285,5 +315,20 @@ deleteButton.addEventListener('click', async () => {
     deleteButton.disabled = false;
   }
 });
+
+if (followUpButton) {
+  followUpButton.addEventListener('click', async () => {
+    if (!confirm('Criar uma nova campanha com apenas os destinatários pendentes (falhas e ignorados)? A campanha atual será mantida como histórico.')) return;
+    followUpButton.disabled = true;
+    showError();
+    try {
+      const created = await request(`/api/campaigns/${campaignId}/follow-up`, { method: 'POST' });
+      location.href = `/campaign.html?id=${created.id}`;
+    } catch (error) {
+      showError(error.message);
+      followUpButton.disabled = false;
+    }
+  });
+}
 
 load().catch((error) => showError(error.message));
