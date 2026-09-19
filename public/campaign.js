@@ -1,3 +1,5 @@
+import { sounds } from '/sounds.js';
+
 const title = document.querySelector('#campaign-title');
 const statusText = document.querySelector('#campaign-status');
 const details = document.querySelector('#campaign-details');
@@ -15,7 +17,7 @@ const mediaContent = document.querySelector('#campaign-media-content');
 const removeMedia = document.querySelector('#remove-media');
 const saveButton = document.querySelector('#save-campaign');
 const deleteButton = document.querySelector('#delete-campaign');
-const dangerZone = document.querySelector('.danger-zone');
+const actionsBar = document.querySelector('#campaign-actions');
 const prepareZone = document.querySelector('#prepare-zone');
 const prepareConfirmation = document.querySelector('#prepare-confirmation');
 const prepareButton = document.querySelector('#prepare-campaign');
@@ -130,12 +132,13 @@ function paintRecipients() {
 
 function applyLockedState(campaign, recipients) {
   for (const control of form.elements) control.disabled = true;
-  form.querySelector('.actions').hidden = true;
+  // Fora de rascunho não há edição: esconde "Salvar"; "Excluir" some só em execução.
+  saveButton.hidden = true;
+  deleteButton.hidden = campaign.status === 'running';
+  actionsBar.hidden = campaign.status === 'running';
   prepareZone.hidden = true;
   renderRecipients(recipients);
   executionZone.hidden = false;
-  // Exclusão continua disponível em qualquer estado, exceto em execução.
-  dangerZone.hidden = campaign.status === 'running';
 }
 
 function renderProgress(progress) {
@@ -290,6 +293,12 @@ async function queueAction(action, body) {
       headers: body ? { 'Content-Type': 'application/json' } : undefined,
       body: body ? JSON.stringify(body) : undefined,
     });
+    // Ao iniciar, leva o usuário para a página de monitoramento da execução.
+    if (action === 'start') {
+      sounds.start();
+      location.href = '/monitor.html';
+      return;
+    }
     renderProgress(progress);
   } catch (error) { showError(error.message); }
 }

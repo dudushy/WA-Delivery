@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monitoramento — WA-Delivery</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/monitor.js" type="module" defer></script>
+  </head>
+  <body>
+    <main class="container wide">
+      <header>
+        <span class="eyebrow">WA-Delivery V2</span>
+        <nav><a href="/">WhatsApp</a><a href="/contacts.html">Contatos</a><a href="/campaigns.html">Campanhas</a><a class="active" href="/monitor.html">Monitoramento</a></nav>
+        <h1>Monitoramento</h1>
+        <p>Acompanhe a execução da campanha em andamento em tempo real.</p>
+      </header>
+
+      <div id="monitor-error" class="error" hidden></div>
+
+      <section id="monitor-empty" class="card" hidden>
+        <h2>Nenhuma campanha em execução</h2>
+        <p>Quando você iniciar uma campanha, os detalhes da execução aparecerão aqui.</p>
+        <div class="actions"><a class="button-link" href="/campaigns.html">Ir para campanhas</a></div>
+      </section>
+
+      <section id="monitor-active" class="card" hidden>
+        <div class="section-heading">
+          <div>
+            <strong id="monitor-name">Campanha</strong>
+            <p id="monitor-status">Status</p>
+          </div>
+          <a id="monitor-open" class="secondary button-link" href="#">Abrir campanha</a>
+        </div>
+
+        <p id="monitor-source" class="notice" hidden></p>
+
+        <div id="monitor-metrics" class="analysis-cards"></div>
+
+        <div class="monitor-progress">
+          <div class="monitor-bar"><div id="monitor-bar-fill" class="monitor-bar-fill"></div></div>
+          <span id="monitor-percent">0%</span>
+        </div>
+
+        <dl class="monitor-facts">
+          <div><dt>Início</dt><dd id="fact-start">—</dd></div>
+          <div><dt>Tempo decorrido</dt><dd id="fact-elapsed">—</dd></div>
+          <div><dt>Tempo restante (estimado)</dt><dd id="fact-remaining">—</dd></div>
+          <div><dt>Destinatários</dt><dd id="fact-total">—</dd></div>
+          <div><dt>Intervalo configurado</dt><dd id="fact-interval">—</dd></div>
+          <div><dt>Campanha de origem</dt><dd id="fact-source">—</dd></div>
+        </dl>
+      </section>
+    </main>
+    <footer class="app-footer">
+      WA-Delivery V2 — <a href="https://github.com/dudushy/WA-Delivery" target="_blank" rel="noopener">github.com/dudushy/WA-Delivery</a>
+    </footer>
+  </body>
+</html>

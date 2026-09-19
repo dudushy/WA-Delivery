@@ -6,13 +6,13 @@
     <title>Campanha — WA-Delivery</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
-    <script src="/campaign.js" defer></script>
+    <script src="/campaign.js" type="module" defer></script>
   </head>
   <body>
     <main class="container wide">
       <header>
         <span class="eyebrow">WA-Delivery V2</span>
-        <nav><a href="/">WhatsApp</a><a href="/contacts.html">Contatos</a><a class="active" href="/campaigns.html">Campanhas</a></nav>
+        <nav><a href="/">WhatsApp</a><a href="/contacts.html">Contatos</a><a class="active" href="/campaigns.html">Campanhas</a><a href="/monitor.html">Monitoramento</a></nav>
         <a class="back-link" href="/campaigns.html">← Voltar às campanhas</a>
         <h1 id="campaign-title">Carregando campanha...</h1>
         <p id="campaign-status"></p>
@@ -21,6 +21,10 @@
 
       <div id="campaign-error" class="error" hidden></div>
       <section id="campaign-details" class="card" hidden>
+        <div id="campaign-actions" class="campaign-actions-bar">
+          <button id="save-campaign" type="submit" form="campaign-form">Salvar alterações</button>
+          <button id="delete-campaign" class="danger" type="button">Excluir campanha</button>
+        </div>
         <form id="campaign-form">
           <div class="mapping-grid">
             <label>Nome da campanha<input id="campaign-name" required /></label>
@@ -45,7 +49,6 @@
             <label>Intervalo mínimo (segundos)<input id="delay-min" type="number" min="1" max="3600" required /></label>
             <label>Intervalo máximo (segundos)<input id="delay-max" type="number" min="1" max="3600" required /></label>
           </div>
-          <div class="actions"><button id="save-campaign" type="submit">Salvar alterações</button></div>
         </form>
         <section id="prepare-zone" class="review-zone">
           <h2>Revisão final</h2>
@@ -96,11 +99,10 @@
           <p>Cria uma nova campanha igual a esta, porém apenas com os destinatários que falharam ou foram ignorados. Esta campanha é mantida como histórico e a nova fica vinculada a ela.</p>
           <button id="follow-up-campaign" type="button">Criar campanha de reenvio</button>
         </section>
-        <div class="danger-zone">
-          <div><strong>Excluir campanha</strong><p>A campanha, seus destinatários e a mídia vinculada serão removidos. Não é possível excluir uma campanha em execução.</p></div>
-          <button id="delete-campaign" class="danger" type="button">Excluir</button>
-        </div>
       </section>
     </main>
+    <footer class="app-footer">
+      WA-Delivery V2 — <a href="https://github.com/dudushy/WA-Delivery" target="_blank" rel="noopener">github.com/dudushy/WA-Delivery</a>
+    </footer>
   </body>
 </html>

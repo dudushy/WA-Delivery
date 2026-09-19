@@ -18,6 +18,8 @@ interface CampaignRow {
   created_at: string;
   updated_at: string;
   prepared_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
   source_campaign_id: number | null;
   media_id: number | null;
   media_original_name: string | null;
@@ -303,6 +305,8 @@ function baseQuery(where = ''): string {
       campaigns.created_at,
       campaigns.updated_at
       , campaigns.prepared_at
+      , campaigns.started_at
+      , campaigns.finished_at
       , campaigns.source_campaign_id
       , campaigns.media_id
       , media.original_name AS media_original_name
@@ -335,6 +339,8 @@ function toSummary(row: CampaignRow): CampaignSummary {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     ...(row.prepared_at === null ? {} : { preparedAt: row.prepared_at }),
+    ...(row.started_at === null ? {} : { startedAt: row.started_at }),
+    ...(row.finished_at === null ? {} : { finishedAt: row.finished_at }),
     ...(row.source_campaign_id === null ? {} : { sourceCampaignId: row.source_campaign_id }),
     ...(row.media_id === null || row.media_original_name === null || row.media_mimetype === null
       || row.media_kind === null || row.media_size_bytes === null

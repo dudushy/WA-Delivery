@@ -37,6 +37,8 @@ export interface CampaignSummary {
   createdAt: string;
   updatedAt: string;
   preparedAt?: string;
+  startedAt?: string;
+  finishedAt?: string;
   sourceCampaignId?: number;
   media?: {
     id: number;
