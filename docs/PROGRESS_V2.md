@@ -1,6 +1,6 @@
 # Progresso da implementação — WA-Delivery V2
 
-Última atualização: 2026-09-19 (Fases 4 e 5 concluídas)
+Última atualização: 2026-09-19 (Checkpoint A concluído — reconciliação das Fases 0–5)
 
 ## Concluído
 
@@ -91,7 +91,30 @@
 - [x] histórico de campanhas na listagem, com rótulo de status;
 - [x] exportação CSV completa e somente falhas (`/api/campaigns/:id/export`),
   com escape RFC 4180;
-- [x] campanhas de reenvio (follow-up) vinculadas à origem preservam o histórico.
+- [x] campanhas de reenvio (follow-up) vinculadas à origem preservam o histórico;
+- [x] página dedicada de monitoramento (`/monitor.html`) com progresso, tempo
+  decorrido e restante estimado;
+- [x] logs estruturados (pino) com mascaramento de telefones e credenciais
+  (Checkpoint A.3);
+- [x] política de retenção configurável e limpeza explícita de campanhas antigas
+  (Checkpoint A.3).
+
+### Checkpoint A — reconciliação das Fases 0–5
+
+- [x] **A.1 Configurações persistentes**: tabela `settings` (migration v8),
+  `SettingsService` com defaults seguros e validação backend, rotas
+  `GET/PUT /api/settings`, página **Configurações**. Aplicadas ao worker
+  (timeout, tentativas, backoff) e à normalização (país/DDD).
+- [x] **A.2 Contatos**: país/DDD configuráveis; colunas extras do CSV
+  preservadas (`source_data_json`) e expostas como variáveis `{{slug}}`;
+  opt-out persistente (migration v9) com bloqueio no snapshot/simulação/reenvio
+  e gerência na interface.
+- [x] **A.3 Monitoramento e retenção**: logs estruturados com masking, retenção
+  configurável, limpeza explícita, estimativa de tempo restante aprimorada.
+- [ ] **A.4 Validação real pelo usuário**: checklist atualizado em
+  `docs/PHASE_0_MANUAL_VALIDATION.md`. **Pendente de execução manual pelo
+  usuário** (conexão, texto, imagem, vídeo, pausa/retomada/cancelamento,
+  desconexão/reconexão, reinício, follow-up e relatórios).
 
 ## Ciclo de vida da campanha (comportamento atual)
 
@@ -112,24 +135,30 @@ Estados: `draft -> ready -> running -> paused -> completed/cancelled/failed`.
 
 ## Banco de dados
 
-- Migration atual: **versão 7**.
+- Migration atual: **versão 9**.
 - v6 adiciona `campaigns.source_campaign_id` (nullable, `ON DELETE SET NULL`) para o
   vínculo de reenvio.
 - v7 adiciona `delivery_attempts.error_kind` (`transient`/`permanent`) para
   rastrear a classificação de cada tentativa.
+- v8 cria a tabela `settings` (chave/valor) para as configurações operacionais.
+- v9 adiciona `contacts.opted_out` (0/1, default 0) para o opt-out global por
+  telefone.
 - Todas as migrations são incrementais e compatíveis com banco já populado; há
-  testes de upgrade para as versões 5, 6 e 7 sobre dados existentes.
+  testes de upgrade para as versões 5, 6, 7 e 9 sobre dados existentes.
 
 ## Estado dos testes
 
-- 78 testes automatizados aprovados;
+- 105 testes automatizados aprovados (confirme com `npm run check`);
 - typecheck aprovado;
 - build aprovado;
 - `npm audit --omit=dev` sem vulnerabilidades conhecidas;
-- testes de upgrade de migration (v5, v6 e v7) sobre banco populado aprovados;
-- fila coberta por `FakeWhatsAppProvider` (nenhuma conta real é usada nos testes).
+- testes de upgrade de migration sobre banco populado aprovados;
+- fila coberta por `FakeWhatsAppProvider` (nenhuma conta real é usada nos testes);
+- masking de telefones/credenciais coberto por `logger.test.ts`.
 
 ## Próximo checkpoint
 
-Fase 6 — experiência de instalação e operação (scripts, guia de primeiro uso,
-backup/restauração), seguida da Fase 7 (qualidade e preparação da release).
+Checkpoint B — experiência de instalação e operação no Windows/Linux
+(`INSTALL.bat`/`RUN.bat` robustos e scripts equivalentes), seguido de backup/
+restauração (C), onboarding (D), remoção do legado V1 (E), lint/format/coverage
+(F), auditoria de segurança (G) e documentação/release candidate (H).
