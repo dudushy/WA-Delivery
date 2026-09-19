@@ -295,6 +295,45 @@ describe('CampaignService.exportRecipientsCsv', () => {
       database.close();
     }
   });
+
+  it('neutraliza CSV formula injection em nomes', () => {
+    const database = openDatabase(':memory:');
+    try {
+      const contacts = new ContactService(new ContactRepository(database));
+      const list = contacts.createManualList({
+        name: 'Perigosos',
+        contacts: [
+          { name: '=SUM(A1:A9)', phone: '16999999999' },
+          { name: '@cmd', phone: '16988888888' },
+        ],
+      });
+      const campaigns = new CampaignService(
+        new CampaignRepository(database),
+        contacts,
+        new MediaService(new MediaRepository(database), '/tmp/wa-delivery-inj-tests'),
+      );
+      const draft = campaigns.createDraft({
+        name: 'Inj',
+        contactListId: list.id,
+        messageTemplate: 'Oi {{nome}}',
+        delayMinSeconds: 1,
+        delayMaxSeconds: 1,
+      });
+      campaigns.prepareDraft(draft.id, true);
+      const csv = campaigns.exportRecipientsCsv(draft.id);
+      assert.ok(csv);
+      // Nomes iniciados por = ou @ recebem aspa simples de proteção.
+      assert.ok(csv.includes("'=SUM(A1:A9)"));
+      assert.ok(csv.includes("'@cmd"));
+      // Não deve existir uma célula que comece diretamente com = ou @.
+      const dataLines = csv.trim().split('\r\n').slice(1);
+      for (const line of dataLines) {
+        assert.ok(!/^[=+@]/.test(line));
+      }
+    } finally {
+      database.close();
+    }
+  });
 });
 
 describe('renderMessage', () => {

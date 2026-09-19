@@ -343,10 +343,16 @@ export function renderMessage(
 }
 
 /**
- * Escapa um valor para uma célula CSV: envolve em aspas quando contém aspas,
- * vírgula ou quebra de linha, dobrando as aspas internas (RFC 4180).
+ * Escapa um valor para uma célula CSV com duas proteções:
+ * 1. Anti CSV formula injection: valores iniciados por = + - @ (ou tab/CR) são
+ *    prefixados com aspa simples, para não serem interpretados como fórmula ao
+ *    abrir o arquivo em Excel/Sheets.
+ * 2. RFC 4180: envolve em aspas quando contém aspas, vírgula ou quebra de linha,
+ *    dobrando as aspas internas.
  */
 function csvCell(value: string): string {
-  if (/[",\r\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-  return value;
+  let cell = value;
+  if (/^[=+\-@\t\r]/.test(cell)) cell = `'${cell}`;
+  if (/[",\r\n]/.test(cell)) return `"${cell.replace(/"/g, '""')}"`;
+  return cell;
 }
