@@ -38,6 +38,19 @@ export function registerCampaignRoutes(
     }
   });
 
+  server.put<{ Params: { id: string }; Body: CampaignComposerInput }>('/api/campaigns/:id', async (request, reply) => {
+    const id = Number(request.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return reply.code(400).send({ message: 'Identificador da campanha inválido.' });
+    }
+    try {
+      const campaign = await campaigns.updateDraft(id, request.body ?? ({} as CampaignComposerInput));
+      return campaign ?? reply.code(404).send({ message: 'Rascunho não encontrado.' });
+    } catch (error) {
+      return sendCampaignError(reply, error);
+    }
+  });
+
   server.delete<{ Params: { id: string } }>('/api/campaigns/:id', async (request, reply) => {
     const id = Number(request.params.id);
     if (!Number.isSafeInteger(id) || id <= 0) {

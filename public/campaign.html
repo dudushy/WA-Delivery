@@ -18,13 +18,32 @@
 
       <div id="campaign-error" class="error" hidden></div>
       <section id="campaign-details" class="card" hidden>
-        <div id="campaign-metrics" class="analysis-cards"></div>
-        <h2>Mensagem</h2>
-        <p id="campaign-message" class="message-body"></p>
-        <div id="campaign-media" hidden>
-          <h2>Mídia</h2>
-          <div id="campaign-media-content" class="media-detail"></div>
-        </div>
+        <form id="campaign-form">
+          <div class="mapping-grid">
+            <label>Nome da campanha<input id="campaign-name" required /></label>
+            <label>Lista de contatos<select id="campaign-list" required></select></label>
+          </div>
+          <label>Mensagem
+            <textarea id="message-template" maxlength="4096" rows="8" required></textarea>
+          </label>
+          <div class="composer-helper">
+            <button id="insert-name" class="secondary" type="button">Inserir {{nome}}</button>
+            <span id="message-counter">0 / 4096</span>
+          </div>
+          <label>Substituir mídia
+            <input id="campaign-media-input" type="file" accept="image/jpeg,image/png,image/webp,video/mp4" />
+            <small>JPG, PNG ou WEBP até 10 MB; MP4 até 64 MB.</small>
+          </label>
+          <div id="campaign-media" class="media-preview" hidden>
+            <div id="campaign-media-content"></div>
+            <button id="remove-media" class="secondary" type="button">Remover mídia</button>
+          </div>
+          <div class="mapping-grid">
+            <label>Intervalo mínimo (segundos)<input id="delay-min" type="number" min="1" max="3600" required /></label>
+            <label>Intervalo máximo (segundos)<input id="delay-max" type="number" min="1" max="3600" required /></label>
+          </div>
+          <div class="actions"><button id="save-campaign" type="submit">Salvar alterações</button></div>
+        </form>
         <div class="danger-zone">
           <div><strong>Excluir rascunho</strong><p>A campanha e sua mídia vinculada serão removidas.</p></div>
           <button id="delete-campaign" class="danger" type="button">Excluir</button>

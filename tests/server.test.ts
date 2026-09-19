@@ -236,6 +236,15 @@ describe('servidor local', () => {
     const draft = await server.inject({ method: 'POST', url: '/api/campaigns', payload });
     assert.equal(draft.statusCode, 201);
     assert.equal(draft.json().status, 'draft');
+
+    const edited = await server.inject({
+      method: 'PUT',
+      url: `/api/campaigns/${draft.json().id}`,
+      payload: { ...payload, name: 'Rascunho editado', delayMinSeconds: 3 },
+    });
+    assert.equal(edited.statusCode, 200);
+    assert.equal(edited.json().name, 'Rascunho editado');
+    assert.equal(edited.json().delayMinSeconds, 3);
     assert.equal(provider.connectCalls, 0);
     await server.close();
   });

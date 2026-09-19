@@ -67,6 +67,23 @@ export class CampaignService {
     return this.repository.findById(id);
   }
 
+  public async updateDraft(id: number, input: CampaignComposerInput): Promise<CampaignSummary | undefined> {
+    const existing = this.repository.findById(id);
+    if (!existing || existing.status !== 'draft') return undefined;
+    const validated = this.validate(input, true, existing.media?.id);
+    const { mediaId: _mediaId, ...simulationInput } = validated;
+    this.simulate(simulationInput);
+    const updated = this.repository.updateDraft(
+      id,
+      validated as CampaignComposerInput & { name: string },
+    );
+    if (!updated) return undefined;
+    if (updated.removedMediaStorageName) {
+      await this.media.removeFile(updated.removedMediaStorageName);
+    }
+    return updated.campaign;
+  }
+
   public async deleteDraft(id: number): Promise<boolean> {
     const deleted = this.repository.deleteDraft(id);
     if (!deleted) return false;
@@ -77,6 +94,7 @@ export class CampaignService {
   private validate(
     input: CampaignComposerInput,
     requireName: boolean,
+    currentMediaId?: number,
   ): CampaignComposerInput {
     const issues: Array<{ path: string; message: string }> = [];
     const name = typeof input.name === 'string' ? input.name.trim() : '';
@@ -86,7 +104,9 @@ export class CampaignService {
     const contactListId = Number(input.contactListId);
     const delayMinSeconds = Number(input.delayMinSeconds);
     const delayMaxSeconds = Number(input.delayMaxSeconds);
-    const mediaId = input.mediaId === undefined ? undefined : Number(input.mediaId);
+    const mediaId = input.mediaId === undefined || input.mediaId === null
+      ? input.mediaId
+      : Number(input.mediaId);
 
     if (requireName && !name) issues.push({ path: 'name', message: 'Informe o nome da campanha.' });
     if (!Number.isSafeInteger(contactListId) || contactListId <= 0) {
@@ -116,8 +136,11 @@ export class CampaignService {
     if (Number.isInteger(delayMinSeconds) && Number.isInteger(delayMaxSeconds) && delayMaxSeconds < delayMinSeconds) {
       issues.push({ path: 'delayMaxSeconds', message: 'O intervalo máximo não pode ser menor que o mínimo.' });
     }
-    if (mediaId !== undefined) {
-      if (!Number.isSafeInteger(mediaId) || mediaId <= 0 || !this.media.findById(mediaId)) {
+    if (mediaId !== undefined && mediaId !== null) {
+      const storedMedia = Number.isSafeInteger(mediaId) && mediaId > 0
+        ? this.media.findById(mediaId)
+        : undefined;
+      if (!storedMedia || (storedMedia.status === 'attached' && storedMedia.id !== currentMediaId)) {
         issues.push({ path: 'mediaId', message: 'A mídia selecionada não existe ou expirou.' });
       }
     }

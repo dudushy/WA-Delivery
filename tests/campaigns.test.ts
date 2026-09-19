@@ -62,6 +62,31 @@ describe('CampaignService', () => {
     assert.equal(campaigns.list().length, 1);
   });
 
+  it('edita os campos de um rascunho existente', async () => {
+    const { list, campaigns } = setup();
+    const draft = campaigns.createDraft({
+      name: 'Nome inicial',
+      contactListId: list.id,
+      messageTemplate: 'Olá {{nome}}!',
+      delayMinSeconds: 5,
+      delayMaxSeconds: 10,
+    });
+
+    const updated = await campaigns.updateDraft(draft.id, {
+      name: 'Nome atualizado',
+      contactListId: list.id,
+      messageTemplate: 'Oi {{nome}}, mensagem editada.',
+      delayMinSeconds: 3,
+      delayMaxSeconds: 7,
+      mediaId: null,
+    });
+
+    assert.equal(updated?.name, 'Nome atualizado');
+    assert.equal(updated?.messageTemplate, 'Oi {{nome}}, mensagem editada.');
+    assert.equal(updated?.delayMinSeconds, 3);
+    assert.equal(updated?.delayMaxSeconds, 7);
+  });
+
   it('rejeita variável desconhecida e intervalos inválidos', () => {
     const { list, campaigns } = setup();
     assert.throws(

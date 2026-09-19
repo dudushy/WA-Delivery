@@ -24,6 +24,11 @@ export interface DeletedDraft {
   mediaStorageName?: string;
 }
 
+export interface UpdatedDraft {
+  campaign: CampaignSummary;
+  removedMediaStorageName?: string;
+}
+
 export class CampaignRepository {
   public constructor(private readonly database: DatabaseSync) {}
 
@@ -63,6 +68,61 @@ export class CampaignRepository {
   public findById(id: number): CampaignSummary | undefined {
     const row = this.database.prepare(baseQuery('WHERE campaigns.id = ?')).get(id) as unknown as CampaignRow | undefined;
     return row ? toSummary(row) : undefined;
+  }
+
+  public updateDraft(
+    id: number,
+    input: CampaignComposerInput & { name: string },
+  ): UpdatedDraft | undefined {
+    const existing = this.database.prepare(`
+      SELECT campaigns.status, campaigns.media_id, media.storage_name
+      FROM campaigns
+      LEFT JOIN media ON media.id = campaigns.media_id
+      WHERE campaigns.id = ?
+    `).get(id) as {
+      status: CampaignSummary['status'];
+      media_id: number | null;
+      storage_name: string | null;
+    } | undefined;
+    if (!existing || existing.status !== 'draft') return undefined;
+
+    const nextMediaId = input.mediaId ?? null;
+    const mediaChanged = existing.media_id !== nextMediaId;
+    this.database.exec('BEGIN IMMEDIATE');
+    try {
+      this.database.prepare(`
+        UPDATE campaigns
+        SET name = ?, contact_list_id = ?, message_template = ?, delay_min_seconds = ?,
+            delay_max_seconds = ?, media_id = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND status = 'draft'
+      `).run(
+        input.name,
+        input.contactListId,
+        input.messageTemplate,
+        input.delayMinSeconds,
+        input.delayMaxSeconds,
+        nextMediaId,
+        id,
+      );
+      if (mediaChanged && nextMediaId !== null) {
+        this.database.prepare("UPDATE media SET status = 'attached' WHERE id = ?").run(nextMediaId);
+      }
+      if (mediaChanged && existing.media_id !== null) {
+        this.database.prepare('DELETE FROM media WHERE id = ?').run(existing.media_id);
+      }
+      this.database.exec('COMMIT');
+      const campaign = this.findById(id);
+      if (!campaign) throw new Error('O rascunho atualizado não pôde ser recuperado.');
+      return {
+        campaign,
+        ...(mediaChanged && existing.storage_name
+          ? { removedMediaStorageName: existing.storage_name }
+          : {}),
+      };
+    } catch (error) {
+      this.database.exec('ROLLBACK');
+      throw error;
+    }
   }
 
   public deleteDraft(id: number): DeletedDraft | undefined {

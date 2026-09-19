@@ -4,7 +4,7 @@ export interface CampaignComposerInput {
   messageTemplate: string;
   delayMinSeconds: number;
   delayMaxSeconds: number;
-  mediaId?: number;
+  mediaId?: number | null;
 }
 
 export interface CampaignSimulation {

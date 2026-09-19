@@ -45,9 +45,33 @@ describe('MediaService', () => {
 
       assert.equal(draft.media?.originalName, 'foto.png');
       assert.equal(repository.findById(uploaded.id)?.status, 'attached');
-      assert.equal(await campaigns.deleteDraft(draft.id), true);
-      assert.equal(repository.findById(uploaded.id), undefined);
+
+      const replacement = await media.upload('nova-foto.png', 'image/png', png);
+      const replacementPath = join(directory, replacement.storageName);
+      const updated = await campaigns.updateDraft(draft.id, {
+        name: 'Com nova imagem',
+        contactListId: list.id,
+        messageTemplate: 'Olá {{nome}}!',
+        delayMinSeconds: 2,
+        delayMaxSeconds: 4,
+        mediaId: replacement.id,
+      });
+      assert.equal(updated?.media?.originalName, 'nova-foto.png');
       assert.equal(existsSync(storedPath), false);
+      assert.equal(repository.findById(uploaded.id), undefined);
+      assert.equal(existsSync(replacementPath), true);
+
+      const withoutMedia = await campaigns.updateDraft(draft.id, {
+        name: 'Sem imagem',
+        contactListId: list.id,
+        messageTemplate: 'Olá {{nome}}!',
+        delayMinSeconds: 2,
+        delayMaxSeconds: 4,
+        mediaId: null,
+      });
+      assert.equal(withoutMedia?.media, undefined);
+      assert.equal(existsSync(replacementPath), false);
+      assert.equal(await campaigns.deleteDraft(draft.id), true);
     } finally {
       database.close();
       await rm(directory, { recursive: true, force: true });
