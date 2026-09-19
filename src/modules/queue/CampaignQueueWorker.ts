@@ -15,6 +15,23 @@ export const DEFAULT_OPERATION_TIMEOUT_MS = 30_000;
 /** Número máximo de tentativas por destinatário para falhas transitórias. */
 export const DEFAULT_MAX_ATTEMPTS = 3;
 
+/** Base do backoff exponencial entre tentativas transitórias (1 segundo). */
+export const DEFAULT_RETRY_BACKOFF_MS = 1_000;
+
+/** Teto do backoff entre tentativas (30 segundos). */
+export const DEFAULT_RETRY_BACKOFF_CAP_MS = 30_000;
+
+/**
+ * Calcula o backoff exponencial para a próxima tentativa: base * 2^(attempt-1),
+ * limitado pelo teto. `attempt` é o número da tentativa que acabou de falhar
+ * (1 para a primeira). Retorna 0 quando a base é 0 (backoff desativado).
+ */
+export function computeBackoffMs(attempt: number, baseMs: number, capMs: number): number {
+  if (baseMs <= 0) return 0;
+  const exponential = baseMs * 2 ** Math.max(0, attempt - 1);
+  return Math.min(exponential, Math.max(baseMs, capMs));
+}
+
 export class CampaignQueueWorker {
   private readonly events = new EventEmitter();
   private activeCampaignId: number | undefined;
@@ -22,6 +39,8 @@ export class CampaignQueueWorker {
   private releaseDelay: (() => void) | undefined;
   private readonly operationTimeoutMs: number;
   private readonly maxAttempts: number;
+  private readonly retryBackoffMs: number;
+  private readonly retryBackoffCapMs: number;
 
   public constructor(
     private readonly repository: CampaignQueueRepository,
@@ -31,9 +50,21 @@ export class CampaignQueueWorker {
     private readonly random: () => number = Math.random,
     operationTimeoutMs: number = DEFAULT_OPERATION_TIMEOUT_MS,
     maxAttempts: number = DEFAULT_MAX_ATTEMPTS,
+    retryBackoffMs: number = DEFAULT_RETRY_BACKOFF_MS,
+    retryBackoffCapMs: number = DEFAULT_RETRY_BACKOFF_CAP_MS,
   ) {
     this.operationTimeoutMs = operationTimeoutMs;
     this.maxAttempts = Math.max(1, maxAttempts);
+    this.retryBackoffMs = Math.max(0, retryBackoffMs);
+    this.retryBackoffCapMs = Math.max(this.retryBackoffMs, retryBackoffCapMs);
+  }
+
+  /**
+   * Calcula o backoff exponencial para a próxima tentativa de um destinatário.
+   * `attempt` é o número da tentativa que acabou de falhar (1 para a primeira).
+   */
+  private computeBackoffMs(attempt: number): number {
+    return computeBackoffMs(attempt, this.retryBackoffMs, this.retryBackoffCapMs);
   }
 
   public recoverInterrupted(): number {
@@ -121,6 +152,7 @@ export class CampaignQueueWorker {
 
       const attemptId = this.repository.markSending(recipient);
       this.emit(campaignId);
+      let backoffMs = 0;
       try {
         const registered = await withTimeout(
           () => this.whatsapp.isRegisteredNumber(recipient.phone),
@@ -150,12 +182,14 @@ export class CampaignQueueWorker {
         const currentAttempt = recipient.attemptCount + 1;
         const disconnected = this.whatsapp.getConnectionState().status !== 'connected';
         if (kind === 'transient' && !disconnected && currentAttempt < this.maxAttempts) {
-          // Falha transitória com tentativas restantes: recoloca como pendente.
+          // Falha transitória com tentativas restantes: recoloca como pendente
+          // e agenda um backoff exponencial antes da próxima tentativa.
           this.repository.retryLater(
             attemptId,
             recipient.id,
             `[transient] tentativa ${currentAttempt}/${this.maxAttempts}: ${message}`,
           );
+          backoffMs = this.computeBackoffMs(currentAttempt);
         } else {
           // Erro permanente, sem conexão, ou limite de tentativas atingido.
           this.repository.finishAttempt(attemptId, recipient.id, 'failed', {
@@ -173,7 +207,10 @@ export class CampaignQueueWorker {
 
       const campaign = this.campaigns.findById(campaignId);
       if (!campaign || this.repository.progress(campaignId)?.status !== 'running') return;
-      if (this.repository.findNext(campaignId)) {
+      if (backoffMs > 0) {
+        // Backoff antes de reprocessar o destinatário que falhou de forma transitória.
+        await this.wait(backoffMs);
+      } else if (this.repository.findNext(campaignId)) {
         const range = campaign.delayMaxSeconds - campaign.delayMinSeconds;
         const delaySeconds = campaign.delayMinSeconds + Math.floor(this.random() * (range + 1));
         await this.wait(delaySeconds * 1_000);

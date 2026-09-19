@@ -8,7 +8,7 @@ import { ContactService } from '../src/modules/contacts/ContactService.js';
 import { MediaRepository } from '../src/modules/media/MediaRepository.js';
 import { MediaService } from '../src/modules/media/MediaService.js';
 import { CampaignQueueRepository } from '../src/modules/queue/CampaignQueueRepository.js';
-import { CampaignQueueWorker } from '../src/modules/queue/CampaignQueueWorker.js';
+import { CampaignQueueWorker, computeBackoffMs } from '../src/modules/queue/CampaignQueueWorker.js';
 import { QueueStateError } from '../src/modules/queue/queueTypes.js';
 import type { ConnectionListener, ConnectionState, DeliveryResult, MediaMessage, WhatsAppProvider } from '../src/providers/whatsapp/WhatsAppProvider.js';
 
@@ -33,7 +33,7 @@ class QueueWhatsAppProvider implements WhatsAppProvider {
   }
 }
 
-function setup(contactCount = 1, operationTimeoutMs?: number, maxAttempts?: number) {
+function setup(contactCount = 1, operationTimeoutMs?: number, maxAttempts?: number, backoffMs = 0) {
   const database = openDatabase(':memory:');
   const contacts = new ContactService(new ContactRepository(database));
   const list = contacts.createManualList({
@@ -52,7 +52,7 @@ function setup(contactCount = 1, operationTimeoutMs?: number, maxAttempts?: numb
   campaigns.prepareDraft(draft.id, true);
   const provider = new QueueWhatsAppProvider();
   const repository = new CampaignQueueRepository(database);
-  const worker = new CampaignQueueWorker(repository, campaigns, media, provider, () => 0, operationTimeoutMs, maxAttempts);
+  const worker = new CampaignQueueWorker(repository, campaigns, media, provider, () => 0, operationTimeoutMs, maxAttempts, backoffMs, backoffMs);
   return { database, draft, provider, repository, worker };
 }
 
@@ -203,6 +203,46 @@ describe('CampaignQueueWorker', () => {
       assert.equal(progress?.sent, 1);
       assert.equal(progress?.failed, 0);
       assert.equal(attempts, 2); // falhou 1x, sucesso na 2ª
+    } finally { worker.shutdown(); database.close(); }
+  });
+});
+
+describe('computeBackoffMs', () => {
+  it('cresce exponencialmente a partir da base', () => {
+    assert.equal(computeBackoffMs(1, 1_000, 30_000), 1_000);
+    assert.equal(computeBackoffMs(2, 1_000, 30_000), 2_000);
+    assert.equal(computeBackoffMs(3, 1_000, 30_000), 4_000);
+    assert.equal(computeBackoffMs(4, 1_000, 30_000), 8_000);
+  });
+
+  it('respeita o teto', () => {
+    assert.equal(computeBackoffMs(10, 1_000, 5_000), 5_000);
+  });
+
+  it('retorna 0 quando a base é 0 (backoff desativado)', () => {
+    assert.equal(computeBackoffMs(3, 0, 30_000), 0);
+  });
+});
+
+describe('CampaignQueueWorker backoff', () => {
+  it('aguarda o backoff antes de reprocessar uma falha transitória', async () => {
+    // base de 120ms, teto igual: o retry deve atrasar a conclusão.
+    const { database, draft, provider, repository, worker } = setup(1, 20, 3, 120);
+    let attempts = 0;
+    provider.sendTextHandler = async (phone) => {
+      attempts += 1;
+      if (attempts === 1) throw new Error('Connection closed'); // transitório
+      provider.sent.push(phone);
+      return { messageId: `m-${provider.sent.length}`, sentAt: new Date() };
+    };
+    const startedAt = Date.now();
+    try {
+      worker.start(draft.id, true);
+      await waitUntil(() => repository.progress(draft.id)?.status === 'completed');
+      const elapsed = Date.now() - startedAt;
+      // Deve ter aguardado ao menos o backoff (120ms) entre a falha e o sucesso.
+      assert.ok(elapsed >= 100, `esperava atraso do backoff, teve ${elapsed}ms`);
+      assert.equal(repository.progress(draft.id)?.sent, 1);
     } finally { worker.shutdown(); database.close(); }
   });
 });
