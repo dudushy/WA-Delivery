@@ -34,6 +34,7 @@ export interface WhatsAppProvider {
   disconnect(): Promise<void>;
   getConnectionState(): ConnectionState;
   onConnectionState(listener: ConnectionListener): () => void;
+  hasSavedSession(): Promise<boolean>;
   isRegisteredNumber(phone: string): Promise<boolean>;
   sendText(phone: string, message: string): Promise<DeliveryResult>;
   sendMedia(phone: string, media: MediaMessage): Promise<DeliveryResult>;

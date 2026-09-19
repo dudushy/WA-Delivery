@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
-import { mkdir } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { access, mkdir } from 'node:fs/promises';
+import { constants as fsConstants } from 'node:fs';
+import { dirname, join } from 'node:path';
 import makeWASocket, {
   Browsers,
   type ConnectionState as BaileysConnectionState,
@@ -69,6 +70,20 @@ export class BaileysWhatsAppProvider implements WhatsAppProvider {
 
   public getConnectionState(): ConnectionState {
     return { ...this.state };
+  }
+
+  /**
+   * Indica se já existe uma sessão salva localmente (arquivo de credenciais do
+   * Baileys). Usado para decidir se a aplicação deve tentar reconectar
+   * automaticamente ao iniciar, sem exigir um novo QR Code.
+   */
+  public async hasSavedSession(): Promise<boolean> {
+    try {
+      await access(join(this.options.sessionDirectory, 'creds.json'), fsConstants.F_OK);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   public onConnectionState(listener: ConnectionListener): () => void {

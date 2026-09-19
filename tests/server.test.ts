@@ -36,6 +36,7 @@ class FakeWhatsAppProvider implements WhatsAppProvider {
   }
   public getConnectionState(): ConnectionState { return { ...this.state }; }
   public onConnectionState(_listener: ConnectionListener): () => void { return () => undefined; }
+  public async hasSavedSession(): Promise<boolean> { return false; }
   public async isRegisteredNumber(_phone: string): Promise<boolean> { return true; }
   public async sendText(_phone: string, _message: string): Promise<DeliveryResult> {
     return { messageId: 'text-id', sentAt: new Date() };

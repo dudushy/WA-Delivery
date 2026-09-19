@@ -52,3 +52,13 @@ server.listen({ host: '127.0.0.1', port: 3000 }).then(() => {
   console.error('Não foi possível iniciar o WA-Delivery.', error);
   process.exitCode = 1;
 });
+
+// Reconecta automaticamente ao iniciar somente se já houver uma sessão salva,
+// evitando forçar um novo QR Code em uma instalação sem credenciais.
+void provider.hasSavedSession().then((hasSession) => {
+  if (hasSession) {
+    void provider.connect().catch((error: unknown) => {
+      console.error('Não foi possível reconectar a sessão salva do WhatsApp.', error);
+    });
+  }
+});

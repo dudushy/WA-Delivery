@@ -21,6 +21,7 @@ class QueueWhatsAppProvider implements WhatsAppProvider {
   public async disconnect(): Promise<void> {}
   public getConnectionState(): ConnectionState { return this.state; }
   public onConnectionState(_listener: ConnectionListener): () => void { return () => undefined; }
+  public async hasSavedSession(): Promise<boolean> { return false; }
   public async isRegisteredNumber(phone: string): Promise<boolean> { return this.registeredHandler(phone); }
   public async sendText(phone: string, message: string): Promise<DeliveryResult> {
     if (this.sendTextHandler) return this.sendTextHandler(phone, message);
