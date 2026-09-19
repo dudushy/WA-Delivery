@@ -174,3 +174,6 @@ tbody tr:last-child td { border-bottom: 0; }
 .opt-out-toggle input { width: auto; margin: 0; }
 .contact-row.opted-out { border-color: #d0c4f2; background: #f7f3ff; }
 .contact-row.opted-out .member-name, .contact-row.opted-out .member-phone { color: #8a7bbd; }
+
+/* Dica de variáveis de template no composer */
+.variables-hint { margin: -8px 0 16px; font-size: 0.82rem; color: #6741d9; background: #f2eefb; padding: 8px 12px; border-radius: 8px; }

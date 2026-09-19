@@ -42,6 +42,24 @@ export class CampaignService {
       ]);
     }
 
+    // Variáveis disponíveis: `nome` + colunas extras presentes na lista.
+    const availableVariables = new Set<string>(['nome']);
+    for (const contact of list.contacts) {
+      for (const key of Object.keys(contact.data ?? {})) availableVariables.add(key);
+    }
+    const unknownVariables = [...validated.messageTemplate.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)]
+      .map((match) => match[1]?.trim().toLowerCase())
+      .filter((variable): variable is string => Boolean(variable))
+      .filter((variable) => !availableVariables.has(variable));
+    if (unknownVariables.length > 0) {
+      throw new CampaignValidationError([
+        {
+          path: 'messageTemplate',
+          message: `Variáveis não reconhecidas para esta lista: ${[...new Set(unknownVariables)].join(', ')}.`,
+        },
+      ]);
+    }
+
     const intervals = Math.max(0, eligible.length - 1);
     return {
       contactListId: list.id,
@@ -59,7 +77,7 @@ export class CampaignService {
         contactId: contact.id,
         name: contact.name,
         phone: contact.phone,
-        message: renderMessage(validated.messageTemplate, contact.name),
+        message: renderMessage(validated.messageTemplate, contact.name, contact.data),
       })),
     };
   }
@@ -171,7 +189,7 @@ export class CampaignService {
         sourceContactId: contact.id,
         name: contact.name,
         phone: contact.phone,
-        renderedMessage: renderMessage(campaign.messageTemplate, contact.name),
+        renderedMessage: renderMessage(campaign.messageTemplate, contact.name, contact.data),
       })),
     );
   }
@@ -233,16 +251,6 @@ export class CampaignService {
       issues.push({ path: 'messageTemplate', message: `A mensagem excede ${MAX_MESSAGE_LENGTH} caracteres.` });
     }
 
-    const unknownVariables = [...messageTemplate.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)]
-      .map((match) => match[1]?.trim().toLowerCase())
-      .filter((variable) => variable && variable !== 'nome');
-    if (unknownVariables.length > 0) {
-      issues.push({
-        path: 'messageTemplate',
-        message: `Variáveis não reconhecidas: ${[...new Set(unknownVariables)].join(', ')}.`,
-      });
-    }
-
     if (!Number.isInteger(delayMinSeconds) || delayMinSeconds < 1 || delayMinSeconds > MAX_DELAY_SECONDS) {
       issues.push({ path: 'delayMinSeconds', message: 'O intervalo mínimo deve estar entre 1 e 3600 segundos.' });
     }
@@ -273,8 +281,17 @@ export class CampaignService {
   }
 }
 
-export function renderMessage(template: string, name: string): string {
-  return template.replace(/\{\{\s*nome\s*\}\}/gi, name);
+export function renderMessage(
+  template: string,
+  name: string,
+  data: Record<string, string> = {},
+): string {
+  return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, rawKey: string) => {
+    const key = rawKey.trim().toLowerCase();
+    if (key === 'nome') return name;
+    // Variáveis de coluna extra: substitui pelo valor; ausência vira string vazia.
+    return data[key] ?? '';
+  });
 }
 
 /**

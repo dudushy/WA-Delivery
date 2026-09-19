@@ -6,6 +6,7 @@ const messageCounter = document.querySelector('#message-counter');
 const delayMin = document.querySelector('#delay-min');
 const delayMax = document.querySelector('#delay-max');
 const insertName = document.querySelector('#insert-name');
+const variablesHint = document.querySelector('#variables-hint');
 const mediaInput = document.querySelector('#campaign-media');
 const mediaPreview = document.querySelector('#media-preview');
 const mediaPreviewContent = document.querySelector('#media-preview-content');
@@ -133,6 +134,30 @@ async function loadLists() {
     `<option value="${item.id}">${escapeHtml(item.name)} (${item.contactCount})</option>`
   ).join('');
 }
+
+// Ao selecionar uma lista, mostra as variáveis de template disponíveis
+// (sempre {{nome}} + colunas extras importadas do CSV).
+async function updateVariablesHint() {
+  const id = Number(contactList.value);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    variablesHint.hidden = true;
+    return;
+  }
+  try {
+    const list = await request(`/api/contact-lists/${id}`);
+    const keys = new Set(['nome']);
+    for (const contact of list.contacts ?? []) {
+      for (const key of Object.keys(contact.data ?? {})) keys.add(key);
+    }
+    const vars = [...keys].map((key) => `{{${key}}}`).join(', ');
+    variablesHint.textContent = `Variáveis disponíveis para esta lista: ${vars}`;
+    variablesHint.hidden = false;
+  } catch {
+    variablesHint.hidden = true;
+  }
+}
+
+contactList.addEventListener('change', () => void updateVariablesHint());
 
 const CAMPAIGN_STATUS_LABELS = {
   draft: 'Não iniciada',

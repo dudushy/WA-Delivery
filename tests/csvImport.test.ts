@@ -66,4 +66,20 @@ describe('CsvImportService', () => {
     assert.equal(list.contactCount, 1);
     assert.equal(list.contacts[0]?.name, 'Ana');
   });
+
+  it('preserva colunas extras como variáveis de template (slug)', () => {
+    const service = createService();
+    const preview = service.createPreview(
+      'clientes.csv',
+      Buffer.from('Nome,Telefone,Cidade,Empresa X\nAna,16999999999,Ribeirão Preto,ACME\n'),
+    );
+    const list = service.confirm(preview.previewId, 'Com colunas', 'Telefone', 'Nome');
+
+    assert.equal(list.contactCount, 1);
+    const contact = list.contacts[0];
+    assert.equal(contact?.data.cidade, 'Ribeirão Preto');
+    assert.equal(contact?.data.empresa_x, 'ACME');
+    // A coluna de nome também fica disponível como variável.
+    assert.equal(contact?.data.nome, 'Ana');
+  });
 });

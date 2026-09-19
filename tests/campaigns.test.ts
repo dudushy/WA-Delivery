@@ -74,6 +74,46 @@ describe('CampaignService', () => {
     assert.ok(!recipients.some((r) => r.phone === '5516999999999'));
   });
 
+  it('renderiza variáveis de coluna extra e rejeita variáveis desconhecidas', () => {
+    const { contacts, campaigns } = setup();
+    const list = contacts.createImportedList({
+      name: 'Com colunas',
+      contacts: [
+        { name: 'Ana', phone: '16999999999', data: { cidade: 'Ribeirão Preto' } },
+        { name: 'Maria', phone: '16988888888', data: { cidade: 'Campinas' } },
+      ],
+    });
+
+    // Variável existente: renderiza o valor da coluna por destinatário.
+    const simulation = campaigns.simulate({
+      contactListId: list.id,
+      messageTemplate: 'Olá {{nome}}, tudo bem em {{cidade}}?',
+      delayMinSeconds: 1,
+      delayMaxSeconds: 1,
+    });
+    assert.equal(simulation.samples[0]?.message, 'Olá Ana, tudo bem em Ribeirão Preto?');
+
+    // Variável inexistente na lista é rejeitada.
+    assert.throws(
+      () => campaigns.simulate({
+        contactListId: list.id,
+        messageTemplate: 'Olá {{sobrenome}}!',
+        delayMinSeconds: 1,
+        delayMaxSeconds: 1,
+      }),
+      (error: unknown) => error instanceof CampaignValidationError,
+    );
+
+    // O snapshot preserva a mensagem renderizada com a coluna extra.
+    const draft = campaigns.createDraft({
+      name: 'Cidades', contactListId: list.id,
+      messageTemplate: 'Oi {{nome}} de {{cidade}}', delayMinSeconds: 1, delayMaxSeconds: 1,
+    });
+    campaigns.prepareDraft(draft.id, true);
+    const recipients = campaigns.listRecipients(draft.id) ?? [];
+    assert.equal(recipients.find((r) => r.name === 'Maria')?.renderedMessage, 'Oi Maria de Campinas');
+  });
+
   it('salva campanha somente como rascunho', () => {
     const { list, campaigns } = setup();
     const draft = campaigns.createDraft({
@@ -142,16 +182,32 @@ describe('CampaignService', () => {
 
   it('rejeita variável desconhecida e intervalos inválidos', () => {
     const { list, campaigns } = setup();
+    // Intervalo inválido é rejeitado na validação de campos (antes da checagem
+    // de variáveis, que agora é ciente das colunas da lista).
     assert.throws(
       () => campaigns.simulate({
         contactListId: list.id,
-        messageTemplate: 'Olá {{apelido}}',
+        messageTemplate: 'Olá {{nome}}',
         delayMinSeconds: 10,
         delayMaxSeconds: 5,
       }),
       (error: unknown) => {
         assert.ok(error instanceof CampaignValidationError);
-        assert.equal(error.issues.length, 2);
+        assert.ok(error.issues.some((issue) => issue.path === 'delayMaxSeconds'));
+        return true;
+      },
+    );
+    // Variável desconhecida (lista sem colunas extras) também é rejeitada.
+    assert.throws(
+      () => campaigns.simulate({
+        contactListId: list.id,
+        messageTemplate: 'Olá {{apelido}}',
+        delayMinSeconds: 5,
+        delayMaxSeconds: 10,
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof CampaignValidationError);
+        assert.ok(error.issues.some((issue) => issue.path === 'messageTemplate'));
         return true;
       },
     );

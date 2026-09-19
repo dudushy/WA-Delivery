@@ -1,6 +1,8 @@
 export interface ManualContactInput {
   name: string;
   phone: string;
+  /** Colunas extras (importação CSV) preservadas para variáveis de template. */
+  data?: Record<string, string>;
 }
 
 export interface CreateManualContactListInput {
@@ -21,6 +23,8 @@ export interface ContactListMember {
   name: string;
   phone: string;
   optedOut: boolean;
+  /** Colunas extras importadas do CSV, disponíveis como variáveis de template. */
+  data: Record<string, string>;
 }
 
 export interface ContactListDetails extends ContactListSummary {

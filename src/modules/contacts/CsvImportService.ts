@@ -173,37 +173,43 @@ export class CsvImportService {
     nameColumn?: string,
   ): ContactListDetails {
     const session = this.getSession(previewId);
-    const analysis = this.analyze(previewId, phoneColumn, nameColumn);
-    if (analysis.valid === 0) throw new Error('Nenhum telefone válido foi encontrado.');
+    const phoneIndex = requireColumn(session.headers, phoneColumn, 'telefone');
+    const nameIndex = nameColumn ? requireColumn(session.headers, nameColumn, 'nome') : undefined;
 
-    const validRows = analysis.sample.filter((row) => row.status === 'valid');
-    if (session.rows.length > analysis.sample.length) {
-      const phoneIndex = requireColumn(session.headers, phoneColumn, 'telefone');
-      const nameIndex = nameColumn ? requireColumn(session.headers, nameColumn, 'nome') : undefined;
-      const seen = new Set(validRows.map((row) => row.normalizedPhone));
-      for (const row of session.rows.slice(analysis.sample.length)) {
-        const phone = row[phoneIndex]?.trim() ?? '';
-        try {
-          const normalized = normalizePhone(phone, this.normalizeOptions());
-          if (seen.has(normalized)) continue;
-          seen.add(normalized);
-          validRows.push({
-            rowNumber: 0,
-            phone,
-            name: nameIndex === undefined ? phone : (row[nameIndex]?.trim() || phone),
-            normalizedPhone: normalized,
-            status: 'valid',
-          });
-        } catch {
-          // Linhas inválidas já são contabilizadas na análise e não são persistidas.
-        }
+    // Índices das colunas extras (todas, exceto a de telefone) preservadas como
+    // variáveis de template, com chave em slug (ex.: "Nome da Cidade" -> "nome_da_cidade").
+    const extraColumns = session.headers
+      .map((header, index) => ({ key: slugify(header), index }))
+      .filter((column) => column.index !== phoneIndex && column.key.length > 0);
+
+    const seen = new Set<string>();
+    const contacts: ManualContactInput[] = [];
+    for (const row of session.rows) {
+      const phone = row[phoneIndex]?.trim() ?? '';
+      let normalized: string;
+      try {
+        normalized = normalizePhone(phone, this.normalizeOptions());
+      } catch {
+        // Linhas inválidas são contabilizadas na análise e não são persistidas.
+        continue;
       }
+      if (seen.has(normalized)) continue;
+      seen.add(normalized);
+
+      const data: Record<string, string> = {};
+      for (const column of extraColumns) {
+        const value = row[column.index]?.trim() ?? '';
+        if (value) data[column.key] = value;
+      }
+
+      contacts.push({
+        name: nameIndex === undefined ? phone : (row[nameIndex]?.trim() || phone),
+        phone: normalized,
+        ...(Object.keys(data).length > 0 ? { data } : {}),
+      });
     }
 
-    const contacts: ManualContactInput[] = validRows.map((row) => ({
-      name: row.name,
-      phone: row.normalizedPhone ?? row.phone,
-    }));
+    if (contacts.length === 0) throw new Error('Nenhum telefone válido foi encontrado.');
     const created = this.contacts.createImportedList({ name: listName, contacts });
     this.sessions.delete(previewId);
     return created;
@@ -299,4 +305,18 @@ function requireColumn(headers: string[], column: string, label: string): number
   const index = headers.indexOf(column);
   if (index === -1) throw new Error(`A coluna de ${label} não existe na prévia.`);
   return index;
+}
+
+/**
+ * Converte um cabeçalho em uma chave de variável de template: minúsculas, sem
+ * acentos, com espaços e símbolos trocados por sublinhado (ex.: "Cidade/UF" ->
+ * "cidade_uf"). Chaves vazias são descartadas pelo chamador.
+ */
+function slugify(header: string): string {
+  return header
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }

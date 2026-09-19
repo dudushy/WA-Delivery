@@ -7,6 +7,8 @@ import type {
 export interface PreparedContact {
   name: string;
   normalizedPhone: string;
+  /** Colunas extras importadas (ex.: cidade, empresa), usadas em variáveis de template. */
+  data?: Record<string, string>;
 }
 
 interface SummaryRow {
@@ -39,15 +41,15 @@ export class ContactRepository {
         'INSERT INTO contacts (normalized_phone) VALUES (?)',
       );
       const insertMember = this.database.prepare(`
-        INSERT INTO contact_list_members (contact_list_id, contact_id, name)
-        VALUES (?, ?, ?)
+        INSERT INTO contact_list_members (contact_list_id, contact_id, name, source_data_json)
+        VALUES (?, ?, ?, ?)
       `);
 
       for (const contact of contacts) {
         const existing = findContact.get(contact.normalizedPhone) as { id: number } | undefined;
         const contactId = existing?.id
           ?? Number(insertContact.run(contact.normalizedPhone).lastInsertRowid);
-        insertMember.run(listId, contactId, contact.name);
+        insertMember.run(listId, contactId, contact.name, serializeData(contact.data));
       }
 
       this.database.exec('COMMIT');
@@ -95,7 +97,7 @@ export class ContactRepository {
 
     const members = this.database.prepare(`
       SELECT members.id, members.name, contacts.normalized_phone AS phone,
-        contacts.opted_out AS opted_out
+        contacts.opted_out AS opted_out, members.source_data_json AS source_data_json
       FROM contact_list_members members
       JOIN contacts ON contacts.id = members.contact_id
       WHERE members.contact_list_id = ?
@@ -105,6 +107,7 @@ export class ContactRepository {
       name: string;
       phone: string;
       opted_out: number;
+      source_data_json: string;
     }>;
 
     return {
@@ -114,6 +117,7 @@ export class ContactRepository {
         name: member.name,
         phone: member.phone,
         optedOut: member.opted_out === 1,
+        data: parseData(member.source_data_json),
       })),
     };
   }
@@ -151,9 +155,9 @@ export class ContactRepository {
     if (duplicate) throw new Error('Este telefone já existe na lista.');
 
     this.database.prepare(`
-      INSERT INTO contact_list_members (contact_list_id, contact_id, name)
-      VALUES (?, ?, ?)
-    `).run(listId, contactId, contact.name);
+      INSERT INTO contact_list_members (contact_list_id, contact_id, name, source_data_json)
+      VALUES (?, ?, ?, ?)
+    `).run(listId, contactId, contact.name, serializeData(contact.data));
     return this.findById(listId);
   }
 
@@ -267,4 +271,28 @@ function toSummary(row: SummaryRow): ContactListSummary {
     contactCount: row.contact_count,
     createdAt: row.created_at,
   };
+}
+
+/** Serializa as colunas extras como JSON (objeto vazio quando ausentes). */
+function serializeData(data?: Record<string, string>): string {
+  if (!data || Object.keys(data).length === 0) return '{}';
+  return JSON.stringify(data);
+}
+
+/** Reidrata as colunas extras a partir do JSON persistido, de forma tolerante. */
+function parseData(raw: string | null | undefined): Record<string, string> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const result: Record<string, string> = {};
+      for (const [key, value] of Object.entries(parsed)) {
+        result[key] = typeof value === 'string' ? value : String(value ?? '');
+      }
+      return result;
+    }
+  } catch {
+    // JSON inválido é tratado como ausência de dados extras.
+  }
+  return {};
 }

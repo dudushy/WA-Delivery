@@ -72,7 +72,7 @@ export class ContactService {
         });
       }
 
-      return { name, normalizedPhone };
+      return { name, normalizedPhone, ...(contact?.data ? { data: contact.data } : {}) };
     });
 
     if (issues.length > 0) throw new ContactValidationError(issues);
