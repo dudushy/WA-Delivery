@@ -6,12 +6,14 @@ import type { ContactService } from '../modules/contacts/ContactService.js';
 import type { CsvImportService } from '../modules/contacts/CsvImportService.js';
 import type { CampaignService } from '../modules/campaigns/CampaignService.js';
 import type { MediaService } from '../modules/media/MediaService.js';
+import type { CampaignQueueWorker } from '../modules/queue/CampaignQueueWorker.js';
 import type { WhatsAppProvider } from '../providers/whatsapp/WhatsAppProvider.js';
 import { toConnectionStateDto } from './connectionDto.js';
 import { registerContactRoutes } from './contactRoutes.js';
 import { registerCsvImportRoutes } from './csvImportRoutes.js';
 import { registerCampaignRoutes } from './campaignRoutes.js';
 import { registerMediaRoutes } from './mediaRoutes.js';
+import { registerQueueRoutes } from './queueRoutes.js';
 
 export interface ServerDependencies {
   whatsappProvider: WhatsAppProvider;
@@ -19,13 +21,14 @@ export interface ServerDependencies {
   csvImports: CsvImportService;
   campaigns: CampaignService;
   media: MediaService;
+  queue: CampaignQueueWorker;
 }
 
 export async function buildServer(
   dependencies: ServerDependencies,
 ): Promise<FastifyInstance> {
   const server = Fastify({ logger: false });
-  const { whatsappProvider, contacts, csvImports, campaigns, media } = dependencies;
+  const { whatsappProvider, contacts, csvImports, campaigns, media, queue } = dependencies;
 
   await server.register(fastifyMultipart, {
     limits: { files: 1, fileSize: 64 * 1024 * 1024 },
@@ -71,14 +74,21 @@ export async function buildServer(
     const unsubscribe = whatsappProvider.onConnectionState(() => {
       void sendState();
     });
+    const unsubscribeProgress = queue.onProgress((progress) => {
+      reply.raw.write(`event: campaign-progress\ndata: ${JSON.stringify(progress)}\n\n`);
+    });
 
-    request.raw.once('close', unsubscribe);
+    request.raw.once('close', () => {
+      unsubscribe();
+      unsubscribeProgress();
+    });
   });
 
   registerContactRoutes(server, contacts);
   registerCsvImportRoutes(server, csvImports);
   registerCampaignRoutes(server, campaigns);
   registerMediaRoutes(server, media);
+  registerQueueRoutes(server, queue);
 
   return server;
 }

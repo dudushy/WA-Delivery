@@ -7,6 +7,8 @@ import { CampaignRepository } from './modules/campaigns/CampaignRepository.js';
 import { CampaignService } from './modules/campaigns/CampaignService.js';
 import { MediaRepository } from './modules/media/MediaRepository.js';
 import { MediaService } from './modules/media/MediaService.js';
+import { CampaignQueueRepository } from './modules/queue/CampaignQueueRepository.js';
+import { CampaignQueueWorker } from './modules/queue/CampaignQueueWorker.js';
 import { buildServer } from './web/server.js';
 import { BaileysWhatsAppProvider } from './providers/whatsapp/baileys/BaileysWhatsAppProvider.js';
 
@@ -18,6 +20,10 @@ const contacts = new ContactService(new ContactRepository(database));
 const csvImports = new CsvImportService(contacts);
 const media = new MediaService(new MediaRepository(database), resolve('data/media'));
 const campaigns = new CampaignService(new CampaignRepository(database), contacts, media);
+const queue = new CampaignQueueWorker(
+  new CampaignQueueRepository(database), campaigns, media, provider,
+);
+queue.recoverInterrupted();
 await media.cleanupExpiredTemporary();
 
 const server = await buildServer({
@@ -26,9 +32,11 @@ const server = await buildServer({
   csvImports,
   campaigns,
   media,
+  queue,
 });
 
 async function shutdown(): Promise<void> {
+  queue.shutdown();
   await server.close();
   await provider.disconnect();
   database.close();

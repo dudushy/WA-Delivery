@@ -62,6 +62,10 @@ export class MediaService {
     return createReadStream(join(this.directory, media.storageName));
   }
 
+  public resolvePath(media: StoredMedia): string {
+    return join(this.directory, media.storageName);
+  }
+
   public async removeFile(storageName: string): Promise<void> {
     await unlink(join(this.directory, storageName)).catch((error: NodeJS.ErrnoException) => {
       if (error.code !== 'ENOENT') throw error;

@@ -22,6 +22,14 @@ const prepareButton = document.querySelector('#prepare-campaign');
 const recipientReview = document.querySelector('#recipient-review');
 const recipientSummary = document.querySelector('#recipient-summary');
 const recipientList = document.querySelector('#recipient-list');
+const executionZone = document.querySelector('#execution-zone');
+const executionMetrics = document.querySelector('#execution-metrics');
+const startConfirmationLabel = document.querySelector('#start-confirmation-label');
+const startConfirmation = document.querySelector('#start-confirmation');
+const startCampaign = document.querySelector('#start-campaign');
+const pauseCampaign = document.querySelector('#pause-campaign');
+const resumeCampaign = document.querySelector('#resume-campaign');
+const cancelCampaign = document.querySelector('#cancel-campaign');
 const errorPanel = document.querySelector('#campaign-error');
 const campaignId = Number(new URLSearchParams(location.search).get('id'));
 let selectedMedia;
@@ -80,13 +88,38 @@ function renderRecipients(recipients) {
   recipientReview.hidden = false;
 }
 
-function applyPreparedState(campaign, recipients) {
-  statusText.textContent = `Status: preparada para envio${campaign.preparedAt ? ` em ${campaign.preparedAt}` : ''}.`;
+function applyLockedState(campaign, recipients) {
   for (const control of form.elements) control.disabled = true;
   form.querySelector('.actions').hidden = true;
   prepareZone.hidden = true;
   dangerZone.hidden = true;
   renderRecipients(recipients);
+  executionZone.hidden = false;
+}
+
+function renderProgress(progress) {
+  const labels = { ready: 'preparada', running: 'em execução', paused: 'pausada', completed: 'concluída', cancelled: 'cancelada', failed: 'com falha' };
+  statusText.textContent = `Status: ${labels[progress.status] || progress.status}.`;
+  executionMetrics.replaceChildren();
+  for (const [label, value] of [
+    ['Total', progress.total], ['Pendentes', progress.pending], ['Enviados', progress.sent],
+    ['Falhas', progress.failed], ['Ignorados', progress.skipped],
+  ]) {
+    const metric = document.createElement('div');
+    metric.className = 'metric';
+    const caption = document.createElement('span');
+    caption.textContent = label;
+    const strong = document.createElement('strong');
+    strong.textContent = String(value);
+    metric.append(caption, strong);
+    executionMetrics.append(metric);
+  }
+  const ready = progress.status === 'ready';
+  startConfirmationLabel.hidden = !ready;
+  startCampaign.hidden = !ready;
+  pauseCampaign.hidden = progress.status !== 'running';
+  resumeCampaign.hidden = progress.status !== 'paused';
+  cancelCampaign.hidden = !['ready', 'running', 'paused'].includes(progress.status);
 }
 
 async function load() {
@@ -112,9 +145,13 @@ async function load() {
   selectedMedia = campaign.media;
   renderMedia();
   details.hidden = false;
-  if (campaign.status === 'ready') {
-    const { items } = await request(`/api/campaigns/${campaignId}/recipients`);
-    applyPreparedState(campaign, items);
+  if (campaign.status !== 'draft') {
+    const [{ items }, progress] = await Promise.all([
+      request(`/api/campaigns/${campaignId}/recipients`),
+      request(`/api/campaigns/${campaignId}/progress`),
+    ]);
+    applyLockedState(campaign, items);
+    renderProgress(progress);
   } else {
     statusText.textContent = 'Status: rascunho editável.';
   }
@@ -167,11 +204,43 @@ prepareButton.addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ confirmed: prepareConfirmation.checked }),
     });
-    applyPreparedState(prepared.campaign, prepared.recipients);
+    applyLockedState(prepared.campaign, prepared.recipients);
+    renderProgress(await request(`/api/campaigns/${campaignId}/progress`));
   } catch (error) {
     showError(error.message);
     prepareButton.disabled = !prepareConfirmation.checked;
   }
+});
+
+startConfirmation.addEventListener('change', () => {
+  startCampaign.disabled = !startConfirmation.checked;
+});
+
+async function queueAction(action, body) {
+  showError();
+  try {
+    const progress = await request(`/api/campaigns/${campaignId}/${action}`, {
+      method: 'POST',
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    renderProgress(progress);
+  } catch (error) { showError(error.message); }
+}
+
+startCampaign.addEventListener('click', () => queueAction('start', { confirmed: startConfirmation.checked }));
+pauseCampaign.addEventListener('click', () => queueAction('pause'));
+resumeCampaign.addEventListener('click', () => queueAction('resume'));
+cancelCampaign.addEventListener('click', () => {
+  if (confirm('Cancelar esta campanha? Os destinatários pendentes não serão enviados.')) {
+    void queueAction('cancel');
+  }
+});
+
+const events = new EventSource('/api/events');
+events.addEventListener('campaign-progress', (event) => {
+  const progress = JSON.parse(event.data);
+  if (progress.campaignId === campaignId) renderProgress(progress);
 });
 
 form.addEventListener('submit', async (event) => {

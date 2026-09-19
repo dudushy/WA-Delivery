@@ -59,6 +59,20 @@
           <p id="recipient-summary"></p>
           <div id="recipient-list" class="message-samples"></div>
         </section>
+        <section id="execution-zone" class="review-zone execution-zone" hidden>
+          <h2>Execução da campanha</h2>
+          <div id="execution-metrics" class="analysis-cards"></div>
+          <label id="start-confirmation-label" class="confirmation-check">
+            <input id="start-confirmation" type="checkbox" />
+            Entendo que esta ação enviará mensagens reais pelo WhatsApp conectado.
+          </label>
+          <div class="actions">
+            <button id="start-campaign" type="button" disabled>Iniciar envios</button>
+            <button id="pause-campaign" class="secondary" type="button" hidden>Pausar</button>
+            <button id="resume-campaign" type="button" hidden>Retomar</button>
+            <button id="cancel-campaign" class="danger" type="button">Cancelar campanha</button>
+          </div>
+        </section>
         <div class="danger-zone">
           <div><strong>Excluir rascunho</strong><p>A campanha e sua mídia vinculada serão removidas.</p></div>
           <button id="delete-campaign" class="danger" type="button">Excluir</button>

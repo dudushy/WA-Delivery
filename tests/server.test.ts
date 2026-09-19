@@ -16,11 +16,15 @@ import { CampaignRepository } from '../src/modules/campaigns/CampaignRepository.
 import { CampaignService } from '../src/modules/campaigns/CampaignService.js';
 import { MediaRepository } from '../src/modules/media/MediaRepository.js';
 import { MediaService } from '../src/modules/media/MediaService.js';
+import { CampaignQueueRepository } from '../src/modules/queue/CampaignQueueRepository.js';
+import { CampaignQueueWorker } from '../src/modules/queue/CampaignQueueWorker.js';
 
 class FakeWhatsAppProvider implements WhatsAppProvider {
   public connectCalls = 0;
   public disconnectCalls = 0;
   private state: ConnectionState = { status: 'disconnected' };
+
+  public setConnected(): void { this.state = { status: 'connected' }; }
 
   public async connect(): Promise<void> {
     this.connectCalls += 1;
@@ -49,12 +53,17 @@ describe('servidor local', () => {
       new MediaRepository(database),
       '/tmp/wa-delivery-server-tests',
     );
+    const campaigns = new CampaignService(new CampaignRepository(database), contacts, media);
+    const queue = new CampaignQueueWorker(
+      new CampaignQueueRepository(database), campaigns, media, provider, () => 0,
+    );
     return buildServer({
       whatsappProvider: provider,
       contacts,
       csvImports: new CsvImportService(contacts),
-      campaigns: new CampaignService(new CampaignRepository(database), contacts, media),
+      campaigns,
       media,
+      queue,
     });
   }
 

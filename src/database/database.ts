@@ -133,4 +133,30 @@ const migrations = [
         ON campaign_recipients(campaign_id, status);
     `,
   },
+  {
+    version: 5,
+    sql: `
+      ALTER TABLE campaigns ADD COLUMN started_at TEXT;
+      ALTER TABLE campaigns ADD COLUMN finished_at TEXT;
+      ALTER TABLE campaign_recipients ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE campaign_recipients ADD COLUMN message_id TEXT;
+      ALTER TABLE campaign_recipients ADD COLUMN sent_at TEXT;
+      ALTER TABLE campaign_recipients ADD COLUMN last_error TEXT;
+      ALTER TABLE campaign_recipients ADD COLUMN updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+      CREATE TABLE delivery_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        campaign_id INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+        recipient_id INTEGER NOT NULL REFERENCES campaign_recipients(id) ON DELETE CASCADE,
+        attempt_number INTEGER NOT NULL,
+        outcome TEXT NOT NULL CHECK (outcome IN ('sending', 'sent', 'failed', 'skipped')),
+        message_id TEXT,
+        error_message TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        finished_at TEXT
+      );
+
+      CREATE INDEX idx_delivery_attempts_campaign ON delivery_attempts(campaign_id, id);
+    `,
+  },
 ] as const;
