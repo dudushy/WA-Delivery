@@ -11,6 +11,15 @@ export function registerCampaignRoutes(
 ): void {
   server.get('/api/campaigns', async () => ({ items: campaigns.list() }));
 
+  server.get<{ Params: { id: string } }>('/api/campaigns/:id', async (request, reply) => {
+    const id = Number(request.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return reply.code(400).send({ message: 'Identificador da campanha inválido.' });
+    }
+    const campaign = campaigns.findById(id);
+    return campaign ?? reply.code(404).send({ message: 'Campanha não encontrada.' });
+  });
+
   server.post<{ Body: CampaignComposerInput }>('/api/campaigns/simulate', async (request, reply) => {
     try {
       return campaigns.simulate(request.body ?? ({} as CampaignComposerInput));
@@ -27,6 +36,17 @@ export function registerCampaignRoutes(
     } catch (error) {
       return sendCampaignError(reply, error);
     }
+  });
+
+  server.delete<{ Params: { id: string } }>('/api/campaigns/:id', async (request, reply) => {
+    const id = Number(request.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return reply.code(400).send({ message: 'Identificador da campanha inválido.' });
+    }
+    if (!await campaigns.deleteDraft(id)) {
+      return reply.code(404).send({ message: 'Rascunho não encontrado.' });
+    }
+    return reply.code(204).send();
   });
 }
 

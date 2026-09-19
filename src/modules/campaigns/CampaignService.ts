@@ -1,4 +1,5 @@
 import type { ContactService } from '../contacts/ContactService.js';
+import type { MediaService } from '../media/MediaService.js';
 import { CampaignRepository } from './CampaignRepository.js';
 import {
   CampaignValidationError,
@@ -14,6 +15,7 @@ export class CampaignService {
   public constructor(
     private readonly repository: CampaignRepository,
     private readonly contacts: ContactService,
+    private readonly media: MediaService,
   ) {}
 
   public simulate(input: CampaignComposerInput): CampaignSimulation {
@@ -54,11 +56,22 @@ export class CampaignService {
   public createDraft(input: CampaignComposerInput): CampaignSummary {
     const validated = this.validate(input, true);
     this.simulate(validated);
-    return this.repository.createDraft(validated as Required<CampaignComposerInput>);
+    return this.repository.createDraft(validated as CampaignComposerInput & { name: string });
   }
 
   public list(): CampaignSummary[] {
     return this.repository.list();
+  }
+
+  public findById(id: number): CampaignSummary | undefined {
+    return this.repository.findById(id);
+  }
+
+  public async deleteDraft(id: number): Promise<boolean> {
+    const deleted = this.repository.deleteDraft(id);
+    if (!deleted) return false;
+    if (deleted.mediaStorageName) await this.media.removeFile(deleted.mediaStorageName);
+    return true;
   }
 
   private validate(
@@ -73,6 +86,7 @@ export class CampaignService {
     const contactListId = Number(input.contactListId);
     const delayMinSeconds = Number(input.delayMinSeconds);
     const delayMaxSeconds = Number(input.delayMaxSeconds);
+    const mediaId = input.mediaId === undefined ? undefined : Number(input.mediaId);
 
     if (requireName && !name) issues.push({ path: 'name', message: 'Informe o nome da campanha.' });
     if (!Number.isSafeInteger(contactListId) || contactListId <= 0) {
@@ -102,6 +116,11 @@ export class CampaignService {
     if (Number.isInteger(delayMinSeconds) && Number.isInteger(delayMaxSeconds) && delayMaxSeconds < delayMinSeconds) {
       issues.push({ path: 'delayMaxSeconds', message: 'O intervalo máximo não pode ser menor que o mínimo.' });
     }
+    if (mediaId !== undefined) {
+      if (!Number.isSafeInteger(mediaId) || mediaId <= 0 || !this.media.findById(mediaId)) {
+        issues.push({ path: 'mediaId', message: 'A mídia selecionada não existe ou expirou.' });
+      }
+    }
 
     if (issues.length > 0) throw new CampaignValidationError(issues);
     return {
@@ -110,6 +129,7 @@ export class CampaignService {
       messageTemplate,
       delayMinSeconds,
       delayMaxSeconds,
+      ...(mediaId === undefined ? {} : { mediaId }),
     };
   }
 }

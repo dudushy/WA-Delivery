@@ -14,6 +14,8 @@ import { ContactService } from '../src/modules/contacts/ContactService.js';
 import { CsvImportService } from '../src/modules/contacts/CsvImportService.js';
 import { CampaignRepository } from '../src/modules/campaigns/CampaignRepository.js';
 import { CampaignService } from '../src/modules/campaigns/CampaignService.js';
+import { MediaRepository } from '../src/modules/media/MediaRepository.js';
+import { MediaService } from '../src/modules/media/MediaService.js';
 
 class FakeWhatsAppProvider implements WhatsAppProvider {
   public connectCalls = 0;
@@ -43,11 +45,16 @@ describe('servidor local', () => {
   async function createServer(provider = new FakeWhatsAppProvider()) {
     const database = openDatabase(':memory:');
     const contacts = new ContactService(new ContactRepository(database));
+    const media = new MediaService(
+      new MediaRepository(database),
+      '/tmp/wa-delivery-server-tests',
+    );
     return buildServer({
       whatsappProvider: provider,
       contacts,
       csvImports: new CsvImportService(contacts),
-      campaigns: new CampaignService(new CampaignRepository(database), contacts),
+      campaigns: new CampaignService(new CampaignRepository(database), contacts, media),
+      media,
     });
   }
 
@@ -230,6 +237,54 @@ describe('servidor local', () => {
     assert.equal(draft.statusCode, 201);
     assert.equal(draft.json().status, 'draft');
     assert.equal(provider.connectCalls, 0);
+    await server.close();
+  });
+
+  it('recebe mídia e a vincula ao rascunho', async () => {
+    const server = await createServer();
+    const boundary = 'wa-delivery-media-boundary';
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+    const body = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="foto.png"\r\nContent-Type: image/png\r\n\r\n`),
+      png,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const upload = await server.inject({
+      method: 'POST',
+      url: '/api/media',
+      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    assert.equal(upload.statusCode, 201);
+
+    const list = await server.inject({
+      method: 'POST',
+      url: '/api/contact-lists/manual',
+      payload: { name: 'Lista com mídia', contacts: [{ name: 'Ana', phone: '16999999999' }] },
+    });
+    const draft = await server.inject({
+      method: 'POST',
+      url: '/api/campaigns',
+      payload: {
+        name: 'Rascunho com foto',
+        contactListId: list.json().id,
+        messageTemplate: 'Olá {{nome}}!',
+        delayMinSeconds: 2,
+        delayMaxSeconds: 4,
+        mediaId: upload.json().id,
+      },
+    });
+    assert.equal(draft.statusCode, 201);
+    assert.equal(draft.json().media.originalName, 'foto.png');
+
+    const mediaResponse = await server.inject({ method: 'GET', url: upload.json().previewUrl });
+    assert.equal(mediaResponse.statusCode, 200);
+    assert.equal(mediaResponse.headers['content-type'], 'image/png');
+
+    const removed = await server.inject({ method: 'DELETE', url: `/api/campaigns/${draft.json().id}` });
+    assert.equal(removed.statusCode, 204);
+    const missingMedia = await server.inject({ method: 'GET', url: upload.json().previewUrl });
+    assert.equal(missingMedia.statusCode, 404);
     await server.close();
   });
 });

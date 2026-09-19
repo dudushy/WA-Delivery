@@ -6,6 +6,10 @@ const messageCounter = document.querySelector('#message-counter');
 const delayMin = document.querySelector('#delay-min');
 const delayMax = document.querySelector('#delay-max');
 const insertName = document.querySelector('#insert-name');
+const mediaInput = document.querySelector('#campaign-media');
+const mediaPreview = document.querySelector('#media-preview');
+const mediaPreviewContent = document.querySelector('#media-preview-content');
+const removeMedia = document.querySelector('#remove-media');
 const saveDraft = document.querySelector('#save-draft');
 const errorPanel = document.querySelector('#campaign-error');
 const simulationPanel = document.querySelector('#simulation-panel');
@@ -14,6 +18,7 @@ const durationSummary = document.querySelector('#duration-summary');
 const messageSamples = document.querySelector('#message-samples');
 const drafts = document.querySelector('#campaign-drafts');
 let lastSimulationInput;
+let uploadedMedia;
 
 function escapeHtml(value) {
   const node = document.createElement('span');
@@ -42,7 +47,23 @@ function readInput() {
     messageTemplate: messageTemplate.value,
     delayMinSeconds: Number(delayMin.value),
     delayMaxSeconds: Number(delayMax.value),
+    ...(uploadedMedia ? { mediaId: uploadedMedia.id } : {}),
   };
+}
+
+function renderMediaPreview() {
+  mediaPreview.hidden = !uploadedMedia;
+  if (!uploadedMedia) {
+    mediaPreviewContent.replaceChildren();
+    return;
+  }
+  const preview = document.createElement(uploadedMedia.kind === 'video' ? 'video' : 'img');
+  preview.src = uploadedMedia.previewUrl;
+  preview.alt = uploadedMedia.originalName;
+  if (uploadedMedia.kind === 'video') preview.controls = true;
+  const name = document.createElement('span');
+  name.textContent = `${uploadedMedia.originalName} (${(uploadedMedia.sizeBytes / 1024 / 1024).toFixed(2)} MB)`;
+  mediaPreviewContent.replaceChildren(preview, name);
 }
 
 function formatDuration(totalSeconds) {
@@ -80,10 +101,10 @@ async function loadLists() {
 async function loadDrafts() {
   const { items } = await request('/api/campaigns');
   drafts.innerHTML = items.length === 0 ? '<p>Nenhum rascunho salvo.</p>' : items.map((item) => `
-    <article class="saved-list">
+    <a class="saved-list" href="/campaign.html?id=${item.id}">
       <div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.contactListName)} — ${item.recipientCount} destinatários</span></div>
       <b>Rascunho</b>
-    </article>
+    </a>
   `).join('');
 }
 
@@ -103,6 +124,32 @@ insertName.addEventListener('click', () => {
   messageTemplate.setRangeText(token, start, end, 'end');
   messageTemplate.dispatchEvent(new Event('input', { bubbles: true }));
   messageTemplate.focus();
+});
+
+mediaInput.addEventListener('change', async () => {
+  const file = mediaInput.files?.[0];
+  if (!file) return;
+  showError();
+  mediaInput.disabled = true;
+  try {
+    const body = new FormData();
+    body.append('file', file);
+    uploadedMedia = await request('/api/media', { method: 'POST', body });
+    renderMediaPreview();
+    form.dispatchEvent(new Event('input', { bubbles: true }));
+  } catch (error) {
+    mediaInput.value = '';
+    showError(error.message);
+  } finally {
+    mediaInput.disabled = false;
+  }
+});
+
+removeMedia.addEventListener('click', () => {
+  uploadedMedia = undefined;
+  mediaInput.value = '';
+  renderMediaPreview();
+  form.dispatchEvent(new Event('input', { bubbles: true }));
 });
 
 form.addEventListener('submit', async (event) => {

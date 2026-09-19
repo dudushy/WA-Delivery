@@ -5,27 +5,30 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import type { ContactService } from '../modules/contacts/ContactService.js';
 import type { CsvImportService } from '../modules/contacts/CsvImportService.js';
 import type { CampaignService } from '../modules/campaigns/CampaignService.js';
+import type { MediaService } from '../modules/media/MediaService.js';
 import type { WhatsAppProvider } from '../providers/whatsapp/WhatsAppProvider.js';
 import { toConnectionStateDto } from './connectionDto.js';
 import { registerContactRoutes } from './contactRoutes.js';
 import { registerCsvImportRoutes } from './csvImportRoutes.js';
 import { registerCampaignRoutes } from './campaignRoutes.js';
+import { registerMediaRoutes } from './mediaRoutes.js';
 
 export interface ServerDependencies {
   whatsappProvider: WhatsAppProvider;
   contacts: ContactService;
   csvImports: CsvImportService;
   campaigns: CampaignService;
+  media: MediaService;
 }
 
 export async function buildServer(
   dependencies: ServerDependencies,
 ): Promise<FastifyInstance> {
   const server = Fastify({ logger: false });
-  const { whatsappProvider, contacts, csvImports, campaigns } = dependencies;
+  const { whatsappProvider, contacts, csvImports, campaigns, media } = dependencies;
 
   await server.register(fastifyMultipart, {
-    limits: { files: 1, fileSize: 10 * 1024 * 1024 },
+    limits: { files: 1, fileSize: 64 * 1024 * 1024 },
   });
 
   await server.register(fastifyStatic, {
@@ -75,6 +78,7 @@ export async function buildServer(
   registerContactRoutes(server, contacts);
   registerCsvImportRoutes(server, csvImports);
   registerCampaignRoutes(server, campaigns);
+  registerMediaRoutes(server, media);
 
   return server;
 }

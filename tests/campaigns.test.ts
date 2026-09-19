@@ -6,6 +6,8 @@ import { CampaignService, renderMessage } from '../src/modules/campaigns/Campaig
 import { CampaignValidationError } from '../src/modules/campaigns/campaignTypes.js';
 import { ContactRepository } from '../src/modules/contacts/ContactRepository.js';
 import { ContactService } from '../src/modules/contacts/ContactService.js';
+import { MediaRepository } from '../src/modules/media/MediaRepository.js';
+import { MediaService } from '../src/modules/media/MediaService.js';
 
 function setup() {
   const database = openDatabase(':memory:');
@@ -20,7 +22,11 @@ function setup() {
   });
   return {
     list,
-    campaigns: new CampaignService(new CampaignRepository(database), contacts),
+    campaigns: new CampaignService(
+      new CampaignRepository(database),
+      contacts,
+      new MediaService(new MediaRepository(database), '/tmp/wa-delivery-campaign-tests'),
+    ),
   };
 }
 

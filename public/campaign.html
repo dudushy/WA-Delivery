@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rascunho — WA-Delivery</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/campaign.js" defer></script>
+  </head>
+  <body>
+    <main class="container wide">
+      <header>
+        <span class="eyebrow">WA-Delivery V2</span>
+        <nav><a href="/">WhatsApp</a><a href="/contacts.html">Contatos</a><a class="active" href="/campaigns.html">Campanhas</a></nav>
+        <a class="back-link" href="/campaigns.html">← Voltar às campanhas</a>
+        <h1 id="campaign-title">Carregando rascunho...</h1>
+      </header>
+
+      <div id="campaign-error" class="error" hidden></div>
+      <section id="campaign-details" class="card" hidden>
+        <div id="campaign-metrics" class="analysis-cards"></div>
+        <h2>Mensagem</h2>
+        <p id="campaign-message" class="message-body"></p>
+        <div id="campaign-media" hidden>
+          <h2>Mídia</h2>
+          <div id="campaign-media-content" class="media-detail"></div>
+        </div>
+        <div class="danger-zone">
+          <div><strong>Excluir rascunho</strong><p>A campanha e sua mídia vinculada serão removidas.</p></div>
+          <button id="delete-campaign" class="danger" type="button">Excluir</button>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

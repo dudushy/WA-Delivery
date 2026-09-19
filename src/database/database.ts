@@ -94,4 +94,22 @@ const migrations = [
       CREATE INDEX idx_campaigns_status ON campaigns(status);
     `,
   },
+  {
+    version: 3,
+    sql: `
+      CREATE TABLE media (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        storage_name TEXT NOT NULL UNIQUE,
+        original_name TEXT NOT NULL,
+        mimetype TEXT NOT NULL,
+        kind TEXT NOT NULL CHECK (kind IN ('image', 'video')),
+        size_bytes INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'temporary' CHECK (status IN ('temporary', 'attached')),
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      ALTER TABLE campaigns ADD COLUMN media_id INTEGER REFERENCES media(id) ON DELETE SET NULL;
+      CREATE INDEX idx_media_status_created ON media(status, created_at);
+    `,
+  },
 ] as const;

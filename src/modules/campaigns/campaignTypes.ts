@@ -4,6 +4,7 @@ export interface CampaignComposerInput {
   messageTemplate: string;
   delayMinSeconds: number;
   delayMaxSeconds: number;
+  mediaId?: number;
 }
 
 export interface CampaignSimulation {
@@ -35,6 +36,13 @@ export interface CampaignSummary {
   status: 'draft' | 'ready' | 'running' | 'paused' | 'completed' | 'cancelled' | 'failed';
   createdAt: string;
   updatedAt: string;
+  media?: {
+    id: number;
+    originalName: string;
+    mimetype: string;
+    kind: 'image' | 'video';
+    sizeBytes: number;
+  };
 }
 
 export class CampaignValidationError extends Error {

@@ -49,6 +49,7 @@ button.secondary { color: #24332c; background: #e7ece9; }
 button.danger { color: #a72424; background: #fff0f0; }
 
 label { display: grid; gap: 7px; color: #34423b; font-size: 0.9rem; font-weight: 700; }
+label small { color: #6b7972; font-weight: 500; }
 input, select, textarea { width: 100%; border: 1px solid #cfd9d3; border-radius: 10px; padding: 11px 12px; color: #17201c; background: #fff; font: inherit; }
 input:focus, select:focus, textarea:focus { outline: 3px solid #cceee1; border-color: #087f5b; }
 textarea { resize: vertical; line-height: 1.5; }
@@ -58,6 +59,13 @@ textarea { resize: vertical; line-height: 1.5; }
 .message-sample div { display: flex; justify-content: space-between; gap: 12px; }
 .message-sample span { color: #6b7972; font-size: 0.85rem; }
 .message-sample p { margin-bottom: 0; color: #25362e; }
+.media-preview { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 12px 0 20px; padding: 14px; border-radius: 14px; background: #f2f5f3; }
+.media-preview > div, .media-detail { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.media-preview img, .media-preview video, .media-detail img, .media-detail video { width: 120px; max-height: 100px; border-radius: 10px; object-fit: cover; background: #17201c; }
+.media-preview span, .media-detail span { overflow-wrap: anywhere; color: #53615a; }
+.media-detail { align-items: flex-start; flex-direction: column; }
+.media-detail img, .media-detail video { width: min(520px, 100%); max-height: 420px; object-fit: contain; }
+.message-body { padding: 16px; border-radius: 12px; color: #25362e; background: #f7faf8; white-space: pre-wrap; }
 .upload-form { display: flex; align-items: end; gap: 12px; }
 .upload-form label { flex: 1; }
 .file-summary { margin: 22px 0 12px; padding: 12px 14px; border-radius: 10px; color: #315244; background: #edf7f3; }
@@ -100,7 +108,7 @@ tbody tr:last-child td { border-bottom: 0; }
   .card { padding: 20px; }
   .section-heading { align-items: stretch; flex-direction: column; }
   .contact-row { grid-template-columns: 1fr; }
-  .inline-form, .danger-zone { align-items: stretch; flex-direction: column; }
+  .inline-form, .danger-zone, .media-preview { align-items: stretch; flex-direction: column; }
   .upload-form { align-items: stretch; flex-direction: column; }
   .mapping-grid, .analysis-cards { grid-template-columns: 1fr 1fr; }
 }

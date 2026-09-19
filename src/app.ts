@@ -5,6 +5,8 @@ import { ContactService } from './modules/contacts/ContactService.js';
 import { CsvImportService } from './modules/contacts/CsvImportService.js';
 import { CampaignRepository } from './modules/campaigns/CampaignRepository.js';
 import { CampaignService } from './modules/campaigns/CampaignService.js';
+import { MediaRepository } from './modules/media/MediaRepository.js';
+import { MediaService } from './modules/media/MediaService.js';
 import { buildServer } from './web/server.js';
 import { BaileysWhatsAppProvider } from './providers/whatsapp/baileys/BaileysWhatsAppProvider.js';
 
@@ -14,13 +16,16 @@ const provider = new BaileysWhatsAppProvider({
 const database = openDatabase(resolve('data/database/wa-delivery.db'));
 const contacts = new ContactService(new ContactRepository(database));
 const csvImports = new CsvImportService(contacts);
-const campaigns = new CampaignService(new CampaignRepository(database), contacts);
+const media = new MediaService(new MediaRepository(database), resolve('data/media'));
+const campaigns = new CampaignService(new CampaignRepository(database), contacts, media);
+await media.cleanupExpiredTemporary();
 
 const server = await buildServer({
   whatsappProvider: provider,
   contacts,
   csvImports,
   campaigns,
+  media,
 });
 
 async function shutdown(): Promise<void> {
