@@ -2,8 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
-export function openDatabase(filename: string): DatabaseSync {
-  if (filename !== ':memory:') mkdirSync(dirname(filename), { recursive: true });
+export function openDatabase(filename: string): DatabaseSync {  if (filename !== ':memory:') mkdirSync(dirname(filename), { recursive: true });
 
   const database = new DatabaseSync(filename);
   database.exec('PRAGMA foreign_keys = ON');
@@ -193,3 +192,9 @@ const migrations = [
     `,
   },
 ] as const;
+
+/** Versão de schema mais recente conhecida (maior versão de migration). */
+export const LATEST_SCHEMA_VERSION = migrations.reduce(
+  (max, migration) => Math.max(max, migration.version),
+  0,
+);

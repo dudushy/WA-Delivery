@@ -112,3 +112,39 @@ cleanupButton.addEventListener('click', async () => {
     cleanupButton.disabled = false;
   }
 });
+
+const restoreForm = document.querySelector('#restore-form');
+const restoreFile = document.querySelector('#restore-file');
+const restoreButton = document.querySelector('#restore-button');
+const restoreMessage = document.querySelector('#restore-message');
+const restoreError = document.querySelector('#restore-error');
+
+restoreForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const file = restoreFile.files[0];
+  if (!file) return;
+  if (!confirm('Restaurar substitui os dados atuais (banco, mídias e sessão do WhatsApp). Um backup de segurança será criado antes. Continuar?')) {
+    return;
+  }
+  restoreButton.disabled = true;
+  restoreMessage.hidden = true;
+  restoreError.hidden = true;
+  try {
+    const body = new FormData();
+    body.append('file', file);
+    const response = await fetch('/api/backup/restore', { method: 'POST', body });
+    const data = await response.json();
+    if (!response.ok) {
+      restoreError.textContent = data.message || 'Falha ao restaurar o backup.';
+      restoreError.hidden = false;
+      return;
+    }
+    restoreMessage.textContent = data.message || 'Backup restaurado. A aplicação será reiniciada.';
+    restoreMessage.hidden = false;
+  } catch (error) {
+    restoreError.textContent = `Não foi possível restaurar: ${error.message}`;
+    restoreError.hidden = false;
+  } finally {
+    restoreButton.disabled = false;
+  }
+});

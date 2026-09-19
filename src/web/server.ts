@@ -8,6 +8,7 @@ import type { CampaignService } from '../modules/campaigns/CampaignService.js';
 import type { MediaService } from '../modules/media/MediaService.js';
 import type { CampaignQueueWorker } from '../modules/queue/CampaignQueueWorker.js';
 import type { SettingsService } from '../modules/settings/SettingsService.js';
+import type { BackupService } from '../modules/backup/BackupService.js';
 import type { WhatsAppProvider } from '../providers/whatsapp/WhatsAppProvider.js';
 import { toConnectionStateDto } from './connectionDto.js';
 import { registerContactRoutes } from './contactRoutes.js';
@@ -16,6 +17,7 @@ import { registerCampaignRoutes } from './campaignRoutes.js';
 import { registerMediaRoutes } from './mediaRoutes.js';
 import { registerQueueRoutes } from './queueRoutes.js';
 import { registerSettingsRoutes } from './settingsRoutes.js';
+import { registerBackupRoutes } from './backupRoutes.js';
 
 export interface ServerDependencies {
   whatsappProvider: WhatsAppProvider;
@@ -25,13 +27,15 @@ export interface ServerDependencies {
   campaigns: CampaignService;
   media: MediaService;
   queue: CampaignQueueWorker;
+  backup?: BackupService;
+  onRestored?: () => void;
 }
 
 export async function buildServer(
   dependencies: ServerDependencies,
 ): Promise<FastifyInstance> {
   const server = Fastify({ logger: false });
-  const { whatsappProvider, settings, contacts, csvImports, campaigns, media, queue } =
+  const { whatsappProvider, settings, contacts, csvImports, campaigns, media, queue, backup } =
     dependencies;
 
   await server.register(fastifyMultipart, {
@@ -94,6 +98,7 @@ export async function buildServer(
   registerMediaRoutes(server, media);
   registerQueueRoutes(server, queue);
   registerSettingsRoutes(server, settings);
+  if (backup) registerBackupRoutes(server, backup, { ...(dependencies.onRestored ? { onRestored: dependencies.onRestored } : {}) });
 
   return server;
 }

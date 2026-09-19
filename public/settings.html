@@ -88,6 +88,34 @@
           <button id="cleanup-button" class="danger" type="button">Executar limpeza agora</button>
         </div>
       </section>
+
+      <section class="card">
+        <h2>Backup e restauração</h2>
+        <p>
+          O backup gera um único arquivo <code>.wabkp</code> com o banco de dados, as
+          mídias e a <strong>sessão do WhatsApp</strong>. A sessão contém material
+          sensível: guarde o arquivo em local seguro e nunca o versione no Git.
+        </p>
+        <div class="actions">
+          <a id="backup-download" class="button-link" href="/api/backup" download>Baixar backup</a>
+        </div>
+        <hr />
+        <p>
+          Restaurar substitui os dados atuais pelos do arquivo. Um backup de segurança
+          dos dados atuais é criado antes da troca. Após restaurar, a aplicação é
+          reiniciada; abra novamente após alguns segundos.
+        </p>
+        <form id="restore-form">
+          <label>Arquivo de backup (.wabkp)
+            <input id="restore-file" type="file" accept=".wabkp,application/octet-stream" required />
+          </label>
+          <p id="restore-message" class="success" hidden></p>
+          <p id="restore-error" class="error" hidden></p>
+          <div class="actions">
+            <button id="restore-button" class="danger" type="submit">Restaurar backup</button>
+          </div>
+        </form>
+      </section>
     </main>
     <footer class="app-footer">
       WA-Delivery V2 — <a href="https://github.com/dudushy/WA-Delivery" target="_blank" rel="noopener">github.com/dudushy/WA-Delivery</a>
