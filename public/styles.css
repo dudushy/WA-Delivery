@@ -7,6 +7,9 @@
 
 * { box-sizing: border-box; }
 
+/* Garante que o atributo hidden prevaleça sobre display: flex/grid dos componentes. */
+[hidden] { display: none !important; }
+
 body { margin: 0; min-height: 100vh; }
 
 .container { width: min(720px, calc(100% - 32px)); margin: 64px auto; }
@@ -92,11 +95,16 @@ tbody tr:last-child td { border-bottom: 0; }
 .metric.error-tone { color: #a72424; background: #fff0f0; }
 .metric.warning { color: #8a6100; background: #fff4d6; }
 .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-top: 28px; }
+.card > .section-heading:first-child { margin-top: 0; }
 .section-heading p { margin: 4px 0 0; }
 .contact-rows { display: grid; gap: 10px; margin-top: 14px; }
 .contact-row { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto; align-items: end; gap: 10px; padding: 12px; border: 1px solid #e0e7e3; border-radius: 12px; }
 .lists-section { margin-top: 32px; }
+.lists-section .section-heading { margin-bottom: 18px; }
 .saved-lists { display: grid; gap: 10px; }
+
+/* Espaço entre a lista de campanhas e o formulário de nova campanha. */
+#composer { margin-top: 32px; }
 .saved-list { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; border: 1px solid #dce4df; border-radius: 12px; color: inherit; background: #fff; text-decoration: none; }
 .saved-list:hover { border-color: #83bda8; box-shadow: 0 8px 24px rgba(20, 53, 40, 0.07); }
 .saved-list div { display: grid; gap: 4px; }

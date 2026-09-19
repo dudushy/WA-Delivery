@@ -145,3 +145,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Prints e capturas de tela locais (não versionar)
+print.png
+*.local.png
