@@ -3,7 +3,10 @@ import { describe, it } from 'node:test';
 import { openDatabase } from '../src/database/database.js';
 import { SettingsRepository } from '../src/modules/settings/SettingsRepository.js';
 import { SettingsService } from '../src/modules/settings/SettingsService.js';
-import { DEFAULT_SETTINGS, SettingsValidationError } from '../src/modules/settings/settingsTypes.js';
+import {
+  DEFAULT_SETTINGS,
+  SettingsValidationError,
+} from '../src/modules/settings/settingsTypes.js';
 
 function createService() {
   const database = openDatabase(':memory:');

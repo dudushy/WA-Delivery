@@ -38,7 +38,10 @@ export class CampaignService {
     const optedOutCount = list.contacts.length - eligible.length;
     if (eligible.length === 0) {
       throw new CampaignValidationError([
-        { path: 'contactListId', message: 'Todos os contatos da lista estão marcados como opt-out.' },
+        {
+          path: 'contactListId',
+          message: 'Todos os contatos da lista estão marcados como opt-out.',
+        },
       ]);
     }
 
@@ -96,7 +99,10 @@ export class CampaignService {
     return this.repository.findById(id);
   }
 
-  public async updateDraft(id: number, input: CampaignComposerInput): Promise<CampaignSummary | undefined> {
+  public async updateDraft(
+    id: number,
+    input: CampaignComposerInput,
+  ): Promise<CampaignSummary | undefined> {
     const existing = this.repository.findById(id);
     if (!existing || existing.status !== 'draft') return undefined;
     const validated = this.validate(input, true, existing.media?.id);
@@ -143,26 +149,30 @@ export class CampaignService {
   public createFollowUp(id: number): CampaignSummary {
     const source = this.repository.findById(id);
     if (!source) {
-      throw new CampaignValidationError([
-        { path: 'id', message: 'Campanha não encontrada.' },
-      ]);
+      throw new CampaignValidationError([{ path: 'id', message: 'Campanha não encontrada.' }]);
     }
-    const terminal = source.status === 'completed'
-      || source.status === 'cancelled'
-      || source.status === 'failed';
+    const terminal =
+      source.status === 'completed' || source.status === 'cancelled' || source.status === 'failed';
     if (!terminal) {
       throw new CampaignValidationError([
-        { path: 'status', message: 'Só é possível reenviar a partir de uma campanha finalizada, cancelada ou com falha.' },
+        {
+          path: 'status',
+          message:
+            'Só é possível reenviar a partir de uma campanha finalizada, cancelada ou com falha.',
+        },
       ]);
     }
     // Pendentes = destinatários que não foram enviados com sucesso.
     const optedOut = this.contacts.optedOutPhones();
-    const pending = this.repository.listRecipients(id).filter(
-      (recipient) => recipient.status !== 'sent' && !optedOut.has(recipient.phone),
-    );
+    const pending = this.repository
+      .listRecipients(id)
+      .filter((recipient) => recipient.status !== 'sent' && !optedOut.has(recipient.phone));
     if (pending.length === 0) {
       throw new CampaignValidationError([
-        { path: 'recipients', message: 'Não há destinatários pendentes elegíveis para reenviar nesta campanha.' },
+        {
+          path: 'recipients',
+          message: 'Não há destinatários pendentes elegíveis para reenviar nesta campanha.',
+        },
       ]);
     }
     return this.repository.createFollowUp(
@@ -194,7 +204,10 @@ export class CampaignService {
     const eligible = list.contacts.filter((contact) => !contact.optedOut);
     if (eligible.length === 0) {
       throw new CampaignValidationError([
-        { path: 'contactListId', message: 'Todos os contatos da lista estão marcados como opt-out.' },
+        {
+          path: 'contactListId',
+          message: 'Todos os contatos da lista estão marcados como opt-out.',
+        },
       ]);
     }
     return this.repository.prepareDraft(
@@ -227,14 +240,11 @@ export class CampaignService {
     const header = ['nome', 'telefone', 'status', 'tentativas', 'enviado_em', 'ultimo_erro'];
     const lines = [header.map(csvCell).join(',')];
     for (const r of rows) {
-      lines.push([
-        r.name,
-        r.phone,
-        r.status,
-        String(r.attemptCount),
-        r.sentAt ?? '',
-        r.lastError ?? '',
-      ].map(csvCell).join(','));
+      lines.push(
+        [r.name, r.phone, r.status, String(r.attemptCount), r.sentAt ?? '', r.lastError ?? '']
+          .map(csvCell)
+          .join(','),
+      );
     }
     return `${lines.join('\r\n')}\r\n`;
   }
@@ -246,15 +256,13 @@ export class CampaignService {
   ): CampaignComposerInput {
     const issues: Array<{ path: string; message: string }> = [];
     const name = typeof input.name === 'string' ? input.name.trim() : '';
-    const messageTemplate = typeof input.messageTemplate === 'string'
-      ? input.messageTemplate.trim()
-      : '';
+    const messageTemplate =
+      typeof input.messageTemplate === 'string' ? input.messageTemplate.trim() : '';
     const contactListId = Number(input.contactListId);
     const delayMinSeconds = Number(input.delayMinSeconds);
     const delayMaxSeconds = Number(input.delayMaxSeconds);
-    const mediaId = input.mediaId === undefined || input.mediaId === null
-      ? input.mediaId
-      : Number(input.mediaId);
+    const mediaId =
+      input.mediaId === undefined || input.mediaId === null ? input.mediaId : Number(input.mediaId);
 
     if (requireName && !name) issues.push({ path: 'name', message: 'Informe o nome da campanha.' });
     if (!Number.isSafeInteger(contactListId) || contactListId <= 0) {
@@ -262,23 +270,49 @@ export class CampaignService {
     }
     if (!messageTemplate) issues.push({ path: 'messageTemplate', message: 'Escreva a mensagem.' });
     if (messageTemplate.length > MAX_MESSAGE_LENGTH) {
-      issues.push({ path: 'messageTemplate', message: `A mensagem excede ${MAX_MESSAGE_LENGTH} caracteres.` });
+      issues.push({
+        path: 'messageTemplate',
+        message: `A mensagem excede ${MAX_MESSAGE_LENGTH} caracteres.`,
+      });
     }
 
-    if (!Number.isInteger(delayMinSeconds) || delayMinSeconds < 1 || delayMinSeconds > MAX_DELAY_SECONDS) {
-      issues.push({ path: 'delayMinSeconds', message: 'O intervalo mínimo deve estar entre 1 e 3600 segundos.' });
+    if (
+      !Number.isInteger(delayMinSeconds) ||
+      delayMinSeconds < 1 ||
+      delayMinSeconds > MAX_DELAY_SECONDS
+    ) {
+      issues.push({
+        path: 'delayMinSeconds',
+        message: 'O intervalo mínimo deve estar entre 1 e 3600 segundos.',
+      });
     }
-    if (!Number.isInteger(delayMaxSeconds) || delayMaxSeconds < 1 || delayMaxSeconds > MAX_DELAY_SECONDS) {
-      issues.push({ path: 'delayMaxSeconds', message: 'O intervalo máximo deve estar entre 1 e 3600 segundos.' });
+    if (
+      !Number.isInteger(delayMaxSeconds) ||
+      delayMaxSeconds < 1 ||
+      delayMaxSeconds > MAX_DELAY_SECONDS
+    ) {
+      issues.push({
+        path: 'delayMaxSeconds',
+        message: 'O intervalo máximo deve estar entre 1 e 3600 segundos.',
+      });
     }
-    if (Number.isInteger(delayMinSeconds) && Number.isInteger(delayMaxSeconds) && delayMaxSeconds < delayMinSeconds) {
-      issues.push({ path: 'delayMaxSeconds', message: 'O intervalo máximo não pode ser menor que o mínimo.' });
+    if (
+      Number.isInteger(delayMinSeconds) &&
+      Number.isInteger(delayMaxSeconds) &&
+      delayMaxSeconds < delayMinSeconds
+    ) {
+      issues.push({
+        path: 'delayMaxSeconds',
+        message: 'O intervalo máximo não pode ser menor que o mínimo.',
+      });
     }
     if (mediaId !== undefined && mediaId !== null) {
-      const storedMedia = Number.isSafeInteger(mediaId) && mediaId > 0
-        ? this.media.findById(mediaId)
-        : undefined;
-      if (!storedMedia || (storedMedia.status === 'attached' && storedMedia.id !== currentMediaId)) {
+      const storedMedia =
+        Number.isSafeInteger(mediaId) && mediaId > 0 ? this.media.findById(mediaId) : undefined;
+      if (
+        !storedMedia ||
+        (storedMedia.status === 'attached' && storedMedia.id !== currentMediaId)
+      ) {
         issues.push({ path: 'mediaId', message: 'A mídia selecionada não existe ou expirou.' });
       }
     }

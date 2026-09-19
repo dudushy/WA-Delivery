@@ -47,12 +47,7 @@ export class SettingsService {
       (merged[key] as string) = raw;
     };
 
-    const parseInt = (
-      key: keyof AppSettings,
-      label: string,
-      min: number,
-      max: number,
-    ): void => {
+    const parseInt = (key: keyof AppSettings, label: string, min: number, max: number): void => {
       if (input[key] === undefined) return;
       const value = Number(input[key]);
       if (!Number.isInteger(value) || value < min || value > max) {
@@ -119,7 +114,5 @@ export class SettingsService {
 }
 
 function serialize(settings: AppSettings): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(settings).map(([key, value]) => [key, String(value)]),
-  );
+  return Object.fromEntries(Object.entries(settings).map(([key, value]) => [key, String(value)]));
 }

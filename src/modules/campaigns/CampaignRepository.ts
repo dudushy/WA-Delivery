@@ -57,20 +57,26 @@ export class CampaignRepository {
   public createDraft(input: CampaignComposerInput & { name: string }): CampaignSummary {
     this.database.exec('BEGIN IMMEDIATE');
     try {
-      const result = this.database.prepare(`
+      const result = this.database
+        .prepare(
+          `
         INSERT INTO campaigns (
           name, contact_list_id, message_template, delay_min_seconds, delay_max_seconds, media_id
         ) VALUES (?, ?, ?, ?, ?, ?)
-      `).run(
-        input.name,
-        input.contactListId,
-        input.messageTemplate,
-        input.delayMinSeconds,
-        input.delayMaxSeconds,
-        input.mediaId ?? null,
-      );
+      `,
+        )
+        .run(
+          input.name,
+          input.contactListId,
+          input.messageTemplate,
+          input.delayMinSeconds,
+          input.delayMaxSeconds,
+          input.mediaId ?? null,
+        );
       if (input.mediaId !== undefined) {
-        this.database.prepare("UPDATE media SET status = 'attached' WHERE id = ?").run(input.mediaId);
+        this.database
+          .prepare("UPDATE media SET status = 'attached' WHERE id = ?")
+          .run(input.mediaId);
       }
       this.database.exec('COMMIT');
       const created = this.findById(Number(result.lastInsertRowid));
@@ -83,12 +89,16 @@ export class CampaignRepository {
   }
 
   public list(): CampaignSummary[] {
-    return (this.database.prepare(`${baseQuery()} ORDER BY campaigns.id DESC`).all() as unknown as CampaignRow[])
-      .map(toSummary);
+    return (
+      this.database
+        .prepare(`${baseQuery()} ORDER BY campaigns.id DESC`)
+        .all() as unknown as CampaignRow[]
+    ).map(toSummary);
   }
 
   public findById(id: number): CampaignSummary | undefined {
-    const row = this.database.prepare(baseQuery('WHERE campaigns.id = ?')).get(id) as unknown as CampaignRow | undefined;
+    const row = this.database.prepare(baseQuery('WHERE campaigns.id = ?')).get(id) as unknown as
+      CampaignRow | undefined;
     return row ? toSummary(row) : undefined;
   }
 
@@ -96,36 +106,46 @@ export class CampaignRepository {
     id: number,
     input: CampaignComposerInput & { name: string },
   ): UpdatedDraft | undefined {
-    const existing = this.database.prepare(`
+    const existing = this.database
+      .prepare(
+        `
       SELECT campaigns.status, campaigns.media_id, media.storage_name
       FROM campaigns
       LEFT JOIN media ON media.id = campaigns.media_id
       WHERE campaigns.id = ?
-    `).get(id) as {
-      status: CampaignSummary['status'];
-      media_id: number | null;
-      storage_name: string | null;
-    } | undefined;
+    `,
+      )
+      .get(id) as
+      | {
+          status: CampaignSummary['status'];
+          media_id: number | null;
+          storage_name: string | null;
+        }
+      | undefined;
     if (!existing || existing.status !== 'draft') return undefined;
 
     const nextMediaId = input.mediaId ?? null;
     const mediaChanged = existing.media_id !== nextMediaId;
     this.database.exec('BEGIN IMMEDIATE');
     try {
-      this.database.prepare(`
+      this.database
+        .prepare(
+          `
         UPDATE campaigns
         SET name = ?, contact_list_id = ?, message_template = ?, delay_min_seconds = ?,
             delay_max_seconds = ?, media_id = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ? AND status = 'draft'
-      `).run(
-        input.name,
-        input.contactListId,
-        input.messageTemplate,
-        input.delayMinSeconds,
-        input.delayMaxSeconds,
-        nextMediaId,
-        id,
-      );
+      `,
+        )
+        .run(
+          input.name,
+          input.contactListId,
+          input.messageTemplate,
+          input.delayMinSeconds,
+          input.delayMaxSeconds,
+          nextMediaId,
+          id,
+        );
       if (mediaChanged && nextMediaId !== null) {
         this.database.prepare("UPDATE media SET status = 'attached' WHERE id = ?").run(nextMediaId);
       }
@@ -158,11 +178,15 @@ export class CampaignRepository {
   ): CampaignSummary | undefined {
     this.database.exec('BEGIN IMMEDIATE');
     try {
-      const updated = this.database.prepare(`
+      const updated = this.database
+        .prepare(
+          `
         UPDATE campaigns SET status = 'ready', prepared_at = CURRENT_TIMESTAMP,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = ? AND status = 'draft'
-      `).run(id);
+      `,
+        )
+        .run(id);
       if (updated.changes === 0) {
         this.database.exec('ROLLBACK');
         return undefined;
@@ -190,11 +214,17 @@ export class CampaignRepository {
   }
 
   public listRecipients(campaignId: number): CampaignRecipientSnapshot[] {
-    return (this.database.prepare(`
+    return (
+      this.database
+        .prepare(
+          `
       SELECT id, campaign_id, source_contact_id, name, phone, rendered_message, status,
         attempt_count, last_error, sent_at, updated_at
       FROM campaign_recipients WHERE campaign_id = ? ORDER BY id
-    `).all(campaignId) as unknown as RecipientRow[]).map((row) => ({
+    `,
+        )
+        .all(campaignId) as unknown as RecipientRow[]
+    ).map((row) => ({
       id: row.id,
       campaignId: row.campaign_id,
       sourceContactId: row.source_contact_id,
@@ -210,23 +240,30 @@ export class CampaignRepository {
   }
 
   public deleteCampaign(id: number): DeletedDraft | undefined {
-    const row = this.database.prepare(`
+    const row = this.database
+      .prepare(
+        `
       SELECT campaigns.status, campaigns.media_id, media.storage_name
       FROM campaigns
       LEFT JOIN media ON media.id = campaigns.media_id
       WHERE campaigns.id = ?
-    `).get(id) as {
-      status: CampaignSummary['status'];
-      media_id: number | null;
-      storage_name: string | null;
-    } | undefined;
+    `,
+      )
+      .get(id) as
+      | {
+          status: CampaignSummary['status'];
+          media_id: number | null;
+          storage_name: string | null;
+        }
+      | undefined;
     // Uma campanha em execução não pode ser excluída; cancele-a antes.
     if (!row || row.status === 'running') return undefined;
 
     this.database.exec('BEGIN IMMEDIATE');
     try {
       this.database.prepare('DELETE FROM campaigns WHERE id = ?').run(id);
-      if (row.media_id !== null) this.database.prepare('DELETE FROM media WHERE id = ?').run(row.media_id);
+      if (row.media_id !== null)
+        this.database.prepare('DELETE FROM media WHERE id = ?').run(row.media_id);
       this.database.exec('COMMIT');
       return {
         ...(row.storage_name === null ? {} : { mediaStorageName: row.storage_name }),
@@ -254,23 +291,29 @@ export class CampaignRepository {
   ): CampaignSummary {
     this.database.exec('BEGIN IMMEDIATE');
     try {
-      const result = this.database.prepare(`
+      const result = this.database
+        .prepare(
+          `
         INSERT INTO campaigns (
           name, contact_list_id, message_template, delay_min_seconds, delay_max_seconds,
           media_id, source_campaign_id, status, prepared_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, 'ready', CURRENT_TIMESTAMP)
-      `).run(
-        `${source.name} (reenvio)`,
-        source.contactListId,
-        source.messageTemplate,
-        source.delayMinSeconds,
-        source.delayMaxSeconds,
-        source.media?.id ?? null,
-        source.id,
-      );
+      `,
+        )
+        .run(
+          `${source.name} (reenvio)`,
+          source.contactListId,
+          source.messageTemplate,
+          source.delayMinSeconds,
+          source.delayMaxSeconds,
+          source.media?.id ?? null,
+          source.id,
+        );
       const newId = Number(result.lastInsertRowid);
       if (source.media?.id !== undefined) {
-        this.database.prepare("UPDATE media SET status = 'attached' WHERE id = ?").run(source.media.id);
+        this.database
+          .prepare("UPDATE media SET status = 'attached' WHERE id = ?")
+          .run(source.media.id);
       }
       const insert = this.database.prepare(`
         INSERT INTO campaign_recipients (
@@ -278,7 +321,13 @@ export class CampaignRepository {
         ) VALUES (?, ?, ?, ?, ?)
       `);
       for (const recipient of pending) {
-        insert.run(newId, recipient.sourceContactId, recipient.name, recipient.phone, recipient.renderedMessage);
+        insert.run(
+          newId,
+          recipient.sourceContactId,
+          recipient.name,
+          recipient.phone,
+          recipient.renderedMessage,
+        );
       }
       this.database.exec('COMMIT');
       const created = this.findById(newId);
@@ -295,22 +344,34 @@ export class CampaignRepository {
    * ocorreu há mais de `retentionDays` dias. Retorna o storage das mídias
    * removidas para limpeza no serviço. Nunca remove campanhas ativas.
    */
-  public deleteFinishedBefore(retentionDays: number): { deletedCount: number; mediaStorageNames: string[] } {
-    const rows = this.database.prepare(`
+  public deleteFinishedBefore(retentionDays: number): {
+    deletedCount: number;
+    mediaStorageNames: string[];
+  } {
+    const rows = this.database
+      .prepare(
+        `
       SELECT campaigns.id, media.storage_name
       FROM campaigns
       LEFT JOIN media ON media.id = campaigns.media_id
       WHERE campaigns.status IN ('completed', 'cancelled', 'failed')
         AND campaigns.finished_at IS NOT NULL
         AND campaigns.finished_at < datetime('now', ?)
-    `).all(`-${retentionDays} days`) as unknown as Array<{ id: number; storage_name: string | null }>;
+    `,
+      )
+      .all(`-${retentionDays} days`) as unknown as Array<{
+      id: number;
+      storage_name: string | null;
+    }>;
 
     if (rows.length === 0) return { deletedCount: 0, mediaStorageNames: [] };
 
     this.database.exec('BEGIN IMMEDIATE');
     try {
       const deleteCampaign = this.database.prepare('DELETE FROM campaigns WHERE id = ?');
-      const deleteMedia = this.database.prepare('DELETE FROM media WHERE id IN (SELECT media_id FROM campaigns WHERE id = ?)');
+      const deleteMedia = this.database.prepare(
+        'DELETE FROM media WHERE id IN (SELECT media_id FROM campaigns WHERE id = ?)',
+      );
       for (const row of rows) {
         deleteMedia.run(row.id);
         deleteCampaign.run(row.id);
@@ -322,7 +383,9 @@ export class CampaignRepository {
     }
     return {
       deletedCount: rows.length,
-      mediaStorageNames: rows.map((r) => r.storage_name).filter((name): name is string => Boolean(name)),
+      mediaStorageNames: rows
+        .map((r) => r.storage_name)
+        .filter((name): name is string => Boolean(name)),
     };
   }
 }
@@ -378,8 +441,11 @@ function toSummary(row: CampaignRow): CampaignSummary {
     ...(row.started_at === null ? {} : { startedAt: row.started_at }),
     ...(row.finished_at === null ? {} : { finishedAt: row.finished_at }),
     ...(row.source_campaign_id === null ? {} : { sourceCampaignId: row.source_campaign_id }),
-    ...(row.media_id === null || row.media_original_name === null || row.media_mimetype === null
-      || row.media_kind === null || row.media_size_bytes === null
+    ...(row.media_id === null ||
+    row.media_original_name === null ||
+    row.media_mimetype === null ||
+    row.media_kind === null ||
+    row.media_size_bytes === null
       ? {}
       : {
           media: {

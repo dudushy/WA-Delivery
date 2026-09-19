@@ -40,7 +40,10 @@ describe('backupArchive', () => {
   });
 
   it('rejeita backup com assinatura inválida', () => {
-    assert.throws(() => unpackBackup(Buffer.from('não é um backup válido aqui')), /assinatura|inválido/i);
+    assert.throws(
+      () => unpackBackup(Buffer.from('não é um backup válido aqui')),
+      /assinatura|inválido/i,
+    );
   });
 
   it('detecta corrupção por checksum', () => {
@@ -147,8 +150,12 @@ describe('BackupService', () => {
     try {
       const order: string[] = [];
       const service = new BackupService(join(root, 'data'), '2.0.0', 9, {
-        beforeRestore: () => { order.push('before'); },
-        afterRestore: () => { order.push('after'); },
+        beforeRestore: () => {
+          order.push('before');
+        },
+        afterRestore: () => {
+          order.push('after');
+        },
       });
       const { buffer } = await service.createBackup();
       await service.restoreBackup(buffer);

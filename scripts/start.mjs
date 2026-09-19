@@ -19,8 +19,14 @@ function portInUse(port, host) {
   return new Promise((resolve) => {
     const socket = createConnection({ port, host });
     socket.setTimeout(1000);
-    socket.once('connect', () => { socket.destroy(); resolve(true); });
-    socket.once('timeout', () => { socket.destroy(); resolve(false); });
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('timeout', () => {
+      socket.destroy();
+      resolve(false);
+    });
     socket.once('error', () => resolve(false));
   });
 }
@@ -56,7 +62,9 @@ async function main() {
   if (await portInUse(PORT, HOST)) {
     // Já há algo na porta: provavelmente a aplicação já está rodando.
     if (await waitForHealth(2000, 500)) {
-      console.log(`A aplicacao ja esta rodando. Abrindo ${HEALTH_URL.replace('/api/health', '')} ...`);
+      console.log(
+        `A aplicacao ja esta rodando. Abrindo ${HEALTH_URL.replace('/api/health', '')} ...`,
+      );
       openBrowser(`http://${HOST}:${PORT}`);
       process.exit(0);
     }
@@ -69,7 +77,9 @@ async function main() {
     stdio: 'inherit',
   });
 
-  const shutdown = () => { if (!child.killed) child.kill('SIGINT'); };
+  const shutdown = () => {
+    if (!child.killed) child.kill('SIGINT');
+  };
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
   child.on('exit', (code) => process.exit(code ?? 0));

@@ -1,14 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import type { SettingsService } from '../modules/settings/SettingsService.js';
-import {
-  SettingsValidationError,
-  type AppSettings,
-} from '../modules/settings/settingsTypes.js';
+import { SettingsValidationError, type AppSettings } from '../modules/settings/settingsTypes.js';
 
-export function registerSettingsRoutes(
-  server: FastifyInstance,
-  settings: SettingsService,
-): void {
+export function registerSettingsRoutes(server: FastifyInstance, settings: SettingsService): void {
   server.get('/api/settings', async () => settings.getAll());
 
   server.put<{ Body: Partial<Record<keyof AppSettings, unknown>> }>(

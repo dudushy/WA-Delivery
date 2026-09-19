@@ -38,18 +38,25 @@ describe('CsvImportService', () => {
     const service = createService();
     const preview = service.createPreview(
       'clientes.csv',
-      Buffer.from([
-        'Nome,Telefone',
-        'Ana,16999999999',
-        'Duplicada,(16) 99999-9999',
-        'Inválido,123',
-        'Maria,16988888888',
-      ].join('\n')),
+      Buffer.from(
+        [
+          'Nome,Telefone',
+          'Ana,16999999999',
+          'Duplicada,(16) 99999-9999',
+          'Inválido,123',
+          'Maria,16988888888',
+        ].join('\n'),
+      ),
     );
     const analysis = service.analyze(preview.previewId, 'Telefone', 'Nome');
 
     assert.deepEqual(
-      { total: analysis.total, valid: analysis.valid, invalid: analysis.invalid, duplicates: analysis.duplicates },
+      {
+        total: analysis.total,
+        valid: analysis.valid,
+        invalid: analysis.invalid,
+        duplicates: analysis.duplicates,
+      },
       { total: 4, valid: 2, invalid: 1, duplicates: 1 },
     );
   });

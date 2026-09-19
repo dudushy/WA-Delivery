@@ -5,10 +5,7 @@ import {
   type CreateManualContactListInput,
 } from '../modules/contacts/contactTypes.js';
 
-export function registerContactRoutes(
-  server: FastifyInstance,
-  contacts: ContactService,
-): void {
+export function registerContactRoutes(server: FastifyInstance, contacts: ContactService): void {
   server.get('/api/contact-lists', async () => ({ items: contacts.list() }));
 
   server.get<{ Params: { id: string } }>('/api/contact-lists/:id', async (request, reply) => {
@@ -26,7 +23,9 @@ export function registerContactRoutes(
     '/api/contact-lists/manual',
     async (request, reply) => {
       try {
-        const created = contacts.createManualList(request.body ?? ({} as CreateManualContactListInput));
+        const created = contacts.createManualList(
+          request.body ?? ({} as CreateManualContactListInput),
+        );
         return reply.code(201).send(created);
       } catch (error) {
         if (error instanceof ContactValidationError) {

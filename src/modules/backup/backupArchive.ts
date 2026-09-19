@@ -88,14 +88,22 @@ export function packBackup(
   const lengthBuffer = Buffer.alloc(4);
   lengthBuffer.writeUInt32BE(manifestBuffer.length, 0);
 
-  return Buffer.concat([BACKUP_MAGIC, lengthBuffer, manifestBuffer, ...files.map((f) => f.content)]);
+  return Buffer.concat([
+    BACKUP_MAGIC,
+    lengthBuffer,
+    manifestBuffer,
+    ...files.map((f) => f.content),
+  ]);
 }
 
 /**
  * Lê e valida um Buffer de backup, retornando o manifest e os arquivos já
  * verificados (checksum e caminho seguro). Lança em qualquer inconsistência.
  */
-export function unpackBackup(buffer: Buffer): { manifest: BackupManifest; files: BackupInputFile[] } {
+export function unpackBackup(buffer: Buffer): {
+  manifest: BackupManifest;
+  files: BackupInputFile[];
+} {
   if (buffer.length < BACKUP_MAGIC.length + 4) {
     throw new Error('Arquivo de backup inválido ou truncado.');
   }
@@ -118,7 +126,9 @@ export function unpackBackup(buffer: Buffer): { manifest: BackupManifest; files:
   offset += manifestLength;
 
   if (manifest.format !== BACKUP_FORMAT) {
-    throw new Error(`Formato de backup incompatível (esperado ${BACKUP_FORMAT}, obtido ${manifest.format}).`);
+    throw new Error(
+      `Formato de backup incompatível (esperado ${BACKUP_FORMAT}, obtido ${manifest.format}).`,
+    );
   }
   if (!Array.isArray(manifest.files)) {
     throw new Error('Manifest do backup sem lista de arquivos.');

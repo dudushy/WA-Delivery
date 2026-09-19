@@ -44,7 +44,10 @@ const csvImports = new CsvImportService(contacts, settings);
 const media = new MediaService(new MediaRepository(database), resolve('data/media'));
 const campaigns = new CampaignService(new CampaignRepository(database), contacts, media);
 const queue = new CampaignQueueWorker(
-  new CampaignQueueRepository(database), campaigns, media, provider,
+  new CampaignQueueRepository(database),
+  campaigns,
+  media,
+  provider,
   Math.random,
   DEFAULT_OPERATION_TIMEOUT_MS,
   DEFAULT_MAX_ATTEMPTS,
@@ -111,12 +114,15 @@ async function shutdown(): Promise<void> {
 process.once('SIGINT', () => void shutdown());
 process.once('SIGTERM', () => void shutdown());
 
-server.listen({ host: '127.0.0.1', port: 3000 }).then(() => {
-  logger.info({ url: 'http://localhost:3000' }, 'WA-Delivery disponível.');
-}).catch((error: unknown) => {
-  logger.error({ err: error }, 'Não foi possível iniciar o WA-Delivery.');
-  process.exitCode = 1;
-});
+server
+  .listen({ host: '127.0.0.1', port: 3000 })
+  .then(() => {
+    logger.info({ url: 'http://localhost:3000' }, 'WA-Delivery disponível.');
+  })
+  .catch((error: unknown) => {
+    logger.error({ err: error }, 'Não foi possível iniciar o WA-Delivery.');
+    process.exitCode = 1;
+  });
 
 // Reconecta automaticamente ao iniciar somente se já houver uma sessão salva,
 // evitando forçar um novo QR Code em uma instalação sem credenciais.

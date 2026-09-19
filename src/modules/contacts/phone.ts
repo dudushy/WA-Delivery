@@ -5,10 +5,7 @@ export interface NormalizePhoneOptions {
   localNumberLengths?: readonly number[];
 }
 
-export function normalizePhone(
-  rawPhone: string,
-  options: NormalizePhoneOptions = {},
-): string {
+export function normalizePhone(rawPhone: string, options: NormalizePhoneOptions = {}): string {
   const defaultCountryCode = options.defaultCountryCode ?? '55';
   const defaultAreaCode = options.defaultAreaCode ?? '';
   const localNumberLengths = options.localNumberLengths ?? [10, 11];
@@ -20,11 +17,7 @@ export function normalizePhone(
   if (digits.startsWith('00')) digits = digits.slice(2);
 
   // Aplica o DDD padrão a números locais sem DDD (ex.: 999999999 -> 16999999999).
-  if (
-    !hasExplicitCountryCode &&
-    defaultAreaCode &&
-    subscriberLengths.includes(digits.length)
-  ) {
+  if (!hasExplicitCountryCode && defaultAreaCode && subscriberLengths.includes(digits.length)) {
     digits = `${defaultAreaCode}${digits}`;
   }
 

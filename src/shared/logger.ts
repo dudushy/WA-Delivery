@@ -18,12 +18,16 @@ export function maskPhone(phone: string): string {
  * mensagens de erro que possam conter dados sensíveis.
  */
 export function maskSensitive(text: string): string {
-  return String(text ?? '')
-    // Sequências de 8+ dígitos são tratadas como telefones.
-    .replace(/\d{8,}/g, (match) => maskPhone(match))
-    // Pares chave/valor que aparentam credenciais.
-    .replace(/(token|secret|password|senha|apikey|api_key|authorization)\s*[:=]\s*\S+/gi,
-      (_m, key: string) => `${key}: [oculto]`);
+  return (
+    String(text ?? '')
+      // Sequências de 8+ dígitos são tratadas como telefones.
+      .replace(/\d{8,}/g, (match) => maskPhone(match))
+      // Pares chave/valor que aparentam credenciais.
+      .replace(
+        /(token|secret|password|senha|apikey|api_key|authorization)\s*[:=]\s*\S+/gi,
+        (_m, key: string) => `${key}: [oculto]`,
+      )
+  );
 }
 
 /**

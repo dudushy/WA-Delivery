@@ -26,7 +26,9 @@ class FakeWhatsAppProvider implements WhatsAppProvider {
   public disconnectCalls = 0;
   private state: ConnectionState = { status: 'disconnected' };
 
-  public setConnected(): void { this.state = { status: 'connected' }; }
+  public setConnected(): void {
+    this.state = { status: 'connected' };
+  }
 
   public async connect(): Promise<void> {
     this.connectCalls += 1;
@@ -36,10 +38,18 @@ class FakeWhatsAppProvider implements WhatsAppProvider {
     this.disconnectCalls += 1;
     this.state = { status: 'disconnected' };
   }
-  public getConnectionState(): ConnectionState { return { ...this.state }; }
-  public onConnectionState(_listener: ConnectionListener): () => void { return () => undefined; }
-  public async hasSavedSession(): Promise<boolean> { return false; }
-  public async isRegisteredNumber(_phone: string): Promise<boolean> { return true; }
+  public getConnectionState(): ConnectionState {
+    return { ...this.state };
+  }
+  public onConnectionState(_listener: ConnectionListener): () => void {
+    return () => undefined;
+  }
+  public async hasSavedSession(): Promise<boolean> {
+    return false;
+  }
+  public async isRegisteredNumber(_phone: string): Promise<boolean> {
+    return true;
+  }
   public async sendText(_phone: string, _message: string): Promise<DeliveryResult> {
     return { messageId: 'text-id', sentAt: new Date() };
   }
@@ -53,13 +63,14 @@ describe('servidor local', () => {
     const database = openDatabase(':memory:');
     const settings = new SettingsService(new SettingsRepository(database));
     const contacts = new ContactService(new ContactRepository(database), settings);
-    const media = new MediaService(
-      new MediaRepository(database),
-      '/tmp/wa-delivery-server-tests',
-    );
+    const media = new MediaService(new MediaRepository(database), '/tmp/wa-delivery-server-tests');
     const campaigns = new CampaignService(new CampaignRepository(database), contacts, media);
     const queue = new CampaignQueueWorker(
-      new CampaignQueueRepository(database), campaigns, media, provider, () => 0,
+      new CampaignQueueRepository(database),
+      campaigns,
+      media,
+      provider,
+      () => 0,
     );
     return buildServer({
       whatsappProvider: provider,
@@ -97,7 +108,10 @@ describe('servidor local', () => {
     assert.equal(provider.connectCalls, 1);
     assert.deepEqual(connectResponse.json(), { status: 'connecting' });
 
-    const disconnectResponse = await server.inject({ method: 'POST', url: '/api/whatsapp/disconnect' });
+    const disconnectResponse = await server.inject({
+      method: 'POST',
+      url: '/api/whatsapp/disconnect',
+    });
     assert.equal(disconnectResponse.statusCode, 200);
     assert.equal(provider.disconnectCalls, 1);
     assert.deepEqual(disconnectResponse.json(), { status: 'disconnected' });
@@ -202,7 +216,9 @@ describe('servidor local', () => {
       payload: { name: 'Maria', phone: '16988888888' },
     });
     assert.equal(added.statusCode, 201);
-    const maria = added.json().contacts.find((contact: { name: string }) => contact.name === 'Maria');
+    const maria = added
+      .json()
+      .contacts.find((contact: { name: string }) => contact.name === 'Maria');
 
     const edited = await server.inject({
       method: 'PUT',
@@ -294,7 +310,9 @@ describe('servidor local', () => {
     const boundary = 'wa-delivery-media-boundary';
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
     const body = Buffer.concat([
-      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="foto.png"\r\nContent-Type: image/png\r\n\r\n`),
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="foto.png"\r\nContent-Type: image/png\r\n\r\n`,
+      ),
       png,
       Buffer.from(`\r\n--${boundary}--\r\n`),
     ]);
@@ -330,7 +348,10 @@ describe('servidor local', () => {
     assert.equal(mediaResponse.statusCode, 200);
     assert.equal(mediaResponse.headers['content-type'], 'image/png');
 
-    const removed = await server.inject({ method: 'DELETE', url: `/api/campaigns/${draft.json().id}` });
+    const removed = await server.inject({
+      method: 'DELETE',
+      url: `/api/campaigns/${draft.json().id}`,
+    });
     assert.equal(removed.statusCode, 204);
     const missingMedia = await server.inject({ method: 'GET', url: upload.json().previewUrl });
     assert.equal(missingMedia.statusCode, 404);
@@ -348,12 +369,19 @@ describe('servidor local', () => {
       method: 'POST',
       url: '/api/campaigns',
       payload: {
-        name: 'Campanha export', contactListId: list.json().id,
-        messageTemplate: 'Olá {{nome}}!', delayMinSeconds: 2, delayMaxSeconds: 4,
+        name: 'Campanha export',
+        contactListId: list.json().id,
+        messageTemplate: 'Olá {{nome}}!',
+        delayMinSeconds: 2,
+        delayMaxSeconds: 4,
       },
     });
     const id = draft.json().id;
-    await server.inject({ method: 'POST', url: `/api/campaigns/${id}/prepare`, payload: { confirmed: true } });
+    await server.inject({
+      method: 'POST',
+      url: `/api/campaigns/${id}/prepare`,
+      payload: { confirmed: true },
+    });
 
     const csv = await server.inject({ method: 'GET', url: `/api/campaigns/${id}/export` });
     assert.equal(csv.statusCode, 200);
@@ -361,7 +389,10 @@ describe('servidor local', () => {
     assert.ok(csv.headers['content-disposition']?.includes(`campanha-${id}.csv`));
     assert.ok(csv.body.startsWith('nome,telefone,status,tentativas,enviado_em,ultimo_erro'));
 
-    const failures = await server.inject({ method: 'GET', url: `/api/campaigns/${id}/export?onlyFailures=true` });
+    const failures = await server.inject({
+      method: 'GET',
+      url: `/api/campaigns/${id}/export?onlyFailures=true`,
+    });
     assert.equal(failures.statusCode, 200);
     assert.ok(failures.headers['content-disposition']?.includes(`campanha-${id}-falhas.csv`));
 
@@ -380,7 +411,12 @@ describe('servidor local', () => {
     const updated = await server.inject({
       method: 'PUT',
       url: '/api/settings',
-      payload: { defaultCountryCode: '1', defaultAreaCode: '11', maxAttempts: 5, soundEnabled: false },
+      payload: {
+        defaultCountryCode: '1',
+        defaultAreaCode: '11',
+        maxAttempts: 5,
+        soundEnabled: false,
+      },
     });
     assert.equal(updated.statusCode, 200);
     assert.equal(updated.json().defaultCountryCode, '1');
@@ -427,7 +463,9 @@ describe('servidor local', () => {
     assert.equal(before.json().onboardingCompleted, false);
 
     const updated = await server.inject({
-      method: 'PUT', url: '/api/settings', payload: { onboardingCompleted: true },
+      method: 'PUT',
+      url: '/api/settings',
+      payload: { onboardingCompleted: true },
     });
     assert.equal(updated.json().onboardingCompleted, true);
 

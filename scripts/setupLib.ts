@@ -23,10 +23,7 @@ export function parseVersion(raw: string): [number, number, number] | undefined 
 }
 
 /** Compara duas versões semver. Retorna -1, 0 ou 1. */
-export function compareVersions(
-  a: [number, number, number],
-  b: [number, number, number],
-): number {
+export function compareVersions(a: [number, number, number], b: [number, number, number]): number {
   for (let index = 0; index < 3; index += 1) {
     if (a[index] !== b[index]) return a[index] < b[index] ? -1 : 1;
   }

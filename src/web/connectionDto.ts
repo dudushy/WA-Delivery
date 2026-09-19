@@ -7,9 +7,7 @@ export interface ConnectionStateDto {
   error?: string;
 }
 
-export async function toConnectionStateDto(
-  state: ConnectionState,
-): Promise<ConnectionStateDto> {
+export async function toConnectionStateDto(state: ConnectionState): Promise<ConnectionStateDto> {
   const qrCodeDataUrl = state.qrCode
     ? await QRCode.toDataURL(state.qrCode, { margin: 1, width: 320 })
     : undefined;

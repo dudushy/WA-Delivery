@@ -29,11 +29,15 @@ try {
 const current = parseVersion(process.version);
 const requiredStr = required.join('.');
 if (!current) {
-  console.error(`Nao foi possivel identificar a versao do Node.js. Instale o Node.js ${requiredStr}+ (LTS): https://nodejs.org/`);
+  console.error(
+    `Nao foi possivel identificar a versao do Node.js. Instale o Node.js ${requiredStr}+ (LTS): https://nodejs.org/`,
+  );
   process.exit(1);
 }
 if (compare(current, required) < 0) {
-  console.error(`Node.js ${current.join('.')} e muito antigo. Instale a versao ${requiredStr}+ (LTS): https://nodejs.org/`);
+  console.error(
+    `Node.js ${current.join('.')} e muito antigo. Instale a versao ${requiredStr}+ (LTS): https://nodejs.org/`,
+  );
   process.exit(1);
 }
 console.log(`Node.js ${current.join('.')} OK (minimo ${requiredStr}).`);

@@ -93,8 +93,7 @@ export class BaileysWhatsAppProvider implements WhatsAppProvider {
   }
 
   public async isRegisteredNumber(phone: string): Promise<boolean> {
-    const [result] =
-      (await this.requireConnectedSocket().onWhatsApp(toWhatsAppJid(phone))) ?? [];
+    const [result] = (await this.requireConnectedSocket().onWhatsApp(toWhatsAppJid(phone))) ?? [];
     return result?.exists === true;
   }
 
@@ -108,17 +107,18 @@ export class BaileysWhatsAppProvider implements WhatsAppProvider {
   }
 
   public async sendMedia(phone: string, media: MediaMessage): Promise<DeliveryResult> {
-    const content = media.kind === 'image'
-      ? {
-          image: { url: media.path },
-          ...(media.caption === undefined ? {} : { caption: media.caption }),
-          ...(media.mimetype === undefined ? {} : { mimetype: media.mimetype }),
-        }
-      : {
-          video: { url: media.path },
-          ...(media.caption === undefined ? {} : { caption: media.caption }),
-          ...(media.mimetype === undefined ? {} : { mimetype: media.mimetype }),
-        };
+    const content =
+      media.kind === 'image'
+        ? {
+            image: { url: media.path },
+            ...(media.caption === undefined ? {} : { caption: media.caption }),
+            ...(media.mimetype === undefined ? {} : { mimetype: media.mimetype }),
+          }
+        : {
+            video: { url: media.path },
+            ...(media.caption === undefined ? {} : { caption: media.caption }),
+            ...(media.mimetype === undefined ? {} : { mimetype: media.mimetype }),
+          };
 
     const response = await this.requireConnectedSocket().sendMessage(toWhatsAppJid(phone), content);
     return this.toDeliveryResult(response?.key.id);

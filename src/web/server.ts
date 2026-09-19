@@ -32,9 +32,7 @@ export interface ServerDependencies {
   onRestored?: () => void;
 }
 
-export async function buildServer(
-  dependencies: ServerDependencies,
-): Promise<FastifyInstance> {
+export async function buildServer(dependencies: ServerDependencies): Promise<FastifyInstance> {
   const server = Fastify({ logger: false });
   const { whatsappProvider, settings, contacts, csvImports, campaigns, media, queue, backup } =
     dependencies;
@@ -56,9 +54,7 @@ export async function buildServer(
 
   server.post('/api/whatsapp/connect', async (_request, reply) => {
     await whatsappProvider.connect();
-    return reply.code(202).send(
-      await toConnectionStateDto(whatsappProvider.getConnectionState()),
-    );
+    return reply.code(202).send(await toConnectionStateDto(whatsappProvider.getConnectionState()));
   });
 
   server.post('/api/whatsapp/disconnect', async () => {
@@ -99,7 +95,10 @@ export async function buildServer(
   registerMediaRoutes(server, media);
   registerQueueRoutes(server, queue);
   registerSettingsRoutes(server, settings);
-  if (backup) registerBackupRoutes(server, backup, { ...(dependencies.onRestored ? { onRestored: dependencies.onRestored } : {}) });
+  if (backup)
+    registerBackupRoutes(server, backup, {
+      ...(dependencies.onRestored ? { onRestored: dependencies.onRestored } : {}),
+    });
 
   // Tratador de erros: nunca expõe stack trace ao usuário final. Erros de
   // validação (4xx) preservam a mensagem; erros inesperados retornam uma
@@ -107,7 +106,10 @@ export async function buildServer(
   server.setErrorHandler((error: Error & { statusCode?: number }, _request, reply) => {
     const status = typeof error.statusCode === 'number' ? error.statusCode : 500;
     if (status >= 500) {
-      logger.error({ err: maskSensitive(error.message) }, 'Erro interno ao processar a requisição.');
+      logger.error(
+        { err: maskSensitive(error.message) },
+        'Erro interno ao processar a requisição.',
+      );
       return reply.code(500).send({
         message: 'Ocorreu um erro interno. Verifique os logs da aplicação e tente novamente.',
       });

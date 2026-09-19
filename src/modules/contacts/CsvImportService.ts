@@ -110,11 +110,7 @@ export class CsvImportService {
     };
   }
 
-  public analyze(
-    previewId: string,
-    phoneColumn: string,
-    nameColumn?: string,
-  ): CsvAnalysis {
+  public analyze(previewId: string, phoneColumn: string, nameColumn?: string): CsvAnalysis {
     const session = this.getSession(previewId);
     const phoneIndex = requireColumn(session.headers, phoneColumn, 'telefone');
     const nameIndex = nameColumn ? requireColumn(session.headers, nameColumn, 'nome') : undefined;
@@ -123,36 +119,38 @@ export class CsvImportService {
     let invalid = 0;
     let duplicates = 0;
 
-    const sample = session.rows.map((row, index) => {
-      const phone = row[phoneIndex]?.trim() ?? '';
-      const name = nameIndex === undefined ? phone : (row[nameIndex]?.trim() || phone);
-      try {
-        const normalizedPhone = normalizePhone(phone, this.normalizeOptions());
-        if (seen.has(normalizedPhone)) {
-          duplicates += 1;
+    const sample = session.rows
+      .map((row, index) => {
+        const phone = row[phoneIndex]?.trim() ?? '';
+        const name = nameIndex === undefined ? phone : row[nameIndex]?.trim() || phone;
+        try {
+          const normalizedPhone = normalizePhone(phone, this.normalizeOptions());
+          if (seen.has(normalizedPhone)) {
+            duplicates += 1;
+            return {
+              rowNumber: index + 2,
+              name,
+              phone,
+              normalizedPhone,
+              status: 'duplicate' as const,
+              reason: 'Telefone repetido no arquivo.',
+            };
+          }
+          seen.add(normalizedPhone);
+          valid += 1;
+          return { rowNumber: index + 2, name, phone, normalizedPhone, status: 'valid' as const };
+        } catch (error) {
+          invalid += 1;
           return {
             rowNumber: index + 2,
             name,
             phone,
-            normalizedPhone,
-            status: 'duplicate' as const,
-            reason: 'Telefone repetido no arquivo.',
+            status: 'invalid' as const,
+            reason: error instanceof Error ? error.message : 'Telefone inválido.',
           };
         }
-        seen.add(normalizedPhone);
-        valid += 1;
-        return { rowNumber: index + 2, name, phone, normalizedPhone, status: 'valid' as const };
-      } catch (error) {
-        invalid += 1;
-        return {
-          rowNumber: index + 2,
-          name,
-          phone,
-          status: 'invalid' as const,
-          reason: error instanceof Error ? error.message : 'Telefone inválido.',
-        };
-      }
-    }).slice(0, 100);
+      })
+      .slice(0, 100);
 
     return {
       previewId,
@@ -203,7 +201,7 @@ export class CsvImportService {
       }
 
       contacts.push({
-        name: nameIndex === undefined ? phone : (row[nameIndex]?.trim() || phone),
+        name: nameIndex === undefined ? phone : row[nameIndex]?.trim() || phone,
         phone: normalized,
         ...(Object.keys(data).length > 0 ? { data } : {}),
       });
@@ -282,23 +280,37 @@ function rankPhoneColumns(
   options: NormalizePhoneOptions,
 ): ColumnCandidate[] {
   const keywords = /phone|telefone|celular|mobile|whatsapp|fone|número|numero/i;
-  return headers.map((header, index) => {
-    const values = rows.slice(0, 100).map((row) => row[index] ?? '').filter(Boolean);
-    const valid = values.filter((value) => {
-      try { normalizePhone(value, options); return true; } catch { return false; }
-    }).length;
-    const ratio = values.length === 0 ? 0 : valid / values.length;
-    return { header, score: Math.round((keywords.test(header) ? 50 : 0) + ratio * 50) };
-  }).filter((candidate) => candidate.score > 0).sort((a, b) => b.score - a.score);
+  return headers
+    .map((header, index) => {
+      const values = rows
+        .slice(0, 100)
+        .map((row) => row[index] ?? '')
+        .filter(Boolean);
+      const valid = values.filter((value) => {
+        try {
+          normalizePhone(value, options);
+          return true;
+        } catch {
+          return false;
+        }
+      }).length;
+      const ratio = values.length === 0 ? 0 : valid / values.length;
+      return { header, score: Math.round((keywords.test(header) ? 50 : 0) + ratio * 50) };
+    })
+    .filter((candidate) => candidate.score > 0)
+    .sort((a, b) => b.score - a.score);
 }
 
 function rankNameColumns(headers: string[]): ColumnCandidate[] {
   const exact = /^(name|nome|full name|nome completo)$/i;
   const partial = /name|nome/i;
-  return headers.map((header) => ({
-    header,
-    score: exact.test(header) ? 100 : partial.test(header) ? 70 : 0,
-  })).filter((candidate) => candidate.score > 0).sort((a, b) => b.score - a.score);
+  return headers
+    .map((header) => ({
+      header,
+      score: exact.test(header) ? 100 : partial.test(header) ? 70 : 0,
+    }))
+    .filter((candidate) => candidate.score > 0)
+    .sort((a, b) => b.score - a.score);
 }
 
 function requireColumn(headers: string[], column: string, label: string): number {

@@ -46,9 +46,13 @@ describe('migrações do banco', () => {
         migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
         9,
       );
-      const recipient = migrated.prepare(`
+      const recipient = migrated
+        .prepare(
+          `
         SELECT attempt_count, updated_at FROM campaign_recipients WHERE id = 1
-      `).get() as { attempt_count: number; updated_at: string | null };
+      `,
+        )
+        .get() as { attempt_count: number; updated_at: string | null };
       assert.equal(recipient.attempt_count, 0);
       assert.ok(recipient.updated_at);
       migrated.close();
@@ -94,15 +98,19 @@ describe('migrações do banco', () => {
         9,
       );
       // A coluna nova existe e a campanha populada foi preservada.
-      const row = migrated.prepare(
-        'SELECT name, source_campaign_id FROM campaigns WHERE id = 1',
-      ).get() as { name: string; source_campaign_id: number | null };
+      const row = migrated
+        .prepare('SELECT name, source_campaign_id FROM campaigns WHERE id = 1')
+        .get() as { name: string; source_campaign_id: number | null };
       assert.equal(row.name, 'Campanha');
       assert.equal(row.source_campaign_id, null);
       // A coluna aceita o vínculo de origem.
       migrated.prepare('UPDATE campaigns SET source_campaign_id = 1 WHERE id = 1').run();
       assert.equal(
-        (migrated.prepare('SELECT source_campaign_id FROM campaigns WHERE id = 1').get() as { source_campaign_id: number }).source_campaign_id,
+        (
+          migrated.prepare('SELECT source_campaign_id FROM campaigns WHERE id = 1').get() as {
+            source_campaign_id: number;
+          }
+        ).source_campaign_id,
         1,
       );
       migrated.close();
@@ -144,11 +152,17 @@ describe('migrações do banco', () => {
         9,
       );
       // A tentativa existente foi preservada e a coluna nova aceita a classificação.
-      const before = migrated.prepare('SELECT error_kind FROM delivery_attempts WHERE id = 1').get() as { error_kind: string | null };
+      const before = migrated
+        .prepare('SELECT error_kind FROM delivery_attempts WHERE id = 1')
+        .get() as { error_kind: string | null };
       assert.equal(before.error_kind, null);
       migrated.prepare("UPDATE delivery_attempts SET error_kind = 'transient' WHERE id = 1").run();
       assert.equal(
-        (migrated.prepare('SELECT error_kind FROM delivery_attempts WHERE id = 1').get() as { error_kind: string }).error_kind,
+        (
+          migrated.prepare('SELECT error_kind FROM delivery_attempts WHERE id = 1').get() as {
+            error_kind: string;
+          }
+        ).error_kind,
         'transient',
       );
       migrated.close();
@@ -184,13 +198,18 @@ describe('migrações do banco', () => {
         9,
       );
       // O contato existente foi preservado com opt-out = 0 (default seguro).
-      const row = migrated.prepare('SELECT normalized_phone, opted_out FROM contacts WHERE id = 1')
+      const row = migrated
+        .prepare('SELECT normalized_phone, opted_out FROM contacts WHERE id = 1')
         .get() as { normalized_phone: string; opted_out: number };
       assert.equal(row.normalized_phone, '5516999999999');
       assert.equal(row.opted_out, 0);
       migrated.prepare('UPDATE contacts SET opted_out = 1 WHERE id = 1').run();
       assert.equal(
-        (migrated.prepare('SELECT opted_out FROM contacts WHERE id = 1').get() as { opted_out: number }).opted_out,
+        (
+          migrated.prepare('SELECT opted_out FROM contacts WHERE id = 1').get() as {
+            opted_out: number;
+          }
+        ).opted_out,
         1,
       );
       migrated.close();

@@ -11,10 +11,7 @@ interface ConfirmBody extends MappingBody {
   listName?: string;
 }
 
-export function registerCsvImportRoutes(
-  server: FastifyInstance,
-  imports: CsvImportService,
-): void {
+export function registerCsvImportRoutes(server: FastifyInstance, imports: CsvImportService): void {
   server.post('/api/contact-imports/preview', async (request, reply) => {
     try {
       const file = await request.file();
@@ -48,9 +45,9 @@ export function registerCsvImportRoutes(
       });
     }
     try {
-      return reply.code(201).send(
-        imports.confirm(previewId, listName, phoneColumn, nameColumn || undefined),
-      );
+      return reply
+        .code(201)
+        .send(imports.confirm(previewId, listName, phoneColumn, nameColumn || undefined));
     } catch (error) {
       return sendImportError(reply, error);
     }

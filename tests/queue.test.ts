@@ -10,7 +10,13 @@ import { MediaService } from '../src/modules/media/MediaService.js';
 import { CampaignQueueRepository } from '../src/modules/queue/CampaignQueueRepository.js';
 import { CampaignQueueWorker, computeBackoffMs } from '../src/modules/queue/CampaignQueueWorker.js';
 import { QueueStateError } from '../src/modules/queue/queueTypes.js';
-import type { ConnectionListener, ConnectionState, DeliveryResult, MediaMessage, WhatsAppProvider } from '../src/providers/whatsapp/WhatsAppProvider.js';
+import type {
+  ConnectionListener,
+  ConnectionState,
+  DeliveryResult,
+  MediaMessage,
+  WhatsAppProvider,
+} from '../src/providers/whatsapp/WhatsAppProvider.js';
 
 class QueueWhatsAppProvider implements WhatsAppProvider {
   public sent: string[] = [];
@@ -20,7 +26,9 @@ class QueueWhatsAppProvider implements WhatsAppProvider {
   private readonly listeners = new Set<ConnectionListener>();
   public async connect(): Promise<void> {}
   public async disconnect(): Promise<void> {}
-  public getConnectionState(): ConnectionState { return this.state; }
+  public getConnectionState(): ConnectionState {
+    return this.state;
+  }
   public onConnectionState(listener: ConnectionListener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -30,8 +38,12 @@ class QueueWhatsAppProvider implements WhatsAppProvider {
     this.state = state;
     for (const listener of this.listeners) listener(state);
   }
-  public async hasSavedSession(): Promise<boolean> { return false; }
-  public async isRegisteredNumber(phone: string): Promise<boolean> { return this.registeredHandler(phone); }
+  public async hasSavedSession(): Promise<boolean> {
+    return false;
+  }
+  public async isRegisteredNumber(phone: string): Promise<boolean> {
+    return this.registeredHandler(phone);
+  }
   public async sendText(phone: string, message: string): Promise<DeliveryResult> {
     if (this.sendTextHandler) return this.sendTextHandler(phone, message);
     this.sent.push(phone);
@@ -55,13 +67,26 @@ function setup(contactCount = 1, operationTimeoutMs?: number, maxAttempts?: numb
   const media = new MediaService(new MediaRepository(database), '/tmp/wa-delivery-queue-tests');
   const campaigns = new CampaignService(new CampaignRepository(database), contacts, media);
   const draft = campaigns.createDraft({
-    name: 'Campanha da fila', contactListId: list.id, messageTemplate: 'Olá {{nome}}!',
-    delayMinSeconds: 1, delayMaxSeconds: 1,
+    name: 'Campanha da fila',
+    contactListId: list.id,
+    messageTemplate: 'Olá {{nome}}!',
+    delayMinSeconds: 1,
+    delayMaxSeconds: 1,
   });
   campaigns.prepareDraft(draft.id, true);
   const provider = new QueueWhatsAppProvider();
   const repository = new CampaignQueueRepository(database);
-  const worker = new CampaignQueueWorker(repository, campaigns, media, provider, () => 0, operationTimeoutMs, maxAttempts, backoffMs, backoffMs);
+  const worker = new CampaignQueueWorker(
+    repository,
+    campaigns,
+    media,
+    provider,
+    () => 0,
+    operationTimeoutMs,
+    maxAttempts,
+    backoffMs,
+    backoffMs,
+  );
   return { database, draft, provider, repository, worker };
 }
 
@@ -80,7 +105,9 @@ describe('CampaignQueueWorker', () => {
       assert.throws(() => worker.start(draft.id, false), QueueStateError);
       provider.state = { status: 'disconnected' };
       assert.throws(() => worker.start(draft.id, true), QueueStateError);
-    } finally { database.close(); }
+    } finally {
+      database.close();
+    }
   });
 
   it('processa e registra um destinatário por vez', async () => {
@@ -92,7 +119,10 @@ describe('CampaignQueueWorker', () => {
       assert.equal(progress?.sent, 1);
       assert.equal(progress?.pending, 0);
       assert.equal(provider.sent.length, 1);
-    } finally { worker.shutdown(); database.close(); }
+    } finally {
+      worker.shutdown();
+      database.close();
+    }
   });
 
   it('pausa, retoma e cancela sem perder a fila persistida', async () => {
@@ -117,7 +147,9 @@ describe('CampaignQueueWorker', () => {
         second.worker.cancel(second.draft.id);
         assert.equal(second.repository.progress(second.draft.id)?.status, 'cancelled');
         assert.equal(second.repository.progress(second.draft.id)?.skipped, 2);
-      } finally { second.database.close(); }
+      } finally {
+        second.database.close();
+      }
     } finally {
       unsubscribe();
       worker.shutdown();
@@ -136,11 +168,14 @@ describe('CampaignQueueWorker', () => {
       assert.equal(progress?.failed, 1);
       assert.equal(progress?.sent, 0);
       const row = database
-        .prepare("SELECT last_error FROM campaign_recipients WHERE campaign_id = ?")
+        .prepare('SELECT last_error FROM campaign_recipients WHERE campaign_id = ?')
         .get(draft.id) as { last_error: string };
       assert.match(row.last_error, /^\[transient\]/);
       assert.match(row.last_error, /tempo limite/i);
-    } finally { worker.shutdown(); database.close(); }
+    } finally {
+      worker.shutdown();
+      database.close();
+    }
   });
 
   it('classifica número não registrado como skip sem falhar', async () => {
@@ -152,7 +187,10 @@ describe('CampaignQueueWorker', () => {
       const progress = repository.progress(draft.id);
       assert.equal(progress?.skipped, 1);
       assert.equal(progress?.failed, 0);
-    } finally { worker.shutdown(); database.close(); }
+    } finally {
+      worker.shutdown();
+      database.close();
+    }
   });
 
   it('classifica erro permanente de envio como falha permanente', async () => {
@@ -164,10 +202,13 @@ describe('CampaignQueueWorker', () => {
       worker.start(draft.id, true);
       await waitUntil(() => repository.progress(draft.id)?.failed === 1);
       const row = database
-        .prepare("SELECT last_error FROM campaign_recipients WHERE campaign_id = ?")
+        .prepare('SELECT last_error FROM campaign_recipients WHERE campaign_id = ?')
         .get(draft.id) as { last_error: string };
       assert.match(row.last_error, /^\[permanent\]/);
-    } finally { worker.shutdown(); database.close(); }
+    } finally {
+      worker.shutdown();
+      database.close();
+    }
   });
 
   it('repete falha transitória até o limite e então marca como falha', async () => {
@@ -183,17 +224,22 @@ describe('CampaignQueueWorker', () => {
       await waitUntil(() => repository.progress(draft.id)?.failed === 1);
       assert.equal(attempts, 2); // tentou exatamente maxAttempts vezes
       const attemptRows = database
-        .prepare("SELECT outcome, error_kind FROM delivery_attempts WHERE campaign_id = ? ORDER BY id")
+        .prepare(
+          'SELECT outcome, error_kind FROM delivery_attempts WHERE campaign_id = ? ORDER BY id',
+        )
         .all(draft.id) as Array<{ outcome: string; error_kind: string | null }>;
       assert.equal(attemptRows.length, 2);
       assert.ok(attemptRows.every((r) => r.outcome === 'failed'));
       assert.ok(attemptRows.every((r) => r.error_kind === 'transient'));
       const recipient = database
-        .prepare("SELECT status, attempt_count FROM campaign_recipients WHERE campaign_id = ?")
+        .prepare('SELECT status, attempt_count FROM campaign_recipients WHERE campaign_id = ?')
         .get(draft.id) as { status: string; attempt_count: number };
       assert.equal(recipient.status, 'failed');
       assert.equal(recipient.attempt_count, 2);
-    } finally { worker.shutdown(); database.close(); }
+    } finally {
+      worker.shutdown();
+      database.close();
+    }
   });
 
   it('reenvia após falha transitória e conclui quando o envio se recupera', async () => {
@@ -212,7 +258,10 @@ describe('CampaignQueueWorker', () => {
       assert.equal(progress?.sent, 1);
       assert.equal(progress?.failed, 0);
       assert.equal(attempts, 2); // falhou 1x, sucesso na 2ª
-    } finally { worker.shutdown(); database.close(); }
+    } finally {
+      worker.shutdown();
+      database.close();
+    }
   });
 });
 
@@ -221,22 +270,32 @@ describe('CampaignQueueWorker recuperação após reinício', () => {
     const { database, draft, repository, worker } = setup(3);
     try {
       const recipients = database
-        .prepare("SELECT id FROM campaign_recipients WHERE campaign_id = ? ORDER BY id")
+        .prepare('SELECT id FROM campaign_recipients WHERE campaign_id = ? ORDER BY id')
         .all(draft.id) as Array<{ id: number }>;
       // Simula estado logo antes de uma queda: 1 enviado, 1 em envio, 1 pendente.
       database.prepare("UPDATE campaigns SET status = 'running' WHERE id = ?").run(draft.id);
-      database.prepare("UPDATE campaign_recipients SET status = 'sent', message_id = 'm1' WHERE id = ?").run(recipients[0].id);
-      database.prepare("UPDATE campaign_recipients SET status = 'sending' WHERE id = ?").run(recipients[1].id);
-      database.prepare(`
+      database
+        .prepare("UPDATE campaign_recipients SET status = 'sent', message_id = 'm1' WHERE id = ?")
+        .run(recipients[0].id);
+      database
+        .prepare("UPDATE campaign_recipients SET status = 'sending' WHERE id = ?")
+        .run(recipients[1].id);
+      database
+        .prepare(
+          `
         INSERT INTO delivery_attempts (campaign_id, recipient_id, attempt_number, outcome)
         VALUES (?, ?, 1, 'sending')
-      `).run(draft.id, recipients[1].id);
+      `,
+        )
+        .run(draft.id, recipients[1].id);
 
       const interrupted = worker.recoverInterrupted();
       assert.equal(interrupted, 1); // apenas o que estava 'sending'
 
       const rows = database
-        .prepare("SELECT id, status, message_id FROM campaign_recipients WHERE campaign_id = ? ORDER BY id")
+        .prepare(
+          'SELECT id, status, message_id FROM campaign_recipients WHERE campaign_id = ? ORDER BY id',
+        )
         .all(draft.id) as Array<{ id: number; status: string; message_id: string | null }>;
       // O já enviado permanece enviado (não é reenviado).
       assert.equal(rows[0].status, 'sent');
@@ -249,14 +308,17 @@ describe('CampaignQueueWorker recuperação após reinício', () => {
       assert.equal(repository.progress(draft.id)?.status, 'paused');
       // A tentativa em aberto foi encerrada como falha transitória.
       const attempt = database
-        .prepare("SELECT outcome, error_kind FROM delivery_attempts WHERE recipient_id = ?")
+        .prepare('SELECT outcome, error_kind FROM delivery_attempts WHERE recipient_id = ?')
         .get(recipients[1].id) as { outcome: string; error_kind: string | null };
       assert.equal(attempt.outcome, 'failed');
       assert.equal(attempt.error_kind, 'transient');
 
       // Idempotência: rodar de novo não altera nada.
       assert.equal(worker.recoverInterrupted(), 0);
-    } finally { worker.shutdown(); database.close(); }
+    } finally {
+      worker.shutdown();
+      database.close();
+    }
   });
 });
 
@@ -284,7 +346,10 @@ describe('CampaignQueueWorker disconnection', () => {
       provider.setConnectionState({ status: 'connected' });
       await waitUntil(() => repository.progress(draft.id)?.status === 'completed');
       assert.equal(repository.progress(draft.id)?.sent, 2);
-    } finally { worker.shutdown(); database.close(); }
+    } finally {
+      worker.shutdown();
+      database.close();
+    }
   });
 
   it('não retoma automaticamente uma campanha pausada manualmente', async () => {
@@ -303,7 +368,11 @@ describe('CampaignQueueWorker disconnection', () => {
       provider.setConnectionState({ status: 'connected' });
       await new Promise((resolve) => setTimeout(resolve, 60));
       assert.equal(repository.progress(draft.id)?.status, 'paused');
-    } finally { unsubscribe(); worker.shutdown(); database.close(); }
+    } finally {
+      unsubscribe();
+      worker.shutdown();
+      database.close();
+    }
   });
 });
 
@@ -343,6 +412,9 @@ describe('CampaignQueueWorker backoff', () => {
       // Deve ter aguardado ao menos o backoff (120ms) entre a falha e o sucesso.
       assert.ok(elapsed >= 100, `esperava atraso do backoff, teve ${elapsed}ms`);
       assert.equal(repository.progress(draft.id)?.sent, 1);
-    } finally { worker.shutdown(); database.close(); }
+    } finally {
+      worker.shutdown();
+      database.close();
+    }
   });
 });

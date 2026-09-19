@@ -18,7 +18,10 @@ describe('classifyError', () => {
   });
 
   it('classifica falhas de domínio como permanentes', () => {
-    assert.equal(classifyError(new Error('O número não está registrado no WhatsApp.')), 'permanent');
+    assert.equal(
+      classifyError(new Error('O número não está registrado no WhatsApp.')),
+      'permanent',
+    );
     assert.equal(classifyError(new Error('A mensagem não pode estar vazia.')), 'permanent');
     assert.equal(classifyError(new Error('A mídia da campanha não foi encontrada.')), 'permanent');
     assert.equal(
@@ -28,7 +31,10 @@ describe('classifyError', () => {
   });
 
   it('classifica falhas de rede e conexão como transitórias', () => {
-    assert.equal(classifyError(new Error('WhatsApp não está conektado.'.replace('k', 'c'))), 'transient');
+    assert.equal(
+      classifyError(new Error('WhatsApp não está conektado.'.replace('k', 'c'))),
+      'transient',
+    );
     assert.equal(classifyError(new Error('Connection closed')), 'transient');
     assert.equal(classifyError(new Error('socket hang up')), 'transient');
     assert.equal(classifyError(new Error('network error')), 'transient');

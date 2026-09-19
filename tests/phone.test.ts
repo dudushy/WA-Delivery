@@ -17,10 +17,7 @@ describe('normalizePhone', () => {
     assert.throws(() => normalizePhone('1234567890123456'), /8 e 15 dígitos/);
   });
   it('usa um código de país configurável', () => {
-    assert.equal(
-      normalizePhone('(415) 555-2671', { defaultCountryCode: '1' }),
-      '14155552671',
-    );
+    assert.equal(normalizePhone('(415) 555-2671', { defaultCountryCode: '1' }), '14155552671');
   });
   it('prefixa o DDD padrão a números locais sem DDD', () => {
     // Celular local de 9 dígitos recebe DDD (16) e país (55).

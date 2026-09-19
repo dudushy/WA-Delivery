@@ -23,16 +23,22 @@ describe('ContactService', () => {
     assert.equal(created.name, 'Clientes próximos');
     assert.equal(created.source, 'manual');
     assert.equal(created.contactCount, 2);
-    assert.deepEqual(created.contacts.map(({ name, phone }) => ({ name, phone })), [
-      { name: 'Andrea', phone: '5516999999999' },
-      { name: 'Maria', phone: '5516988888888' },
-    ]);
+    assert.deepEqual(
+      created.contacts.map(({ name, phone }) => ({ name, phone })),
+      [
+        { name: 'Andrea', phone: '5516999999999' },
+        { name: 'Maria', phone: '5516988888888' },
+      ],
+    );
     assert.equal(service.list()[0]?.contactCount, 2);
   });
 
   it('reutiliza o mesmo telefone globalmente em listas diferentes', () => {
     const service = createService();
-    service.createManualList({ name: 'Lista A', contacts: [{ name: 'Ana', phone: '16999999999' }] });
+    service.createManualList({
+      name: 'Lista A',
+      contacts: [{ name: 'Ana', phone: '16999999999' }],
+    });
     const second = service.createManualList({
       name: 'Lista B',
       contacts: [{ name: 'Ana Cliente', phone: '16 99999-9999' }],
@@ -57,13 +63,14 @@ describe('ContactService', () => {
   it('rejeita telefones duplicados dentro da mesma lista', () => {
     const service = createService();
     assert.throws(
-      () => service.createManualList({
-        name: 'Duplicados',
-        contacts: [
-          { name: 'Ana', phone: '(16) 99999-9999' },
-          { name: 'Ana novamente', phone: '16999999999' },
-        ],
-      }),
+      () =>
+        service.createManualList({
+          name: 'Duplicados',
+          contacts: [
+            { name: 'Ana', phone: '(16) 99999-9999' },
+            { name: 'Ana novamente', phone: '16999999999' },
+          ],
+        }),
       (error: unknown) => {
         assert.ok(error instanceof ContactValidationError);
         assert.match(error.issues[0]?.message ?? '', /duplicado/);
@@ -93,7 +100,10 @@ describe('ContactService', () => {
       name: 'Maria Silva',
       phone: '16977777777',
     });
-    assert.equal(edited?.contacts.find((contact) => contact.id === maria.id)?.phone, '5516977777777');
+    assert.equal(
+      edited?.contacts.find((contact) => contact.id === maria.id)?.phone,
+      '5516977777777',
+    );
 
     const afterRemoval = service.deleteContact(created.id, maria.id);
     assert.equal(afterRemoval?.contactCount, 1);

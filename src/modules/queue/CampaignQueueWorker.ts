@@ -136,7 +136,9 @@ export class CampaignQueueWorker {
       throw new QueueStateError('Conecte o WhatsApp antes de iniciar a campanha.');
     }
     if (!this.repository.start(campaignId, 'ready')) {
-      throw new QueueStateError('A campanha não está preparada ou já existe outra campanha em execução.');
+      throw new QueueStateError(
+        'A campanha não está preparada ou já existe outra campanha em execução.',
+      );
     }
     this.run(campaignId);
     return this.requireProgress(campaignId);
@@ -158,7 +160,9 @@ export class CampaignQueueWorker {
       throw new QueueStateError('Conecte o WhatsApp antes de retomar a campanha.');
     }
     if (!this.repository.start(campaignId, 'paused')) {
-      throw new QueueStateError('A campanha não está pausada ou já existe outra campanha em execução.');
+      throw new QueueStateError(
+        'A campanha não está pausada ou já existe outra campanha em execução.',
+      );
     }
     this.autoPausedCampaigns.delete(campaignId);
     this.run(campaignId);
@@ -246,7 +250,9 @@ export class CampaignQueueWorker {
                 this.operationTimeoutMs,
                 'O envio da mensagem excedeu o tempo limite.',
               );
-          this.repository.finishAttempt(attemptId, recipient.id, 'sent', { messageId: result.messageId });
+          this.repository.finishAttempt(attemptId, recipient.id, 'sent', {
+            messageId: result.messageId,
+          });
           logger.info(
             { campaignId, phone: maskPhone(recipient.phone), outcome: 'sent' },
             'Mensagem enviada.',

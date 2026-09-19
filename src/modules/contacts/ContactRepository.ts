@@ -1,8 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type {
-  ContactListDetails,
-  ContactListSummary,
-} from './contactTypes.js';
+import type { ContactListDetails, ContactListSummary } from './contactTypes.js';
 
 export interface PreparedContact {
   name: string;
@@ -47,8 +44,8 @@ export class ContactRepository {
 
       for (const contact of contacts) {
         const existing = findContact.get(contact.normalizedPhone) as { id: number } | undefined;
-        const contactId = existing?.id
-          ?? Number(insertContact.run(contact.normalizedPhone).lastInsertRowid);
+        const contactId =
+          existing?.id ?? Number(insertContact.run(contact.normalizedPhone).lastInsertRowid);
         insertMember.run(listId, contactId, contact.name, serializeData(contact.data));
       }
 
@@ -63,7 +60,9 @@ export class ContactRepository {
   }
 
   public list(): ContactListSummary[] {
-    const rows = this.database.prepare(`
+    const rows = this.database
+      .prepare(
+        `
       SELECT
         lists.id,
         lists.name,
@@ -74,13 +73,17 @@ export class ContactRepository {
       LEFT JOIN contact_list_members members ON members.contact_list_id = lists.id
       GROUP BY lists.id
       ORDER BY lists.id DESC
-    `).all() as unknown as SummaryRow[];
+    `,
+      )
+      .all() as unknown as SummaryRow[];
 
     return rows.map(toSummary);
   }
 
   public findById(id: number): ContactListDetails | undefined {
-    const row = this.database.prepare(`
+    const row = this.database
+      .prepare(
+        `
       SELECT
         lists.id,
         lists.name,
@@ -91,18 +94,24 @@ export class ContactRepository {
       LEFT JOIN contact_list_members members ON members.contact_list_id = lists.id
       WHERE lists.id = ?
       GROUP BY lists.id
-    `).get(id) as unknown as SummaryRow | undefined;
+    `,
+      )
+      .get(id) as unknown as SummaryRow | undefined;
 
     if (!row) return undefined;
 
-    const members = this.database.prepare(`
+    const members = this.database
+      .prepare(
+        `
       SELECT members.id, members.name, contacts.normalized_phone AS phone,
         contacts.opted_out AS opted_out, members.source_data_json AS source_data_json
       FROM contact_list_members members
       JOIN contacts ON contacts.id = members.contact_id
       WHERE members.contact_list_id = ?
       ORDER BY members.id
-    `).all(id) as unknown as Array<{
+    `,
+      )
+      .all(id) as unknown as Array<{
       id: number;
       name: string;
       phone: string;
@@ -142,22 +151,27 @@ export class ContactRepository {
     }
   }
 
-  public addMember(
-    listId: number,
-    contact: PreparedContact,
-  ): ContactListDetails | undefined {
+  public addMember(listId: number, contact: PreparedContact): ContactListDetails | undefined {
     if (!this.findById(listId)) return undefined;
     const contactId = this.findOrCreateContact(contact.normalizedPhone);
-    const duplicate = this.database.prepare(`
+    const duplicate = this.database
+      .prepare(
+        `
       SELECT 1 FROM contact_list_members
       WHERE contact_list_id = ? AND contact_id = ?
-    `).get(listId, contactId);
+    `,
+      )
+      .get(listId, contactId);
     if (duplicate) throw new Error('Este telefone já existe na lista.');
 
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       INSERT INTO contact_list_members (contact_list_id, contact_id, name, source_data_json)
       VALUES (?, ?, ?, ?)
-    `).run(listId, contactId, contact.name, serializeData(contact.data));
+    `,
+      )
+      .run(listId, contactId, contact.name, serializeData(contact.data));
     return this.findById(listId);
   }
 
@@ -166,25 +180,37 @@ export class ContactRepository {
     memberId: number,
     contact: PreparedContact,
   ): ContactListDetails | undefined {
-    const current = this.database.prepare(`
+    const current = this.database
+      .prepare(
+        `
       SELECT contact_id FROM contact_list_members
       WHERE id = ? AND contact_list_id = ?
-    `).get(memberId, listId) as { contact_id: number } | undefined;
+    `,
+      )
+      .get(memberId, listId) as { contact_id: number } | undefined;
     if (!current) return undefined;
 
     this.database.exec('BEGIN IMMEDIATE');
     try {
       const contactId = this.findOrCreateContact(contact.normalizedPhone);
-      const duplicate = this.database.prepare(`
+      const duplicate = this.database
+        .prepare(
+          `
         SELECT 1 FROM contact_list_members
         WHERE contact_list_id = ? AND contact_id = ? AND id != ?
-      `).get(listId, contactId, memberId);
+      `,
+        )
+        .get(listId, contactId, memberId);
       if (duplicate) throw new Error('Este telefone já existe na lista.');
 
-      this.database.prepare(`
+      this.database
+        .prepare(
+          `
         UPDATE contact_list_members SET name = ?, contact_id = ?
         WHERE id = ? AND contact_list_id = ?
-      `).run(contact.name, contactId, memberId, listId);
+      `,
+        )
+        .run(contact.name, contactId, memberId, listId);
       this.deleteOrphanContacts();
       this.database.exec('COMMIT');
       return this.findById(listId);
@@ -198,9 +224,13 @@ export class ContactRepository {
     if (!this.findById(listId)) return undefined;
     this.database.exec('BEGIN IMMEDIATE');
     try {
-      const result = this.database.prepare(`
+      const result = this.database
+        .prepare(
+          `
         DELETE FROM contact_list_members WHERE id = ? AND contact_list_id = ?
-      `).run(memberId, listId);
+      `,
+        )
+        .run(memberId, listId);
       if (result.changes === 0) {
         this.database.exec('ROLLBACK');
         return undefined;
@@ -223,9 +253,13 @@ export class ContactRepository {
     memberId: number,
     optedOut: boolean,
   ): ContactListDetails | undefined {
-    const member = this.database.prepare(`
+    const member = this.database
+      .prepare(
+        `
       SELECT contact_id FROM contact_list_members WHERE id = ? AND contact_list_id = ?
-    `).get(memberId, listId) as { contact_id: number } | undefined;
+    `,
+      )
+      .get(memberId, listId) as { contact_id: number } | undefined;
     if (!member) return undefined;
     this.database
       .prepare('UPDATE contacts SET opted_out = ? WHERE id = ?')
@@ -245,12 +279,14 @@ export class ContactRepository {
     const existing = this.database
       .prepare('SELECT id FROM contacts WHERE normalized_phone = ?')
       .get(normalizedPhone) as { id: number } | undefined;
-    return existing?.id
-      ?? Number(
+    return (
+      existing?.id ??
+      Number(
         this.database
           .prepare('INSERT INTO contacts (normalized_phone) VALUES (?)')
           .run(normalizedPhone).lastInsertRowid,
-      );
+      )
+    );
   }
 
   private deleteOrphanContacts(): void {

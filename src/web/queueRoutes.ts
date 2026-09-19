@@ -9,21 +9,32 @@ export function registerQueueRoutes(server: FastifyInstance, queue: CampaignQueu
     return queue.progress(id) ?? reply.code(404).send({ message: 'Campanha não encontrada.' });
   });
 
-  server.post<{ Params: { id: string }; Body: { confirmed?: boolean } }>('/api/campaigns/:id/start', async (request, reply) => {
-    const id = parseId(request.params.id, reply);
-    if (id === undefined) return;
-    try {
-      return queue.start(id, request.body?.confirmed === true);
-    } catch (error) { return queueError(reply, error); }
-  });
-
-  for (const action of ['pause', 'resume', 'cancel'] as const) {
-    server.post<{ Params: { id: string } }>(`/api/campaigns/:id/${action}`, async (request, reply) => {
+  server.post<{ Params: { id: string }; Body: { confirmed?: boolean } }>(
+    '/api/campaigns/:id/start',
+    async (request, reply) => {
       const id = parseId(request.params.id, reply);
       if (id === undefined) return;
-      try { return queue[action](id); }
-      catch (error) { return queueError(reply, error); }
-    });
+      try {
+        return queue.start(id, request.body?.confirmed === true);
+      } catch (error) {
+        return queueError(reply, error);
+      }
+    },
+  );
+
+  for (const action of ['pause', 'resume', 'cancel'] as const) {
+    server.post<{ Params: { id: string } }>(
+      `/api/campaigns/:id/${action}`,
+      async (request, reply) => {
+        const id = parseId(request.params.id, reply);
+        if (id === undefined) return;
+        try {
+          return queue[action](id);
+        } catch (error) {
+          return queueError(reply, error);
+        }
+      },
+    );
   }
 }
 

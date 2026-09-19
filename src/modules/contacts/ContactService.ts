@@ -99,7 +99,10 @@ export class ContactService {
     return this.repository.deleteList(id);
   }
 
-  public addContact(id: number, contact: { name: string; phone: string }): ContactListDetails | undefined {
+  public addContact(
+    id: number,
+    contact: { name: string; phone: string },
+  ): ContactListDetails | undefined {
     return this.repository.addMember(id, this.prepareContact(contact));
   }
 

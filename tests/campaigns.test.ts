@@ -65,8 +65,11 @@ describe('CampaignService', () => {
     assert.ok(!simulation.samples.some((sample) => sample.name === 'Ana'));
 
     const draft = campaigns.createDraft({
-      name: 'Sem opt-out', contactListId: list.id,
-      messageTemplate: 'Olá {{nome}}!', delayMinSeconds: 1, delayMaxSeconds: 1,
+      name: 'Sem opt-out',
+      contactListId: list.id,
+      messageTemplate: 'Olá {{nome}}!',
+      delayMinSeconds: 1,
+      delayMaxSeconds: 1,
     });
     campaigns.prepareDraft(draft.id, true);
     const recipients = campaigns.listRecipients(draft.id) ?? [];
@@ -95,23 +98,30 @@ describe('CampaignService', () => {
 
     // Variável inexistente na lista é rejeitada.
     assert.throws(
-      () => campaigns.simulate({
-        contactListId: list.id,
-        messageTemplate: 'Olá {{sobrenome}}!',
-        delayMinSeconds: 1,
-        delayMaxSeconds: 1,
-      }),
+      () =>
+        campaigns.simulate({
+          contactListId: list.id,
+          messageTemplate: 'Olá {{sobrenome}}!',
+          delayMinSeconds: 1,
+          delayMaxSeconds: 1,
+        }),
       (error: unknown) => error instanceof CampaignValidationError,
     );
 
     // O snapshot preserva a mensagem renderizada com a coluna extra.
     const draft = campaigns.createDraft({
-      name: 'Cidades', contactListId: list.id,
-      messageTemplate: 'Oi {{nome}} de {{cidade}}', delayMinSeconds: 1, delayMaxSeconds: 1,
+      name: 'Cidades',
+      contactListId: list.id,
+      messageTemplate: 'Oi {{nome}} de {{cidade}}',
+      delayMinSeconds: 1,
+      delayMaxSeconds: 1,
     });
     campaigns.prepareDraft(draft.id, true);
     const recipients = campaigns.listRecipients(draft.id) ?? [];
-    assert.equal(recipients.find((r) => r.name === 'Maria')?.renderedMessage, 'Oi Maria de Campinas');
+    assert.equal(
+      recipients.find((r) => r.name === 'Maria')?.renderedMessage,
+      'Oi Maria de Campinas',
+    );
   });
 
   it('salva campanha somente como rascunho', () => {
@@ -185,12 +195,13 @@ describe('CampaignService', () => {
     // Intervalo inválido é rejeitado na validação de campos (antes da checagem
     // de variáveis, que agora é ciente das colunas da lista).
     assert.throws(
-      () => campaigns.simulate({
-        contactListId: list.id,
-        messageTemplate: 'Olá {{nome}}',
-        delayMinSeconds: 10,
-        delayMaxSeconds: 5,
-      }),
+      () =>
+        campaigns.simulate({
+          contactListId: list.id,
+          messageTemplate: 'Olá {{nome}}',
+          delayMinSeconds: 10,
+          delayMaxSeconds: 5,
+        }),
       (error: unknown) => {
         assert.ok(error instanceof CampaignValidationError);
         assert.ok(error.issues.some((issue) => issue.path === 'delayMaxSeconds'));
@@ -199,12 +210,13 @@ describe('CampaignService', () => {
     );
     // Variável desconhecida (lista sem colunas extras) também é rejeitada.
     assert.throws(
-      () => campaigns.simulate({
-        contactListId: list.id,
-        messageTemplate: 'Olá {{apelido}}',
-        delayMinSeconds: 5,
-        delayMaxSeconds: 10,
-      }),
+      () =>
+        campaigns.simulate({
+          contactListId: list.id,
+          messageTemplate: 'Olá {{apelido}}',
+          delayMinSeconds: 5,
+          delayMaxSeconds: 10,
+        }),
       (error: unknown) => {
         assert.ok(error instanceof CampaignValidationError);
         assert.ok(error.issues.some((issue) => issue.path === 'messageTemplate'));
@@ -226,11 +238,16 @@ describe('CampaignService.exportRecipientsCsv', () => {
       ],
     });
     const campaigns = new CampaignService(
-      new CampaignRepository(database), contacts,
+      new CampaignRepository(database),
+      contacts,
       new MediaService(new MediaRepository(database), '/tmp/wa-delivery-export-tests'),
     );
     const draft = campaigns.createDraft({
-      name: 'C', contactListId: list.id, messageTemplate: 'Olá {{nome}}!', delayMinSeconds: 1, delayMaxSeconds: 1,
+      name: 'C',
+      contactListId: list.id,
+      messageTemplate: 'Olá {{nome}}!',
+      delayMinSeconds: 1,
+      delayMaxSeconds: 1,
     });
     campaigns.prepareDraft(draft.id, true);
     return { database, campaigns, draft };
@@ -245,28 +262,38 @@ describe('CampaignService.exportRecipientsCsv', () => {
       assert.equal(lines[0], 'nome,telefone,status,tentativas,enviado_em,ultimo_erro');
       assert.equal(lines.length, 3); // header + 2 destinatários
       assert.ok(lines.some((l) => l.startsWith('"Maria, teste"'))); // escapa vírgula
-    } finally { database.close(); }
+    } finally {
+      database.close();
+    }
   });
 
   it('exporta somente falhas e ignorados quando solicitado', () => {
     const { database, campaigns, draft } = build();
     try {
       const recipients = campaigns.listRecipients(draft.id) ?? [];
-      database.prepare("UPDATE campaign_recipients SET status = 'sent' WHERE id = ?").run(recipients[0].id);
-      database.prepare("UPDATE campaign_recipients SET status = 'failed', last_error = 'x' WHERE id = ?").run(recipients[1].id);
+      database
+        .prepare("UPDATE campaign_recipients SET status = 'sent' WHERE id = ?")
+        .run(recipients[0].id);
+      database
+        .prepare("UPDATE campaign_recipients SET status = 'failed', last_error = 'x' WHERE id = ?")
+        .run(recipients[1].id);
       const csv = campaigns.exportRecipientsCsv(draft.id, true);
       assert.ok(csv);
       const lines = csv.trim().split('\r\n');
       assert.equal(lines.length, 2); // header + 1 falha
       assert.ok(lines[1].includes('failed'));
-    } finally { database.close(); }
+    } finally {
+      database.close();
+    }
   });
 
   it('retorna undefined para campanha inexistente', () => {
     const { database, campaigns } = build();
     try {
       assert.equal(campaigns.exportRecipientsCsv(999999), undefined);
-    } finally { database.close(); }
+    } finally {
+      database.close();
+    }
   });
 });
 
@@ -279,8 +306,11 @@ describe('renderMessage', () => {
 describe('CampaignService.createFollowUp', () => {
   function prepareAndReady(campaigns: CampaignService, listId: number) {
     const campaign = campaigns.createDraft({
-      name: 'Original', contactListId: listId, messageTemplate: 'Olá {{nome}}!',
-      delayMinSeconds: 5, delayMaxSeconds: 10,
+      name: 'Original',
+      contactListId: listId,
+      messageTemplate: 'Olá {{nome}}!',
+      delayMinSeconds: 5,
+      delayMaxSeconds: 10,
     });
     campaigns.prepareDraft(campaign.id, true);
     return campaign;
@@ -291,7 +321,8 @@ describe('CampaignService.createFollowUp', () => {
     const contacts = new ContactService(new ContactRepository(database));
     const list = contacts.createManualList({ name: 'Clientes', contacts: contactsList });
     const campaigns = new CampaignService(
-      new CampaignRepository(database), contacts,
+      new CampaignRepository(database),
+      contacts,
       new MediaService(new MediaRepository(database), '/tmp/wa-delivery-followup-tests'),
     );
     return { database, list, campaigns };
@@ -306,9 +337,15 @@ describe('CampaignService.createFollowUp', () => {
     try {
       const original = prepareAndReady(campaigns, list.id);
       const recipients = campaigns.listRecipients(original.id) ?? [];
-      database.prepare("UPDATE campaign_recipients SET status = 'sent' WHERE id = ?").run(recipients[0].id);
-      database.prepare("UPDATE campaign_recipients SET status = 'failed' WHERE id = ?").run(recipients[1].id);
-      database.prepare("UPDATE campaign_recipients SET status = 'skipped' WHERE id = ?").run(recipients[2].id);
+      database
+        .prepare("UPDATE campaign_recipients SET status = 'sent' WHERE id = ?")
+        .run(recipients[0].id);
+      database
+        .prepare("UPDATE campaign_recipients SET status = 'failed' WHERE id = ?")
+        .run(recipients[1].id);
+      database
+        .prepare("UPDATE campaign_recipients SET status = 'skipped' WHERE id = ?")
+        .run(recipients[2].id);
       database.prepare("UPDATE campaigns SET status = 'completed' WHERE id = ?").run(original.id);
 
       const followUp = campaigns.createFollowUp(original.id);
@@ -320,7 +357,9 @@ describe('CampaignService.createFollowUp', () => {
       // A campanha original permanece intacta.
       assert.equal(campaigns.listRecipients(original.id)?.length, 3);
       assert.equal(campaigns.findById(original.id)?.status, 'completed');
-    } finally { database.close(); }
+    } finally {
+      database.close();
+    }
   });
 
   it('rejeita reenvio quando a campanha não é terminal', () => {
@@ -328,7 +367,9 @@ describe('CampaignService.createFollowUp', () => {
     try {
       const original = prepareAndReady(campaigns, list.id); // fica em 'ready'
       assert.throws(() => campaigns.createFollowUp(original.id), CampaignValidationError);
-    } finally { database.close(); }
+    } finally {
+      database.close();
+    }
   });
 
   it('rejeita reenvio quando não há pendentes', () => {
@@ -336,10 +377,14 @@ describe('CampaignService.createFollowUp', () => {
     try {
       const original = prepareAndReady(campaigns, list.id);
       const recipients = campaigns.listRecipients(original.id) ?? [];
-      database.prepare("UPDATE campaign_recipients SET status = 'sent' WHERE id = ?").run(recipients[0].id);
+      database
+        .prepare("UPDATE campaign_recipients SET status = 'sent' WHERE id = ?")
+        .run(recipients[0].id);
       database.prepare("UPDATE campaigns SET status = 'completed' WHERE id = ?").run(original.id);
       assert.throws(() => campaigns.createFollowUp(original.id), CampaignValidationError);
-    } finally { database.close(); }
+    } finally {
+      database.close();
+    }
   });
 });
 
@@ -347,9 +392,13 @@ describe('CampaignService.deleteCampaign', () => {
   function makeService() {
     const database = openDatabase(':memory:');
     const contacts = new ContactService(new ContactRepository(database));
-    const list = contacts.createManualList({ name: 'L', contacts: [{ name: 'Ana', phone: '16999999999' }] });
+    const list = contacts.createManualList({
+      name: 'L',
+      contacts: [{ name: 'Ana', phone: '16999999999' }],
+    });
     const campaigns = new CampaignService(
-      new CampaignRepository(database), contacts,
+      new CampaignRepository(database),
+      contacts,
       new MediaService(new MediaRepository(database), '/tmp/wa-delivery-delete-tests'),
     );
     return { database, list, campaigns };
@@ -359,24 +408,36 @@ describe('CampaignService.deleteCampaign', () => {
     const { database, list, campaigns } = makeService();
     try {
       const campaign = campaigns.createDraft({
-        name: 'X', contactListId: list.id, messageTemplate: 'Olá!', delayMinSeconds: 1, delayMaxSeconds: 1,
+        name: 'X',
+        contactListId: list.id,
+        messageTemplate: 'Olá!',
+        delayMinSeconds: 1,
+        delayMaxSeconds: 1,
       });
       database.prepare("UPDATE campaigns SET status = 'completed' WHERE id = ?").run(campaign.id);
       assert.equal(await campaigns.deleteCampaign(campaign.id), true);
       assert.equal(campaigns.findById(campaign.id), undefined);
-    } finally { database.close(); }
+    } finally {
+      database.close();
+    }
   });
 
   it('não exclui uma campanha em execução', async () => {
     const { database, list, campaigns } = makeService();
     try {
       const campaign = campaigns.createDraft({
-        name: 'X', contactListId: list.id, messageTemplate: 'Olá!', delayMinSeconds: 1, delayMaxSeconds: 1,
+        name: 'X',
+        contactListId: list.id,
+        messageTemplate: 'Olá!',
+        delayMinSeconds: 1,
+        delayMaxSeconds: 1,
       });
       database.prepare("UPDATE campaigns SET status = 'running' WHERE id = ?").run(campaign.id);
       assert.equal(await campaigns.deleteCampaign(campaign.id), false);
       assert.ok(campaigns.findById(campaign.id));
-    } finally { database.close(); }
+    } finally {
+      database.close();
+    }
   });
 });
 
@@ -384,9 +445,13 @@ describe('CampaignService.cleanupOldCampaigns', () => {
   function makeService() {
     const database = openDatabase(':memory:');
     const contacts = new ContactService(new ContactRepository(database));
-    const list = contacts.createManualList({ name: 'L', contacts: [{ name: 'Ana', phone: '16999999999' }] });
+    const list = contacts.createManualList({
+      name: 'L',
+      contacts: [{ name: 'Ana', phone: '16999999999' }],
+    });
     const campaigns = new CampaignService(
-      new CampaignRepository(database), contacts,
+      new CampaignRepository(database),
+      contacts,
       new MediaService(new MediaRepository(database), '/tmp/wa-delivery-cleanup-tests'),
     );
     return { database, list, campaigns };
@@ -396,50 +461,80 @@ describe('CampaignService.cleanupOldCampaigns', () => {
     const { database, list, campaigns } = makeService();
     try {
       const old = campaigns.createDraft({
-        name: 'Antiga', contactListId: list.id, messageTemplate: 'Oi', delayMinSeconds: 1, delayMaxSeconds: 1,
+        name: 'Antiga',
+        contactListId: list.id,
+        messageTemplate: 'Oi',
+        delayMinSeconds: 1,
+        delayMaxSeconds: 1,
       });
       const recent = campaigns.createDraft({
-        name: 'Recente', contactListId: list.id, messageTemplate: 'Oi', delayMinSeconds: 1, delayMaxSeconds: 1,
+        name: 'Recente',
+        contactListId: list.id,
+        messageTemplate: 'Oi',
+        delayMinSeconds: 1,
+        delayMaxSeconds: 1,
       });
       // Antiga: finalizada há 60 dias. Recente: finalizada agora.
-      database.prepare(
-        "UPDATE campaigns SET status = 'completed', finished_at = datetime('now', '-60 days') WHERE id = ?",
-      ).run(old.id);
-      database.prepare(
-        "UPDATE campaigns SET status = 'completed', finished_at = datetime('now') WHERE id = ?",
-      ).run(recent.id);
+      database
+        .prepare(
+          "UPDATE campaigns SET status = 'completed', finished_at = datetime('now', '-60 days') WHERE id = ?",
+        )
+        .run(old.id);
+      database
+        .prepare(
+          "UPDATE campaigns SET status = 'completed', finished_at = datetime('now') WHERE id = ?",
+        )
+        .run(recent.id);
 
       const removed = await campaigns.cleanupOldCampaigns(30);
       assert.equal(removed, 1);
       assert.equal(campaigns.findById(old.id), undefined);
       assert.ok(campaigns.findById(recent.id));
-    } finally { database.close(); }
+    } finally {
+      database.close();
+    }
   });
 
   it('não remove nada quando a retenção está desativada (0)', async () => {
     const { database, list, campaigns } = makeService();
     try {
       const campaign = campaigns.createDraft({
-        name: 'X', contactListId: list.id, messageTemplate: 'Oi', delayMinSeconds: 1, delayMaxSeconds: 1,
+        name: 'X',
+        contactListId: list.id,
+        messageTemplate: 'Oi',
+        delayMinSeconds: 1,
+        delayMaxSeconds: 1,
       });
-      database.prepare(
-        "UPDATE campaigns SET status = 'completed', finished_at = datetime('now', '-999 days') WHERE id = ?",
-      ).run(campaign.id);
+      database
+        .prepare(
+          "UPDATE campaigns SET status = 'completed', finished_at = datetime('now', '-999 days') WHERE id = ?",
+        )
+        .run(campaign.id);
       assert.equal(await campaigns.cleanupOldCampaigns(0), 0);
       assert.ok(campaigns.findById(campaign.id));
-    } finally { database.close(); }
+    } finally {
+      database.close();
+    }
   });
 
   it('não remove campanhas ativas mesmo que antigas', async () => {
     const { database, list, campaigns } = makeService();
     try {
       const campaign = campaigns.createDraft({
-        name: 'Ativa', contactListId: list.id, messageTemplate: 'Oi', delayMinSeconds: 1, delayMaxSeconds: 1,
+        name: 'Ativa',
+        contactListId: list.id,
+        messageTemplate: 'Oi',
+        delayMinSeconds: 1,
+        delayMaxSeconds: 1,
       });
       // draft antigo não tem finished_at; não deve ser removido.
-      database.prepare("UPDATE campaigns SET created_at = datetime('now', '-999 days') WHERE id = ?").run(campaign.id);
+      database
+        .prepare("UPDATE campaigns SET created_at = datetime('now', '-999 days') WHERE id = ?")
+        .run(campaign.id);
       assert.equal(await campaigns.cleanupOldCampaigns(30), 0);
       assert.ok(campaigns.findById(campaign.id));
-    } finally { database.close(); }
+    } finally {
+      database.close();
+    }
   });
 });

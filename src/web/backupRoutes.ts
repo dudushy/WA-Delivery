@@ -30,7 +30,9 @@ export function registerBackupRoutes(
     const chunks: Buffer[] = [];
     for await (const chunk of file.file) chunks.push(chunk as Buffer);
     if (file.file.truncated) {
-      return reply.code(413).send({ message: 'O arquivo de backup excede o tamanho máximo permitido.' });
+      return reply
+        .code(413)
+        .send({ message: 'O arquivo de backup excede o tamanho máximo permitido.' });
     }
     const buffer = Buffer.concat(chunks);
 
@@ -43,7 +45,8 @@ export function registerBackupRoutes(
         createdAt: result.manifest.createdAt,
         appVersion: result.manifest.appVersion,
         schemaVersion: result.manifest.schemaVersion,
-        message: 'Backup restaurado. A aplicação será reiniciada; abra novamente após alguns segundos.',
+        message:
+          'Backup restaurado. A aplicação será reiniciada; abra novamente após alguns segundos.',
       };
     } catch (error) {
       // Não expõe stack trace; mensagem de erro é segura (sem dados sensíveis).

@@ -2,7 +2,8 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
-export function openDatabase(filename: string): DatabaseSync {  if (filename !== ':memory:') mkdirSync(dirname(filename), { recursive: true });
+export function openDatabase(filename: string): DatabaseSync {
+  if (filename !== ':memory:') mkdirSync(dirname(filename), { recursive: true });
 
   const database = new DatabaseSync(filename);
   database.exec('PRAGMA foreign_keys = ON');
@@ -32,9 +33,7 @@ function migrate(database: DatabaseSync): void {
     database.exec('BEGIN IMMEDIATE');
     try {
       database.exec(migration.sql);
-      database
-        .prepare('INSERT INTO schema_migrations (version) VALUES (?)')
-        .run(migration.version);
+      database.prepare('INSERT INTO schema_migrations (version) VALUES (?)').run(migration.version);
       database.exec('COMMIT');
     } catch (error) {
       database.exec('ROLLBACK');
