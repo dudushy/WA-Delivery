@@ -49,8 +49,15 @@ button.secondary { color: #24332c; background: #e7ece9; }
 button.danger { color: #a72424; background: #fff0f0; }
 
 label { display: grid; gap: 7px; color: #34423b; font-size: 0.9rem; font-weight: 700; }
-input, select { width: 100%; border: 1px solid #cfd9d3; border-radius: 10px; padding: 11px 12px; color: #17201c; background: #fff; font: inherit; }
-input:focus, select:focus { outline: 3px solid #cceee1; border-color: #087f5b; }
+input, select, textarea { width: 100%; border: 1px solid #cfd9d3; border-radius: 10px; padding: 11px 12px; color: #17201c; background: #fff; font: inherit; }
+input:focus, select:focus, textarea:focus { outline: 3px solid #cceee1; border-color: #087f5b; }
+textarea { resize: vertical; line-height: 1.5; }
+.composer-helper { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0 20px; }
+.message-samples { display: grid; gap: 12px; }
+.message-sample { padding: 16px; border: 1px solid #dce4df; border-radius: 14px; background: #f7faf8; }
+.message-sample div { display: flex; justify-content: space-between; gap: 12px; }
+.message-sample span { color: #6b7972; font-size: 0.85rem; }
+.message-sample p { margin-bottom: 0; color: #25362e; }
 .upload-form { display: flex; align-items: end; gap: 12px; }
 .upload-form label { flex: 1; }
 .file-summary { margin: 22px 0 12px; padding: 12px 14px; border-radius: 10px; color: #315244; background: #edf7f3; }

@@ -12,6 +12,8 @@ import { openDatabase } from '../src/database/database.js';
 import { ContactRepository } from '../src/modules/contacts/ContactRepository.js';
 import { ContactService } from '../src/modules/contacts/ContactService.js';
 import { CsvImportService } from '../src/modules/contacts/CsvImportService.js';
+import { CampaignRepository } from '../src/modules/campaigns/CampaignRepository.js';
+import { CampaignService } from '../src/modules/campaigns/CampaignService.js';
 
 class FakeWhatsAppProvider implements WhatsAppProvider {
   public connectCalls = 0;
@@ -39,11 +41,13 @@ class FakeWhatsAppProvider implements WhatsAppProvider {
 
 describe('servidor local', () => {
   async function createServer(provider = new FakeWhatsAppProvider()) {
-    const contacts = new ContactService(new ContactRepository(openDatabase(':memory:')));
+    const database = openDatabase(':memory:');
+    const contacts = new ContactService(new ContactRepository(database));
     return buildServer({
       whatsappProvider: provider,
       contacts,
       csvImports: new CsvImportService(contacts),
+      campaigns: new CampaignService(new CampaignRepository(database), contacts),
     });
   }
 
@@ -188,6 +192,44 @@ describe('servidor local', () => {
       url: `/api/contact-lists/${created.id}`,
     });
     assert.equal(deleted.statusCode, 204);
+    await server.close();
+  });
+
+  it('simula e salva campanha como rascunho sem disparar mensagens', async () => {
+    const provider = new FakeWhatsAppProvider();
+    const server = await createServer(provider);
+    const listResponse = await server.inject({
+      method: 'POST',
+      url: '/api/contact-lists/manual',
+      payload: {
+        name: 'Destinatários',
+        contacts: [
+          { name: 'Ana', phone: '16999999999' },
+          { name: 'Maria', phone: '16988888888' },
+        ],
+      },
+    });
+    const listId = listResponse.json().id;
+    const payload = {
+      name: 'Rascunho',
+      contactListId: listId,
+      messageTemplate: 'Olá {{nome}}!',
+      delayMinSeconds: 5,
+      delayMaxSeconds: 9,
+    };
+
+    const simulation = await server.inject({
+      method: 'POST',
+      url: '/api/campaigns/simulate',
+      payload,
+    });
+    assert.equal(simulation.statusCode, 200);
+    assert.equal(simulation.json().recipientCount, 2);
+
+    const draft = await server.inject({ method: 'POST', url: '/api/campaigns', payload });
+    assert.equal(draft.statusCode, 201);
+    assert.equal(draft.json().status, 'draft');
+    assert.equal(provider.connectCalls, 0);
     await server.close();
   });
 });

@@ -75,4 +75,23 @@ const migrations = [
         ON contact_list_members(contact_list_id);
     `,
   },
+  {
+    version: 2,
+    sql: `
+      CREATE TABLE campaigns (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        contact_list_id INTEGER NOT NULL REFERENCES contact_lists(id) ON DELETE RESTRICT,
+        message_template TEXT NOT NULL,
+        delay_min_seconds INTEGER NOT NULL,
+        delay_max_seconds INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'ready', 'running', 'paused', 'completed', 'cancelled', 'failed')),
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX idx_campaigns_contact_list ON campaigns(contact_list_id);
+      CREATE INDEX idx_campaigns_status ON campaigns(status);
+    `,
+  },
 ] as const;

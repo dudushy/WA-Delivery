@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Campanhas — WA-Delivery</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/campaigns.js" defer></script>
+  </head>
+  <body>
+    <main class="container wide">
+      <header>
+        <span class="eyebrow">WA-Delivery V2</span>
+        <nav><a href="/">WhatsApp</a><a href="/contacts.html">Contatos</a><a class="active" href="/campaigns.html">Campanhas</a></nav>
+        <h1>Nova campanha</h1>
+        <p>Prepare e simule a campanha. Nesta etapa, salvar cria somente um rascunho e não envia mensagens.</p>
+      </header>
+
+      <div id="campaign-error" class="error" hidden></div>
+
+      <section class="card">
+        <form id="campaign-form">
+          <div class="mapping-grid">
+            <label>Nome da campanha<input id="campaign-name" placeholder="Ex.: Promoção setembro" required /></label>
+            <label>Lista de contatos<select id="campaign-list" required></select></label>
+          </div>
+
+          <label>Mensagem
+            <textarea id="message-template" maxlength="4096" rows="8" placeholder="Olá {{nome}}, temos novidades para você!" required></textarea>
+          </label>
+          <div class="composer-helper">
+            <button id="insert-name" class="secondary" type="button">Inserir {{nome}}</button>
+            <span id="message-counter">0 / 4096</span>
+          </div>
+
+          <div class="mapping-grid">
+            <label>Intervalo mínimo (segundos)<input id="delay-min" type="number" min="1" max="3600" value="5" required /></label>
+            <label>Intervalo máximo (segundos)<input id="delay-max" type="number" min="1" max="3600" value="10" required /></label>
+          </div>
+
+          <div class="actions">
+            <button type="submit">Simular campanha</button>
+            <button id="save-draft" class="secondary" type="button" hidden>Salvar rascunho</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="simulation-panel" class="card" hidden>
+        <h2>Resumo da simulação</h2>
+        <div id="simulation-cards" class="analysis-cards"></div>
+        <p id="duration-summary"></p>
+        <h3>Prévia personalizada</h3>
+        <div id="message-samples" class="message-samples"></div>
+        <p class="notice">Simulação apenas: nenhuma mensagem foi enviada.</p>
+      </section>
+
+      <section class="lists-section">
+        <h2>Rascunhos salvos</h2>
+        <div id="campaign-drafts" class="saved-lists"><p>Carregando...</p></div>
+      </section>
+    </main>
+  </body>
+</html>
