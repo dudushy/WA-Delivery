@@ -1,6 +1,6 @@
 {
   "name": "wa-delivery",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-rc.1",
   "description": "Aplicação local para gerenciar campanhas de WhatsApp",
   "type": "module",
   "main": "dist/app.js",

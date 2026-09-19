@@ -148,17 +148,38 @@ Estados: `draft -> ready -> running -> paused -> completed/cancelled/failed`.
 
 ## Estado dos testes
 
-- 105 testes automatizados aprovados (confirme com `npm run check`);
+- 127 testes automatizados aprovados (confirme com `npm run check`);
 - typecheck aprovado;
+- lint (ESLint flat, TS/ESM) e format:check (Prettier) aprovados;
 - build aprovado;
-- `npm audit --omit=dev` sem vulnerabilidades conhecidas;
+- cobertura acima dos limiares (linhas ~91%, funções ~87%, branches ~76%);
+- `npm audit` e `npm audit --omit=dev` sem vulnerabilidades conhecidas;
 - testes de upgrade de migration sobre banco populado aprovados;
 - fila coberta por `FakeWhatsAppProvider` (nenhuma conta real é usada nos testes);
-- masking de telefones/credenciais coberto por `logger.test.ts`.
+- masking, backup/restore e lógica de instalação cobertos por testes.
 
-## Próximo checkpoint
+## Checkpoints B–H (instalação, backup, onboarding, qualidade, segurança, docs)
 
-Checkpoint B — experiência de instalação e operação no Windows/Linux
-(`INSTALL.bat`/`RUN.bat` robustos e scripts equivalentes), seguido de backup/
-restauração (C), onboarding (D), remoção do legado V1 (E), lint/format/coverage
-(F), auditoria de segurança (G) e documentação/release candidate (H).
+- [x] **B — Instalação/execução**: `INSTALL.bat`/`RUN.bat` e `install.sh`/`run.sh`
+  robustos; `scripts/check-node.mjs` e `scripts/start.mjs` (health check, abertura
+  do navegador, porta ocupada); lógica portável testada (`scripts/setupLib.ts`).
+- [x] **C — Backup/restauração**: arquivo único `.wabkp` com validação, checksums,
+  proteção contra path traversal, restauração atômica com rollback e reinício.
+- [x] **D — Onboarding**: guia de primeiro uso persistente, avisos do Baileys e
+  mensagens de erro seguras (sem stack trace ao usuário).
+- [x] **E — Remoção do legado V1**: `src/index.js`, `src/utils/load*.js` e
+  `config.json` removidos após confirmar não-referência.
+- [x] **F — Qualidade**: ESLint (flat config, TS/ESM) + Prettier + cobertura com
+  limiar; `npm run check` = typecheck + lint + format:check + testes + build.
+- [x] **G — Segurança**: auditoria local; correção de CSV formula injection;
+  resumo em `docs/SECURITY_AUDIT.md`.
+- [x] **H — Documentação e RC**: README completo, `docs/INSTALLATION`,
+  `docs/BACKUP_RESTORE`, `docs/TROUBLESHOOTING`, `docs/RELEASE_CHECKLIST`,
+  `CHANGELOG` e versão `2.0.0-rc.1`.
+
+## Pendências
+
+- **Validação manual do usuário** (Checkpoint A.4 e roteiro de release): conexão e
+  envio real (texto/imagem/vídeo), pausa/retomada/cancelamento, desconexão/reconexão,
+  reinício, follow-up, relatórios e backup/restauração no Windows nativo e WSL.
+  Ver `docs/PHASE_0_MANUAL_VALIDATION.md` e `docs/RELEASE_CHECKLIST.md`.
