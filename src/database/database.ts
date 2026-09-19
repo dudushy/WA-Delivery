@@ -142,7 +142,8 @@ const migrations = [
       ALTER TABLE campaign_recipients ADD COLUMN message_id TEXT;
       ALTER TABLE campaign_recipients ADD COLUMN sent_at TEXT;
       ALTER TABLE campaign_recipients ADD COLUMN last_error TEXT;
-      ALTER TABLE campaign_recipients ADD COLUMN updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;
+      ALTER TABLE campaign_recipients ADD COLUMN updated_at TEXT;
+      UPDATE campaign_recipients SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL;
 
       CREATE TABLE delivery_attempts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
