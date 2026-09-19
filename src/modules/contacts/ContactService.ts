@@ -12,6 +12,17 @@ export class ContactService {
   public constructor(private readonly repository: ContactRepository) {}
 
   public createManualList(input: CreateManualContactListInput): ContactListDetails {
+    return this.createList(input, 'manual');
+  }
+
+  public createImportedList(input: CreateManualContactListInput): ContactListDetails {
+    return this.createList(input, 'csv');
+  }
+
+  private createList(
+    input: CreateManualContactListInput,
+    source: 'manual' | 'csv',
+  ): ContactListDetails {
     const listName = typeof input.name === 'string' ? input.name.trim() : '';
     const contacts = Array.isArray(input.contacts) ? input.contacts : [];
     const issues: ValidationIssue[] = [];
@@ -52,7 +63,7 @@ export class ContactService {
     });
 
     if (issues.length > 0) throw new ContactValidationError(issues);
-    return this.repository.createManualList(listName, prepared);
+    return this.repository.createList(listName, source, prepared);
   }
 
   public list(): ContactListSummary[] {

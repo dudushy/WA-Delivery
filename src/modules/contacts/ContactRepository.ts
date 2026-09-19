@@ -5,7 +5,7 @@ import type {
   ContactListSummary,
 } from './contactTypes.js';
 
-interface PreparedManualContact {
+export interface PreparedContact {
   name: string;
   normalizedPhone: string;
 }
@@ -21,12 +21,16 @@ interface SummaryRow {
 export class ContactRepository {
   public constructor(private readonly database: DatabaseSync) {}
 
-  public createManualList(name: string, contacts: PreparedManualContact[]): ContactListDetails {
+  public createList(
+    name: string,
+    source: 'manual' | 'csv',
+    contacts: PreparedContact[],
+  ): ContactListDetails {
     this.database.exec('BEGIN IMMEDIATE');
     try {
       const listResult = this.database
-        .prepare("INSERT INTO contact_lists (name, source) VALUES (?, 'manual')")
-        .run(name);
+        .prepare('INSERT INTO contact_lists (name, source) VALUES (?, ?)')
+        .run(name, source);
       const listId = Number(listResult.lastInsertRowid);
 
       const findContact = this.database.prepare(

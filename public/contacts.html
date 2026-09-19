@@ -13,10 +13,43 @@
         <span class="eyebrow">WA-Delivery V2</span>
         <nav><a href="/">WhatsApp</a><a class="active" href="/contacts.html">Contatos</a></nav>
         <h1>Contatos</h1>
-        <p>Crie uma lista digitando os contatos. A importação por CSV será adicionada em seguida.</p>
+        <p>Crie uma lista digitando os contatos ou importe um arquivo CSV.</p>
       </header>
 
+      <section class="card import-card">
+        <h2>Importar arquivo CSV</h2>
+        <p>O arquivo será analisado antes de qualquer contato ser salvo.</p>
+        <form id="csv-upload-form" class="upload-form">
+          <label for="csv-file">Arquivo CSV
+            <input id="csv-file" type="file" accept=".csv,text/csv" required />
+          </label>
+          <button type="submit">Analisar arquivo</button>
+        </form>
+        <div id="csv-errors" class="error" hidden></div>
+
+        <div id="csv-preview" hidden>
+          <div id="csv-file-summary" class="file-summary"></div>
+          <div class="mapping-grid">
+            <label>Coluna do telefone<select id="phone-column"></select></label>
+            <label>Coluna do nome (opcional)<select id="name-column"></select></label>
+          </div>
+          <div class="table-scroll"><table id="preview-table"></table></div>
+          <div class="actions"><button id="analyze-mapping" type="button">Validar contatos</button></div>
+        </div>
+
+        <div id="csv-analysis" hidden>
+          <div id="analysis-cards" class="analysis-cards"></div>
+          <div class="table-scroll"><table id="analysis-table"></table></div>
+          <label for="import-list-name">Nome da nova lista
+            <input id="import-list-name" placeholder="Ex.: Clientes importados" />
+          </label>
+          <div class="actions"><button id="confirm-import" type="button">Salvar contatos válidos</button></div>
+        </div>
+      </section>
+
       <section class="card">
+        <h2>Adicionar manualmente</h2>
+        <p>Use esta opção quando não tiver um arquivo de importação.</p>
         <form id="manual-list-form">
           <label for="list-name">Nome da lista</label>
           <input id="list-name" name="name" placeholder="Ex.: Clientes setembro" required />

@@ -37,18 +37,23 @@
 - [x] listagem de listas salvas;
 - [x] persistência validada após reinício;
 - [ ] detalhe, edição e exclusão após salvar;
-- [ ] importação CSV;
-- [ ] detecção de delimiter, encoding e coluna de telefone;
-- [ ] preview e confirmação da importação.
+- [x] importação CSV;
+- [x] detecção de delimiter, encoding e coluna de telefone;
+- [x] preview das primeiras linhas;
+- [x] escolha visual das colunas de telefone e nome;
+- [x] análise de válidos, inválidos e duplicados;
+- [x] confirmação antes da persistência;
+- [x] suporte validado para UTF-8 e Windows-1252.
 
 ## Estado dos testes
 
-- 18 testes automatizados aprovados;
+- 23 testes automatizados aprovados;
 - typecheck aprovado;
 - build aprovado;
 - `npm audit --omit=dev` sem vulnerabilidades conhecidas;
-- smoke test de reinício e persistência SQLite aprovado.
+- smoke test de reinício e persistência SQLite aprovado;
+- smoke test completo de preview, análise e confirmação CSV aprovado.
 
 ## Próximo checkpoint
 
-Importação CSV com preview, escolha visual da coluna de telefone, detecção de duplicados e persistência usando o mesmo modelo das listas manuais.
+Detalhe, edição e exclusão das listas, seguidos pelo composer e simulação de campanha.

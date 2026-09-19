@@ -11,6 +11,7 @@ import { buildServer } from '../src/web/server.js';
 import { openDatabase } from '../src/database/database.js';
 import { ContactRepository } from '../src/modules/contacts/ContactRepository.js';
 import { ContactService } from '../src/modules/contacts/ContactService.js';
+import { CsvImportService } from '../src/modules/contacts/CsvImportService.js';
 
 class FakeWhatsAppProvider implements WhatsAppProvider {
   public connectCalls = 0;
@@ -39,7 +40,11 @@ class FakeWhatsAppProvider implements WhatsAppProvider {
 describe('servidor local', () => {
   async function createServer(provider = new FakeWhatsAppProvider()) {
     const contacts = new ContactService(new ContactRepository(openDatabase(':memory:')));
-    return buildServer({ whatsappProvider: provider, contacts });
+    return buildServer({
+      whatsappProvider: provider,
+      contacts,
+      csvImports: new CsvImportService(contacts),
+    });
   }
 
   it('retorna health check', async () => {
@@ -112,6 +117,32 @@ describe('servidor local', () => {
 
     assert.equal(response.statusCode, 422);
     assert.equal(response.json().issues.length, 2);
+    await server.close();
+  });
+
+  it('recebe CSV multipart e devolve uma prévia', async () => {
+    const server = await createServer();
+    const boundary = 'wa-delivery-test-boundary';
+    const csv = 'Nome;Telefone\r\nAna;16999999999\r\n';
+    const body = [
+      `--${boundary}`,
+      'Content-Disposition: form-data; name="file"; filename="clientes.csv"',
+      'Content-Type: text/csv',
+      '',
+      csv,
+      `--${boundary}--`,
+      '',
+    ].join('\r\n');
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/contact-imports/preview',
+      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().delimiter, ';');
+    assert.equal(response.json().phoneCandidates[0].header, 'Telefone');
     await server.close();
   });
 });

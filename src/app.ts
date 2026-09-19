@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { openDatabase } from './database/database.js';
 import { ContactRepository } from './modules/contacts/ContactRepository.js';
 import { ContactService } from './modules/contacts/ContactService.js';
+import { CsvImportService } from './modules/contacts/CsvImportService.js';
 import { buildServer } from './web/server.js';
 import { BaileysWhatsAppProvider } from './providers/whatsapp/baileys/BaileysWhatsAppProvider.js';
 
@@ -10,8 +11,9 @@ const provider = new BaileysWhatsAppProvider({
 });
 const database = openDatabase(resolve('data/database/wa-delivery.db'));
 const contacts = new ContactService(new ContactRepository(database));
+const csvImports = new CsvImportService(contacts);
 
-const server = await buildServer({ whatsappProvider: provider, contacts });
+const server = await buildServer({ whatsappProvider: provider, contacts, csvImports });
 
 async function shutdown(): Promise<void> {
   await server.close();

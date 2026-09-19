@@ -1,21 +1,29 @@
 import { resolve } from 'node:path';
+import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { ContactService } from '../modules/contacts/ContactService.js';
+import type { CsvImportService } from '../modules/contacts/CsvImportService.js';
 import type { WhatsAppProvider } from '../providers/whatsapp/WhatsAppProvider.js';
 import { toConnectionStateDto } from './connectionDto.js';
 import { registerContactRoutes } from './contactRoutes.js';
+import { registerCsvImportRoutes } from './csvImportRoutes.js';
 
 export interface ServerDependencies {
   whatsappProvider: WhatsAppProvider;
   contacts: ContactService;
+  csvImports: CsvImportService;
 }
 
 export async function buildServer(
   dependencies: ServerDependencies,
 ): Promise<FastifyInstance> {
   const server = Fastify({ logger: false });
-  const { whatsappProvider, contacts } = dependencies;
+  const { whatsappProvider, contacts, csvImports } = dependencies;
+
+  await server.register(fastifyMultipart, {
+    limits: { files: 1, fileSize: 10 * 1024 * 1024 },
+  });
 
   await server.register(fastifyStatic, {
     root: resolve('public'),
@@ -62,6 +70,7 @@ export async function buildServer(
   });
 
   registerContactRoutes(server, contacts);
+  registerCsvImportRoutes(server, csvImports);
 
   return server;
 }

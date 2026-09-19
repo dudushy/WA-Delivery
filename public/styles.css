@@ -25,6 +25,8 @@ h1 { margin: 8px 0; font-size: clamp(2rem, 6vw, 3rem); letter-spacing: -0.04em; 
 p { color: #53615a; line-height: 1.6; }
 
 .card { background: #fff; border: 1px solid #dce4df; border-radius: 20px; padding: 28px; box-shadow: 0 18px 50px rgba(20, 53, 40, 0.08); }
+.card + .card { margin-top: 22px; }
+.card h2 { margin-top: 0; }
 
 .status-row { display: flex; align-items: center; gap: 14px; }
 
@@ -47,8 +49,24 @@ button.secondary { color: #24332c; background: #e7ece9; }
 button.danger { color: #a72424; background: #fff0f0; }
 
 label { display: grid; gap: 7px; color: #34423b; font-size: 0.9rem; font-weight: 700; }
-input { width: 100%; border: 1px solid #cfd9d3; border-radius: 10px; padding: 11px 12px; color: #17201c; background: #fff; font: inherit; }
-input:focus { outline: 3px solid #cceee1; border-color: #087f5b; }
+input, select { width: 100%; border: 1px solid #cfd9d3; border-radius: 10px; padding: 11px 12px; color: #17201c; background: #fff; font: inherit; }
+input:focus, select:focus { outline: 3px solid #cceee1; border-color: #087f5b; }
+.upload-form { display: flex; align-items: end; gap: 12px; }
+.upload-form label { flex: 1; }
+.file-summary { margin: 22px 0 12px; padding: 12px 14px; border-radius: 10px; color: #315244; background: #edf7f3; }
+.mapping-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+.table-scroll { overflow-x: auto; margin: 16px 0; border: 1px solid #e0e7e3; border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { padding: 10px 12px; border-bottom: 1px solid #e7ece9; text-align: left; white-space: nowrap; }
+th { color: #34423b; background: #f6f8f7; }
+tbody tr:last-child td { border-bottom: 0; }
+.analysis-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 22px; }
+.metric { display: grid; gap: 4px; padding: 14px; border-radius: 12px; background: #f2f5f3; }
+.metric span { color: #66736c; font-size: 0.82rem; }
+.metric strong { font-size: 1.6rem; }
+.metric.success { color: #087f5b; background: #e4f4ee; }
+.metric.error-tone { color: #a72424; background: #fff0f0; }
+.metric.warning { color: #8a6100; background: #fff4d6; }
 .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-top: 28px; }
 .section-heading p { margin: 4px 0 0; }
 .contact-rows { display: grid; gap: 10px; margin-top: 14px; }
@@ -67,4 +85,6 @@ input:focus { outline: 3px solid #cceee1; border-color: #087f5b; }
   .card { padding: 20px; }
   .section-heading { align-items: stretch; flex-direction: column; }
   .contact-row { grid-template-columns: 1fr; }
+  .upload-form { align-items: stretch; flex-direction: column; }
+  .mapping-grid, .analysis-cards { grid-template-columns: 1fr 1fr; }
 }
