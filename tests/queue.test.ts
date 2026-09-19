@@ -33,7 +33,7 @@ class QueueWhatsAppProvider implements WhatsAppProvider {
   }
 }
 
-function setup(contactCount = 1, operationTimeoutMs?: number) {
+function setup(contactCount = 1, operationTimeoutMs?: number, maxAttempts?: number) {
   const database = openDatabase(':memory:');
   const contacts = new ContactService(new ContactRepository(database));
   const list = contacts.createManualList({
@@ -52,12 +52,12 @@ function setup(contactCount = 1, operationTimeoutMs?: number) {
   campaigns.prepareDraft(draft.id, true);
   const provider = new QueueWhatsAppProvider();
   const repository = new CampaignQueueRepository(database);
-  const worker = new CampaignQueueWorker(repository, campaigns, media, provider, () => 0, operationTimeoutMs);
+  const worker = new CampaignQueueWorker(repository, campaigns, media, provider, () => 0, operationTimeoutMs, maxAttempts);
   return { database, draft, provider, repository, worker };
 }
 
 async function waitUntil(predicate: () => boolean): Promise<void> {
-  for (let index = 0; index < 100; index += 1) {
+  for (let index = 0; index < 500; index += 1) {
     if (predicate()) return;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
@@ -158,6 +158,51 @@ describe('CampaignQueueWorker', () => {
         .prepare("SELECT last_error FROM campaign_recipients WHERE campaign_id = ?")
         .get(draft.id) as { last_error: string };
       assert.match(row.last_error, /^\[permanent\]/);
+    } finally { worker.shutdown(); database.close(); }
+  });
+
+  it('repete falha transitória até o limite e então marca como falha', async () => {
+    // maxAttempts = 2: 1 tentativa + 1 retry, depois falha definitiva.
+    const { database, draft, provider, repository, worker } = setup(1, 20, 2);
+    let attempts = 0;
+    provider.sendTextHandler = async () => {
+      attempts += 1;
+      throw new Error('Connection closed'); // transitório
+    };
+    try {
+      worker.start(draft.id, true);
+      await waitUntil(() => repository.progress(draft.id)?.failed === 1);
+      assert.equal(attempts, 2); // tentou exatamente maxAttempts vezes
+      const attemptRows = database
+        .prepare("SELECT outcome, error_kind FROM delivery_attempts WHERE campaign_id = ? ORDER BY id")
+        .all(draft.id) as Array<{ outcome: string; error_kind: string | null }>;
+      assert.equal(attemptRows.length, 2);
+      assert.ok(attemptRows.every((r) => r.outcome === 'failed'));
+      assert.ok(attemptRows.every((r) => r.error_kind === 'transient'));
+      const recipient = database
+        .prepare("SELECT status, attempt_count FROM campaign_recipients WHERE campaign_id = ?")
+        .get(draft.id) as { status: string; attempt_count: number };
+      assert.equal(recipient.status, 'failed');
+      assert.equal(recipient.attempt_count, 2);
+    } finally { worker.shutdown(); database.close(); }
+  });
+
+  it('reenvia após falha transitória e conclui quando o envio se recupera', async () => {
+    const { database, draft, provider, repository, worker } = setup(1, 20, 3);
+    let attempts = 0;
+    provider.sendTextHandler = async (phone) => {
+      attempts += 1;
+      if (attempts === 1) throw new Error('socket hang up'); // transitório na 1ª
+      provider.sent.push(phone);
+      return { messageId: `message-${provider.sent.length}`, sentAt: new Date() };
+    };
+    try {
+      worker.start(draft.id, true);
+      await waitUntil(() => repository.progress(draft.id)?.status === 'completed');
+      const progress = repository.progress(draft.id);
+      assert.equal(progress?.sent, 1);
+      assert.equal(progress?.failed, 0);
+      assert.equal(attempts, 2); // falhou 1x, sucesso na 2ª
     } finally { worker.shutdown(); database.close(); }
   });
 });

@@ -12,12 +12,16 @@ const PROGRESS_EVENT = 'progress';
 /** Tempo limite padrão para cada operação do WhatsAppProvider (30 segundos). */
 export const DEFAULT_OPERATION_TIMEOUT_MS = 30_000;
 
+/** Número máximo de tentativas por destinatário para falhas transitórias. */
+export const DEFAULT_MAX_ATTEMPTS = 3;
+
 export class CampaignQueueWorker {
   private readonly events = new EventEmitter();
   private activeCampaignId: number | undefined;
   private delayTimer: NodeJS.Timeout | undefined;
   private releaseDelay: (() => void) | undefined;
   private readonly operationTimeoutMs: number;
+  private readonly maxAttempts: number;
 
   public constructor(
     private readonly repository: CampaignQueueRepository,
@@ -26,8 +30,10 @@ export class CampaignQueueWorker {
     private readonly whatsapp: WhatsAppProvider,
     private readonly random: () => number = Math.random,
     operationTimeoutMs: number = DEFAULT_OPERATION_TIMEOUT_MS,
+    maxAttempts: number = DEFAULT_MAX_ATTEMPTS,
   ) {
     this.operationTimeoutMs = operationTimeoutMs;
+    this.maxAttempts = Math.max(1, maxAttempts);
   }
 
   public recoverInterrupted(): number {
@@ -140,10 +146,24 @@ export class CampaignQueueWorker {
       } catch (error) {
         const kind = classifyError(error);
         const message = error instanceof Error ? error.message : String(error);
-        this.repository.finishAttempt(attemptId, recipient.id, 'failed', {
-          error: `[${kind}] ${message}`,
-        });
-        if (this.whatsapp.getConnectionState().status !== 'connected') {
+        // A tentativa atual é a de número (attemptCount anterior + 1).
+        const currentAttempt = recipient.attemptCount + 1;
+        const disconnected = this.whatsapp.getConnectionState().status !== 'connected';
+        if (kind === 'transient' && !disconnected && currentAttempt < this.maxAttempts) {
+          // Falha transitória com tentativas restantes: recoloca como pendente.
+          this.repository.retryLater(
+            attemptId,
+            recipient.id,
+            `[transient] tentativa ${currentAttempt}/${this.maxAttempts}: ${message}`,
+          );
+        } else {
+          // Erro permanente, sem conexão, ou limite de tentativas atingido.
+          this.repository.finishAttempt(attemptId, recipient.id, 'failed', {
+            error: `[${kind}] ${message}`,
+            kind,
+          });
+        }
+        if (disconnected) {
           this.repository.setStatus(campaignId, 'running', 'paused');
           this.emit(campaignId);
           return;

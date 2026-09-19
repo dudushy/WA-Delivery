@@ -168,4 +168,11 @@ const migrations = [
       CREATE INDEX idx_campaigns_source ON campaigns(source_campaign_id);
     `,
   },
+  {
+    version: 7,
+    sql: `
+      ALTER TABLE delivery_attempts ADD COLUMN error_kind TEXT
+        CHECK (error_kind IN ('transient', 'permanent'));
+    `,
+  },
 ] as const;

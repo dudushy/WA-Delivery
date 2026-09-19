@@ -105,7 +105,7 @@ export class CampaignQueueRepository {
     }
   }
 
-  public finishAttempt(attemptId: number, recipientId: number, outcome: 'sent' | 'failed' | 'skipped', details?: { messageId?: string; error?: string }): void {
+  public finishAttempt(attemptId: number, recipientId: number, outcome: 'sent' | 'failed' | 'skipped', details?: { messageId?: string; error?: string; kind?: 'transient' | 'permanent' }): void {
     this.database.exec('BEGIN IMMEDIATE');
     try {
       this.database.prepare(`
@@ -113,9 +113,33 @@ export class CampaignQueueRepository {
           last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
       `).run(outcome, details?.messageId ?? null, outcome, details?.error ?? null, recipientId);
       this.database.prepare(`
-        UPDATE delivery_attempts SET outcome = ?, message_id = ?, error_message = ?, finished_at = CURRENT_TIMESTAMP
+        UPDATE delivery_attempts SET outcome = ?, message_id = ?, error_message = ?, error_kind = ?, finished_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `).run(outcome, details?.messageId ?? null, details?.error ?? null, attemptId);
+      `).run(outcome, details?.messageId ?? null, details?.error ?? null, details?.kind ?? null, attemptId);
+      this.database.exec('COMMIT');
+    } catch (error) {
+      this.database.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  /**
+   * Registra que a tentativa atual falhou de forma transitória, mas o
+   * destinatário deve ser tentado novamente: a tentativa em `delivery_attempts`
+   * é encerrada como 'failed' (mantendo o histórico e o error_kind) e o
+   * destinatário volta para 'pending', preservando o attempt_count acumulado.
+   */
+  public retryLater(attemptId: number, recipientId: number, message: string): void {
+    this.database.exec('BEGIN IMMEDIATE');
+    try {
+      this.database.prepare(`
+        UPDATE campaign_recipients SET status = 'pending', last_error = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(message, recipientId);
+      this.database.prepare(`
+        UPDATE delivery_attempts SET outcome = 'failed', error_message = ?, error_kind = 'transient', finished_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(message, attemptId);
       this.database.exec('COMMIT');
     } catch (error) {
       this.database.exec('ROLLBACK');

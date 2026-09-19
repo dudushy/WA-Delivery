@@ -41,7 +41,7 @@ describe('migrações do banco', () => {
       const migrated = openDatabase(filename);
       assert.equal(
         migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
-        6,
+        7,
       );
       const recipient = migrated.prepare(`
         SELECT attempt_count, updated_at FROM campaign_recipients WHERE id = 1
@@ -69,6 +69,11 @@ describe('migrações do banco', () => {
         CREATE TABLE campaigns (
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, status TEXT NOT NULL, updated_at TEXT NOT NULL
         );
+        CREATE TABLE delivery_attempts (
+          id INTEGER PRIMARY KEY, campaign_id INTEGER NOT NULL, recipient_id INTEGER NOT NULL,
+          attempt_number INTEGER NOT NULL, outcome TEXT NOT NULL, message_id TEXT,
+          error_message TEXT, created_at TEXT, finished_at TEXT
+        );
         INSERT INTO campaigns (id, name, status, updated_at)
           VALUES (1, 'Campanha', 'completed', CURRENT_TIMESTAMP);
       `);
@@ -80,7 +85,7 @@ describe('migrações do banco', () => {
       const migrated = openDatabase(filename);
       assert.equal(
         migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
-        6,
+        7,
       );
       // A coluna nova existe e a campanha populada foi preservada.
       const row = migrated.prepare(
@@ -93,6 +98,49 @@ describe('migrações do banco', () => {
       assert.equal(
         (migrated.prepare('SELECT source_campaign_id FROM campaigns WHERE id = 1').get() as { source_campaign_id: number }).source_campaign_id,
         1,
+      );
+      migrated.close();
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('aplica a versão 7 sobre um banco na versão 6 com tentativas', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'wa-delivery-migration-v7-'));
+    const filename = join(directory, 'v6.db');
+    // Monta um banco parado na versão 6 (delivery_attempts sem error_kind).
+    const oldDatabase = new DatabaseSync(filename);
+    try {
+      oldDatabase.exec(`
+        CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT);
+        INSERT INTO schema_migrations (version, applied_at) VALUES
+          (1, CURRENT_TIMESTAMP), (2, CURRENT_TIMESTAMP), (3, CURRENT_TIMESTAMP),
+          (4, CURRENT_TIMESTAMP), (5, CURRENT_TIMESTAMP), (6, CURRENT_TIMESTAMP);
+        CREATE TABLE delivery_attempts (
+          id INTEGER PRIMARY KEY, campaign_id INTEGER NOT NULL, recipient_id INTEGER NOT NULL,
+          attempt_number INTEGER NOT NULL, outcome TEXT NOT NULL, message_id TEXT,
+          error_message TEXT, created_at TEXT, finished_at TEXT
+        );
+        INSERT INTO delivery_attempts (id, campaign_id, recipient_id, attempt_number, outcome, error_message)
+          VALUES (1, 1, 1, 1, 'failed', 'erro anterior');
+      `);
+    } finally {
+      oldDatabase.close();
+    }
+
+    try {
+      const migrated = openDatabase(filename);
+      assert.equal(
+        migrated.prepare('SELECT MAX(version) AS version FROM schema_migrations').get()?.version,
+        7,
+      );
+      // A tentativa existente foi preservada e a coluna nova aceita a classificação.
+      const before = migrated.prepare('SELECT error_kind FROM delivery_attempts WHERE id = 1').get() as { error_kind: string | null };
+      assert.equal(before.error_kind, null);
+      migrated.prepare("UPDATE delivery_attempts SET error_kind = 'transient' WHERE id = 1").run();
+      assert.equal(
+        (migrated.prepare('SELECT error_kind FROM delivery_attempts WHERE id = 1').get() as { error_kind: string }).error_kind,
+        'transient',
       );
       migrated.close();
     } finally {
