@@ -5,9 +5,9 @@ O formato segue, de forma simplificada, o
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e o versionamento
 segue [SemVer](https://semver.org/lang/pt-BR/).
 
-## [2.0.0-rc.1] - 2026-09-19
+## [2.0.0] - 2026-09-20
 
-Release candidate da V2: aplicação local (Node.js + TypeScript + Baileys + SQLite),
+Primeira versão estável da V2, validada no Windows 11: aplicação local (Node.js + TypeScript + Baileys + SQLite),
 com interface web em `localhost`, sem Chrome/Puppeteer e sem `config.json`.
 
 ### Adicionado
@@ -58,4 +58,4 @@ com interface web em `localhost`, sem Chrome/Puppeteer e sem `config.json`.
   tratamento de desconexão, recuperação idempotente); reenvio (follow-up);
   monitoramento em tempo real e exportação CSV.
 
-[2.0.0-rc.1]: https://github.com/dudushy/WA-Delivery/tree/feat/v2-baileys-local-web-app
+[2.0.0]: https://github.com/dudushy/WA-Delivery/tree/feat/v2-baileys-local-web-app
