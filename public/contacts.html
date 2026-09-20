@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contatos — WA-Delivery</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/contacts.js" defer></script>
+  </head>
+  <body>
+    <main class="container wide">
+      <header>
+        <span class="eyebrow">WA-Delivery V2</span>
+        <nav><a href="/">WhatsApp</a><a class="active" href="/contacts.html">Contatos</a><a href="/campaigns.html">Campanhas</a><a href="/monitor.html">Monitoramento</a><a href="/settings.html">Configurações</a></nav>
+        <h1>Contatos</h1>
+        <p>Crie uma lista digitando os contatos ou importe um arquivo CSV.</p>
+      </header>
+
+      <div class="tabs" role="tablist" aria-label="Como adicionar contatos">
+        <button id="tab-import" class="tab active" type="button" role="tab" aria-selected="true" aria-controls="panel-import">Importar CSV</button>
+        <button id="tab-manual" class="tab" type="button" role="tab" aria-selected="false" aria-controls="panel-manual">Adicionar manualmente</button>
+      </div>
+
+      <section id="panel-import" class="card import-card" role="tabpanel" aria-labelledby="tab-import">
+        <h2>Importar arquivo CSV</h2>
+        <p>O arquivo será analisado antes de qualquer contato ser salvo.</p>
+        <form id="csv-upload-form" class="upload-form">
+          <label for="csv-file">Arquivo CSV
+            <input id="csv-file" type="file" accept=".csv,text/csv" required />
+          </label>
+          <button type="submit">Analisar arquivo</button>
+        </form>
+        <div id="csv-errors" class="error" hidden></div>
+
+        <div id="csv-preview" hidden>
+          <div id="csv-file-summary" class="file-summary"></div>
+          <div class="mapping-grid">
+            <label>Coluna do telefone<select id="phone-column"></select></label>
+            <label>Coluna do nome (opcional)<select id="name-column"></select></label>
+          </div>
+          <div class="table-scroll"><table id="preview-table"></table></div>
+          <div class="actions"><button id="analyze-mapping" type="button">Validar contatos</button></div>
+        </div>
+
+        <div id="csv-analysis" hidden>
+          <div id="analysis-cards" class="analysis-cards"></div>
+          <div class="table-scroll"><table id="analysis-table"></table></div>
+          <label for="import-list-name">Nome da nova lista
+            <input id="import-list-name" placeholder="Ex.: Clientes importados" />
+          </label>
+          <div class="actions"><button id="confirm-import" type="button">Salvar contatos válidos</button></div>
+        </div>
+      </section>
+
+      <section id="panel-manual" class="card" role="tabpanel" aria-labelledby="tab-manual" hidden>
+        <h2>Adicionar manualmente</h2>
+        <p>Use esta opção quando não tiver um arquivo de importação.</p>
+        <form id="manual-list-form">
+          <label for="list-name">Nome da lista</label>
+          <input id="list-name" name="name" placeholder="Ex.: Clientes setembro" required />
+
+          <div class="section-heading">
+            <div><strong>Contatos da lista</strong><p>Informe nome, DDD e telefone.</p></div>
+            <button id="add-contact" class="secondary" type="button">Adicionar contato</button>
+          </div>
+
+          <div id="contact-rows" class="contact-rows"></div>
+          <div id="form-errors" class="error" hidden></div>
+          <div class="actions"><button type="submit">Salvar lista</button></div>
+        </form>
+      </section>
+
+      <section class="lists-section">
+        <h2>Listas salvas</h2>
+        <div id="saved-lists" class="saved-lists"><p>Carregando...</p></div>
+      </section>
+    </main>
+    <footer class="app-footer">
+      WA-Delivery V2 — <a href="https://github.com/dudushy/WA-Delivery" target="_blank" rel="noopener">github.com/dudushy/WA-Delivery</a>
+    </footer>
+  </body>
+</html>

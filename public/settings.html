@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Configurações — WA-Delivery</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/settings.js" type="module" defer></script>
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <span class="eyebrow">WA-Delivery V2</span>
+        <nav><a href="/">WhatsApp</a><a href="/contacts.html">Contatos</a><a href="/campaigns.html">Campanhas</a><a href="/monitor.html">Monitoramento</a><a class="active" href="/settings.html">Configurações</a></nav>
+        <h1>Configurações</h1>
+        <p>Ajustes operacionais salvos apenas neste computador. Todos possuem valores padrão seguros.</p>
+      </header>
+
+      <section class="card">
+        <form id="settings-form" novalidate>
+          <fieldset>
+            <legend>Normalização de telefones</legend>
+            <label>
+              País padrão (código, só dígitos)
+              <input id="defaultCountryCode" name="defaultCountryCode" inputmode="numeric" autocomplete="off" />
+              <small>Aplicado a números locais sem código de país. Padrão: 55 (Brasil).</small>
+            </label>
+            <label>
+              DDD padrão (opcional, só dígitos)
+              <input id="defaultAreaCode" name="defaultAreaCode" inputmode="numeric" autocomplete="off" />
+              <small>Prefixado a números locais curtos sem DDD. Deixe vazio para não aplicar.</small>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Fila de envio</legend>
+            <label>
+              Tempo limite por operação (ms)
+              <input id="operationTimeoutMs" name="operationTimeoutMs" type="number" min="1000" max="300000" step="1000" />
+            </label>
+            <label>
+              Máximo de tentativas por destinatário
+              <input id="maxAttempts" name="maxAttempts" type="number" min="1" max="10" step="1" />
+            </label>
+            <label>
+              Backoff base entre tentativas (ms)
+              <input id="retryBackoffMs" name="retryBackoffMs" type="number" min="0" max="60000" step="500" />
+            </label>
+            <label>
+              Teto do backoff (ms)
+              <input id="retryBackoffCapMs" name="retryBackoffCapMs" type="number" min="0" max="600000" step="1000" />
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Retenção e interface</legend>
+            <label>
+              Retenção de campanhas finalizadas (dias)
+              <input id="retentionDays" name="retentionDays" type="number" min="0" max="3650" step="1" />
+              <small>0 desativa a limpeza automática. A limpeza é sempre explícita e documentada.</small>
+            </label>
+            <label class="checkbox">
+              <input id="soundEnabled" name="soundEnabled" type="checkbox" />
+              Efeitos sonoros na interface
+            </label>
+          </fieldset>
+
+          <p id="settings-error" class="error" hidden></p>
+          <p id="settings-success" class="success" hidden>Configurações salvas.</p>
+
+          <div class="actions">
+            <button id="save-button" type="submit">Salvar configurações</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Limpeza por retenção</h2>
+        <p>
+          Remove definitivamente campanhas finalizadas (concluídas, canceladas ou com
+          falha) mais antigas que a retenção configurada acima, junto com seus
+          destinatários, tentativas e mídias. Esta ação é explícita e não pode ser desfeita.
+        </p>
+        <p id="cleanup-message" class="success" hidden></p>
+        <p id="cleanup-error" class="error" hidden></p>
+        <div class="actions">
+          <button id="cleanup-button" class="danger" type="button">Executar limpeza agora</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Backup e restauração</h2>
+        <p>
+          O backup gera um único arquivo <code>.wabkp</code> com o banco de dados, as
+          mídias e a <strong>sessão do WhatsApp</strong>. A sessão contém material
+          sensível: guarde o arquivo em local seguro e nunca o versione no Git.
+        </p>
+        <div class="actions">
+          <a id="backup-download" class="button-link" href="/api/backup" download>Baixar backup</a>
+        </div>
+        <hr />
+        <p>
+          Restaurar substitui os dados atuais pelos do arquivo. Um backup de segurança
+          dos dados atuais é criado antes da troca. Após restaurar, a aplicação é
+          reiniciada; abra novamente após alguns segundos.
+        </p>
+        <form id="restore-form">
+          <label>Arquivo de backup (.wabkp)
+            <input id="restore-file" type="file" accept=".wabkp,application/octet-stream" required />
+          </label>
+          <p id="restore-message" class="success" hidden></p>
+          <p id="restore-error" class="error" hidden></p>
+          <div class="actions">
+            <button id="restore-button" class="danger" type="submit">Restaurar backup</button>
+          </div>
+        </form>
+      </section>
+    </main>
+    <footer class="app-footer">
+      WA-Delivery V2 — <a href="https://github.com/dudushy/WA-Delivery" target="_blank" rel="noopener">github.com/dudushy/WA-Delivery</a>
+    </footer>
+  </body>
+</html>

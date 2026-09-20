@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Campanha — WA-Delivery</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/campaign.js" type="module" defer></script>
+  </head>
+  <body>
+    <main class="container wide">
+      <header>
+        <span class="eyebrow">WA-Delivery V2</span>
+        <nav><a href="/">WhatsApp</a><a href="/contacts.html">Contatos</a><a class="active" href="/campaigns.html">Campanhas</a><a href="/monitor.html">Monitoramento</a><a href="/settings.html">Configurações</a></nav>
+        <a class="back-link" href="/campaigns.html">← Voltar às campanhas</a>
+        <h1 id="campaign-title">Carregando campanha...</h1>
+        <p id="campaign-status"></p>
+        <p id="source-link" class="notice" hidden></p>
+      </header>
+
+      <div id="campaign-error" class="error" hidden></div>
+      <section id="campaign-details" class="card" hidden>
+        <div id="campaign-actions" class="campaign-actions-bar">
+          <button id="save-campaign" type="submit" form="campaign-form">Salvar alterações</button>
+          <button id="delete-campaign" class="danger" type="button">Excluir campanha</button>
+        </div>
+        <form id="campaign-form">
+          <div class="mapping-grid">
+            <label>Nome da campanha<input id="campaign-name" required /></label>
+            <label>Lista de contatos<select id="campaign-list" required></select></label>
+          </div>
+          <label>Mensagem
+            <textarea id="message-template" maxlength="4096" rows="8" required></textarea>
+          </label>
+          <div class="composer-helper">
+            <button id="insert-name" class="secondary" type="button">Inserir {{nome}}</button>
+            <span id="message-counter">0 / 4096</span>
+          </div>
+          <label>Substituir mídia
+            <input id="campaign-media-input" type="file" accept="image/jpeg,image/png,image/webp,video/mp4" />
+            <small>JPG, PNG ou WEBP até 10 MB; MP4 até 64 MB.</small>
+          </label>
+          <div id="campaign-media" class="media-preview" hidden>
+            <div id="campaign-media-content"></div>
+            <button id="remove-media" class="secondary" type="button">Remover mídia</button>
+          </div>
+          <div class="mapping-grid">
+            <label>Intervalo mínimo (segundos)<input id="delay-min" type="number" min="1" max="3600" required /></label>
+            <label>Intervalo máximo (segundos)<input id="delay-max" type="number" min="1" max="3600" required /></label>
+          </div>
+        </form>
+        <section id="prepare-zone" class="review-zone">
+          <h2>Revisão final</h2>
+          <p>Ao preparar a campanha, nomes, telefones e mensagens personalizadas serão congelados. Alterações posteriores na lista não afetarão este envio.</p>
+          <label class="confirmation-check">
+            <input id="prepare-confirmation" type="checkbox" />
+            Revisei a lista, a mensagem, os intervalos e a mídia desta campanha.
+          </label>
+          <button id="prepare-campaign" type="button" disabled>Preparar para envio</button>
+        </section>
+        <section id="recipient-review" hidden>
+          <h2>Destinatários</h2>
+          <p id="recipient-summary"></p>
+          <div class="recipient-toolbar">
+            <label>Filtrar por status
+              <select id="recipient-filter">
+                <option value="">Todos</option>
+                <option value="pending">Pendentes</option>
+                <option value="sent">Enviados</option>
+                <option value="failed">Falhas</option>
+                <option value="skipped">Ignorados</option>
+              </select>
+            </label>
+            <div class="recipient-export">
+              <a id="export-all" class="secondary button-link" href="#">Exportar CSV</a>
+              <a id="export-failures" class="secondary button-link" href="#">Exportar só falhas</a>
+            </div>
+          </div>
+          <div id="recipient-list" class="message-samples"></div>
+        </section>
+        <section id="execution-zone" class="review-zone execution-zone" hidden>
+          <h2>Execução da campanha</h2>
+          <p id="execution-notice" class="notice" hidden></p>
+          <div id="execution-metrics" class="analysis-cards"></div>
+          <label id="start-confirmation-label" class="confirmation-check">
+            <input id="start-confirmation" type="checkbox" />
+            Entendo que esta ação enviará mensagens reais pelo WhatsApp conectado.
+          </label>
+          <div class="actions">
+            <button id="start-campaign" type="button" disabled>Iniciar envios</button>
+            <button id="pause-campaign" class="secondary" type="button" hidden>Pausar</button>
+            <button id="resume-campaign" type="button" hidden>Retomar</button>
+            <button id="cancel-campaign" class="danger" type="button">Cancelar campanha</button>
+          </div>
+        </section>
+        <section id="follow-up-zone" class="review-zone" hidden>
+          <h2>Reenviar aos pendentes</h2>
+          <p>Cria uma nova campanha igual a esta, porém apenas com os destinatários que falharam ou foram ignorados. Esta campanha é mantida como histórico e a nova fica vinculada a ela.</p>
+          <button id="follow-up-campaign" type="button">Criar campanha de reenvio</button>
+        </section>
+      </section>
+    </main>
+    <footer class="app-footer">
+      WA-Delivery V2 — <a href="https://github.com/dudushy/WA-Delivery" target="_blank" rel="noopener">github.com/dudushy/WA-Delivery</a>
+    </footer>
+  </body>
+</html>

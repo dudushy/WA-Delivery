@@ -1,0 +1,26 @@
+# Normalização de fim de linha do repositório.
+# Fonte da verdade no Git: LF. Isso garante que Prettier (endOfLine: "lf")
+# e o build funcionem igual em qualquer SO, inclusive Windows com
+# core.autocrlf=true.
+
+# Por padrão, deixa o Git detectar arquivos de texto e normaliza para LF.
+* text=auto eol=lf
+
+# Arquivos que DEVEM manter CRLF (scripts do Windows dependem disso).
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Scripts de shell precisam de LF.
+*.sh text eol=lf
+
+# Binários: nunca normalizar.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.mp4 binary
+*.pdf binary
+*.wabkp binary
+*.db binary

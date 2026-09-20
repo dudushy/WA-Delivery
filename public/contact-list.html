@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lista de contatos — WA-Delivery</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/contact-list.js" defer></script>
+  </head>
+  <body>
+    <main class="container wide">
+      <header>
+        <span class="eyebrow">WA-Delivery V2</span>
+        <nav><a href="/">WhatsApp</a><a class="active" href="/contacts.html">Contatos</a><a href="/campaigns.html">Campanhas</a><a href="/monitor.html">Monitoramento</a><a href="/settings.html">Configurações</a></nav>
+        <a class="back-link" href="/contacts.html">← Voltar para contatos</a>
+        <h1 id="page-title">Lista de contatos</h1>
+        <p id="list-metadata">Carregando...</p>
+      </header>
+
+      <div id="page-error" class="error" hidden></div>
+
+      <section class="card">
+        <h2>Configuração da lista</h2>
+        <form id="rename-form" class="inline-form">
+          <label>Nome da lista<input id="list-name" required /></label>
+          <button type="submit">Salvar nome</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="section-heading">
+          <div><h2>Contatos</h2><p id="contact-count"></p></div>
+        </div>
+        <form id="add-contact-form" class="contact-row add-row">
+          <label>Nome<input id="new-contact-name" required /></label>
+          <label>Telefone<input id="new-contact-phone" inputmode="tel" placeholder="(16) 99999-9999" required /></label>
+          <button type="submit">Adicionar</button>
+        </form>
+        <div id="contact-list-rows" class="contact-rows"></div>
+      </section>
+
+      <section class="danger-zone">
+        <div><strong>Excluir lista</strong><p>Remove esta lista e seus vínculos. Essa ação não pode ser desfeita.</p></div>
+        <button id="delete-list" class="danger" type="button">Excluir lista</button>
+      </section>
+    </main>
+    <footer class="app-footer">
+      WA-Delivery V2 — <a href="https://github.com/dudushy/WA-Delivery" target="_blank" rel="noopener">github.com/dudushy/WA-Delivery</a>
+    </footer>
+  </body>
+</html>

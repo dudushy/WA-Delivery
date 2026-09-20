@@ -1,9 +1,10 @@
-/.wwebjs_auth
-/.wwebjs_cache
-
 # Ignore all files in data directory except .gitkeep
 data/*
 !data/.gitkeep
+dist/
+*.db
+*.db-shm
+*.db-wal
 
 # Ignore logs directory
 logs/
@@ -141,3 +142,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Prints e capturas de tela locais (não versionar)
+print.png
+*.local.png

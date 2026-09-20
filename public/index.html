@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WA-Delivery</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+    <script src="/onboarding.js" type="module" defer></script>
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <span class="eyebrow">WA-Delivery V2</span>
+        <nav><a class="active" href="/">WhatsApp</a><a href="/contacts.html">Contatos</a><a href="/campaigns.html">Campanhas</a><a href="/monitor.html">Monitoramento</a><a href="/settings.html">Configurações</a></nav>
+        <h1>Conexão do WhatsApp</h1>
+        <p>Conecte o aparelho uma vez. A sessão ficará salva somente neste computador.</p>
+        <button id="open-onboarding" class="secondary" type="button">Ver guia de primeiro uso</button>
+      </header>
+
+      <section class="card" aria-live="polite">
+        <div class="status-row">
+          <span id="status-dot" class="status-dot"></span>
+          <div>
+            <strong id="status-title">Carregando...</strong>
+            <p id="status-description">Consultando o estado da conexão.</p>
+          </div>
+        </div>
+
+        <div id="qr-panel" class="qr-panel" hidden>
+          <img id="qr-code" alt="QR Code para conectar o WhatsApp" />
+          <ol>
+            <li>Abra o WhatsApp no celular.</li>
+            <li>Acesse <strong>Dispositivos conectados</strong>.</li>
+            <li>Toque em <strong>Conectar dispositivo</strong> e escaneie o código.</li>
+          </ol>
+        </div>
+
+        <p id="error-message" class="error" hidden></p>
+
+        <div class="actions">
+          <button id="connect-button" type="button">Conectar WhatsApp</button>
+          <button id="disconnect-button" class="secondary" type="button" hidden>
+            Desconectar aplicação
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <div id="onboarding" class="onboarding-overlay" role="dialog" aria-modal="true" aria-labelledby="onboarding-title" hidden>
+      <div class="onboarding-dialog">
+        <h2 id="onboarding-title">Bem-vindo ao WA-Delivery</h2>
+        <p class="onboarding-warning">
+          O WA-Delivery usa o <strong>Baileys</strong>, uma integração <strong>não
+          oficial</strong> com o WhatsApp. Use apenas com contatos que consentiram,
+          respeite pedidos de opt-out e considere o risco de restrição da conta.
+          Nenhum recurso promete evitar bloqueios.
+        </p>
+        <ol class="onboarding-steps">
+          <li>Conecte o WhatsApp lendo o QR Code.</li>
+          <li>Crie ou importe contatos (CSV ou manual).</li>
+          <li>Revise inválidos e marque opt-outs.</li>
+          <li>Crie uma campanha com mensagem e mídia opcional.</li>
+          <li>Simule para conferir destinatários e duração.</li>
+          <li>Prepare a campanha (gera o snapshot).</li>
+          <li>Confirme explicitamente o envio real.</li>
+          <li>Acompanhe o progresso no monitoramento.</li>
+          <li>Consulte e exporte os resultados (CSV).</li>
+          <li>Faça backup dos seus dados em Configurações.</li>
+        </ol>
+        <p class="onboarding-consent">
+          Envie somente para quem consentiu em receber suas mensagens e atenda a
+          pedidos de opt-out. Você é responsável pelo uso da ferramenta.
+        </p>
+        <div class="actions">
+          <button id="onboarding-done" type="button">Entendi, começar</button>
+          <button id="onboarding-close" class="secondary" type="button">Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="app-footer">
+      WA-Delivery V2 — <a href="https://github.com/dudushy/WA-Delivery" target="_blank" rel="noopener">github.com/dudushy/WA-Delivery</a>
+    </footer>
+  </body>
+</html>

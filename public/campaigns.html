@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Campanhas — WA-Delivery</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/campaigns.js" defer></script>
+  </head>
+  <body>
+    <main class="container wide">
+      <header>
+        <span class="eyebrow">WA-Delivery V2</span>
+        <nav><a href="/">WhatsApp</a><a href="/contacts.html">Contatos</a><a class="active" href="/campaigns.html">Campanhas</a><a href="/monitor.html">Monitoramento</a><a href="/settings.html">Configurações</a></nav>
+        <h1>Campanhas</h1>
+        <p>Acompanhe suas campanhas e crie novas quando precisar.</p>
+      </header>
+
+      <div id="campaign-error" class="error" hidden></div>
+
+      <section class="lists-section">
+        <div class="section-heading">
+          <div><strong>Suas campanhas</strong><p>Selecione uma campanha para revisar, enviar ou reenviar.</p></div>
+          <button id="new-campaign" type="button" hidden>Nova campanha</button>
+        </div>
+        <div id="campaign-drafts" class="saved-lists"><p>Carregando...</p></div>
+      </section>
+
+      <div id="composer" hidden>
+        <section class="card">
+          <div class="section-heading">
+            <div><strong>Nova campanha</strong><p>Monte e simule a campanha. Ao salvar, ela fica disponível para revisão e preparo antes de qualquer envio.</p></div>
+            <button id="cancel-composer" class="secondary" type="button" hidden>Cancelar</button>
+          </div>
+          <form id="campaign-form">
+            <div class="mapping-grid">
+              <label>Nome da campanha<input id="campaign-name" placeholder="Ex.: Promoção setembro" required /></label>
+              <label>Lista de contatos<select id="campaign-list" required></select></label>
+            </div>
+
+            <label>Mensagem
+              <textarea id="message-template" maxlength="4096" rows="8" placeholder="Olá {{nome}}, temos novidades para você!" required></textarea>
+            </label>
+            <div class="composer-helper">
+              <button id="insert-name" class="secondary" type="button">Inserir {{nome}}</button>
+              <span id="message-counter">0 / 4096</span>
+            </div>
+            <p id="variables-hint" class="variables-hint" hidden></p>
+
+            <label>Mídia opcional
+              <input id="campaign-media" type="file" accept="image/jpeg,image/png,image/webp,video/mp4" />
+              <small>JPG, PNG ou WEBP até 10 MB; MP4 até 64 MB.</small>
+            </label>
+            <div id="media-preview" class="media-preview" hidden>
+              <div id="media-preview-content"></div>
+              <button id="remove-media" class="secondary" type="button">Remover mídia</button>
+            </div>
+
+            <div class="mapping-grid">
+              <label>Intervalo mínimo (segundos)<input id="delay-min" type="number" min="1" max="3600" value="5" required /></label>
+              <label>Intervalo máximo (segundos)<input id="delay-max" type="number" min="1" max="3600" value="10" required /></label>
+            </div>
+
+            <div class="actions">
+              <button type="submit">Simular campanha</button>
+              <button id="save-draft" class="secondary" type="button" hidden>Salvar campanha</button>
+            </div>
+          </form>
+        </section>
+
+        <section id="simulation-panel" class="card" hidden>
+          <h2>Resumo da simulação</h2>
+          <div id="simulation-cards" class="analysis-cards"></div>
+          <p id="duration-summary"></p>
+          <h3>Prévia personalizada</h3>
+          <div id="message-samples" class="message-samples"></div>
+          <p class="notice">Simulação apenas: nenhuma mensagem foi enviada.</p>
+        </section>
+      </div>
+    </main>
+    <footer class="app-footer">
+      WA-Delivery V2 — <a href="https://github.com/dudushy/WA-Delivery" target="_blank" rel="noopener">github.com/dudushy/WA-Delivery</a>
+    </footer>
+  </body>
+</html>
