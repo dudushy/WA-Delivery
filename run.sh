@@ -10,7 +10,7 @@ echo "  WA-Delivery - Iniciando"
 echo "============================================"
 
 if ! command -v node >/dev/null 2>&1; then
-  echo "[ERRO] Node.js nao encontrado. Rode ./install.sh apos instalar o Node LTS."
+  echo "[ERRO] Node.js nao encontrado. Instale o Node.js LTS e rode ./run.sh novamente."
   exit 1
 fi
 

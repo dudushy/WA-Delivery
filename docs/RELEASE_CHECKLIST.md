@@ -24,7 +24,7 @@ Roteiro completo em `docs/PHASE_0_MANUAL_VALIDATION.md`. Usar uma lista com
 ### Windows nativo
 
 - [ ] Caminho simples, com espaços e com acentos.
-- [ ] `INSTALL.bat` (duplo clique e terminal).
+- [ ] `RUN.bat` instala/compila na primeira vez (duplo clique e terminal).
 - [ ] `RUN.bat` abre o navegador; porta ocupada é tratada.
 - [ ] Instalação limpa e atualização preservando `data/`.
 - [ ] Backup e restauração.

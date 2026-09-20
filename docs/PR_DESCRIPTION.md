@@ -52,8 +52,8 @@ apenas com contatos que consentiram; opt-out respeitado.
 
 ## Instalação
 
-- Windows: `INSTALL.bat` e `RUN.bat` (duplo clique ou terminal).
-- Linux/WSL: `./install.sh` e `./run.sh`.
+- Windows: `RUN.bat` (duplo clique ou terminal; instala/compila na 1ª vez).
+- Linux/WSL: `./run.sh` (instala/compila na 1ª vez).
 - Detalhes em `docs/INSTALLATION.md`.
 
 ## Backup e rollback

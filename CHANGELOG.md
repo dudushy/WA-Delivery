@@ -26,9 +26,10 @@ com interface web em `localhost`, sem Chrome/Puppeteer e sem `config.json`.
   atômica com rollback e reinício após restaurar.
 - Guia de primeiro uso (onboarding) na interface, com avisos sobre o Baileys
   não oficial e consentimento/opt-out.
-- Scripts de instalação/execução robustos para Windows (`INSTALL.bat`/`RUN.bat`)
-  e Linux/WSL (`install.sh`/`run.sh`), com verificação de versão do Node, espera
-  do health check e abertura do navegador.
+- Scripts de execução robustos para Windows (`RUN.bat`) e Linux/WSL (`run.sh`),
+  que instalam as dependências e compilam automaticamente na primeira execução,
+  com verificação de versão do Node, espera do health check e abertura do
+  navegador.
 - Ferramentas de qualidade: ESLint (flat config, TS/ESM), Prettier e cobertura
   de testes com limiares mínimos. Scripts `lint`, `lint:fix`, `format`,
   `format:check`, `test:coverage` e `check`.

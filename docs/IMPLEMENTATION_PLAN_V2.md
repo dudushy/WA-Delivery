@@ -235,7 +235,7 @@ O usuário consegue explicar o resultado de cada campanha e exportar uma lista a
 
 ### Entregas
 
-- atualizar `INSTALL.bat` e `RUN.bat`;
+- atualizar `RUN.bat` (instala/compila na primeira execução);
 - abrir a interface automaticamente no navegador padrão;
 - validar Node/npm antes de iniciar;
 - mensagens de erro amigáveis;

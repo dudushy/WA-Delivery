@@ -59,17 +59,17 @@ Usuário não técnico:
 
 1. Instale o Node.js LTS: https://nodejs.org/
 2. Baixe/clone o projeto (o caminho pode ter espaços/acentos).
-3. Duplo clique em **`INSTALL.bat`** e aguarde a conclusão.
-4. Duplo clique em **`RUN.bat`** — o navegador abre em `http://localhost:3000`.
+3. Duplo clique em **`RUN.bat`** — na primeira vez ele instala as dependências e
+   compila automaticamente; nas próximas, apenas inicia. O navegador abre em
+   `http://localhost:3000`.
 
-Por terminal: `INSTALL.bat` e depois `RUN.bat`.
+Por terminal: `RUN.bat`.
 
 ## Instalação no Linux/WSL
 
 ```bash
 nvm use          # opcional (respeita o .nvmrc)
-./install.sh     # instala dependências e compila
-./run.sh         # inicia e tenta abrir o navegador
+./run.sh         # instala/compila na primeira vez, inicia e tenta abrir o navegador
 ```
 
 No WSL, acesse `http://localhost:3000` no navegador do Windows caso o `xdg-open`

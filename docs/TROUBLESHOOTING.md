@@ -2,7 +2,7 @@
 
 ## Node.js não encontrado ou muito antigo
 
-`INSTALL.bat`/`RUN.bat` (ou `install.sh`/`run.sh`) mostram uma mensagem com o
+`RUN.bat` (ou `run.sh`) mostra uma mensagem com o
 link para instalar o Node.js LTS. Instale a versão do `.nvmrc` (24.14.0+) e rode
 novamente.
 

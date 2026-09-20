@@ -160,9 +160,10 @@ Estados: `draft -> ready -> running -> paused -> completed/cancelled/failed`.
 
 ## Checkpoints B–H (instalação, backup, onboarding, qualidade, segurança, docs)
 
-- [x] **B — Instalação/execução**: `INSTALL.bat`/`RUN.bat` e `install.sh`/`run.sh`
-  robustos; `scripts/check-node.mjs` e `scripts/start.mjs` (health check, abertura
-  do navegador, porta ocupada); lógica portável testada (`scripts/setupLib.ts`).
+- [x] **B — Instalação/execução**: `RUN.bat` e `run.sh` robustos (instalam e
+  compilam na primeira execução); `scripts/check-node.mjs` e `scripts/start.mjs`
+  (health check, abertura do navegador, porta ocupada); lógica portável testada
+  (`scripts/setupLib.ts`).
 - [x] **C — Backup/restauração**: arquivo único `.wabkp` com validação, checksums,
   proteção contra path traversal, restauração atômica com rollback e reinício.
 - [x] **D — Onboarding**: guia de primeiro uso persistente, avisos do Baileys e

@@ -13,8 +13,9 @@ Não usa Docker, Chrome/Puppeteer nem serviços externos.
 
 1. Instale o Node.js LTS: https://nodejs.org/
 2. Baixe/clone o projeto em uma pasta (o caminho pode conter espaços/acentos).
-3. Dê **duplo clique em `INSTALL.bat`** e aguarde a mensagem de conclusão.
-4. Dê **duplo clique em `RUN.bat`**. O navegador abre em `http://localhost:3000`.
+3. Dê **duplo clique em `RUN.bat`**. Na primeira vez ele instala as dependências
+   e compila automaticamente; nas próximas, apenas inicia. O navegador abre em
+   `http://localhost:3000`.
 
 Se o Node.js não estiver instalado ou for muito antigo, o script mostra uma
 mensagem clara com o link para instalar a versão correta.
@@ -22,7 +23,6 @@ mensagem clara com o link para instalar a versão correta.
 ## Windows (terminal)
 
 ```bat
-INSTALL.bat
 RUN.bat
 ```
 
@@ -30,8 +30,7 @@ RUN.bat
 
 ```bash
 nvm use            # opcional, se usa nvm; garante a versão do .nvmrc
-./install.sh       # instala dependências e compila
-./run.sh           # inicia e tenta abrir o navegador
+./run.sh           # instala/compila na primeira vez, inicia e tenta abrir o navegador
 ```
 
 No WSL, o `xdg-open` pode abrir o navegador do Windows se estiver configurado;
