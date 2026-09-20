@@ -47,6 +47,10 @@ export const sounds = {
       { freq: 783.99, start: 0.12, duration: 0.18 },
     ]);
   },
+  // Tique curto e discreto a cada mensagem enviada com sucesso.
+  sent() {
+    playTones([{ freq: 880.0, start: 0, duration: 0.08 }], 0.08);
+  },
   // Som suave descendente ao concluir.
   finish() {
     playTones([

@@ -25,6 +25,9 @@ const STATUS_LABELS = {
 let campaign;
 let lastStatus;
 let elapsedTimer;
+// Últimos contadores conhecidos, para tocar um som por mensagem enviada/falhada.
+let lastSent;
+let lastFailed;
 
 function showError(text = '') {
   errorPanel.hidden = !text;
@@ -134,6 +137,8 @@ function renderCampaign(active, progress) {
 
 function showEmpty() {
   campaign = undefined;
+  lastSent = undefined;
+  lastFailed = undefined;
   activePanel.hidden = true;
   emptyPanel.hidden = false;
   if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = undefined; }
@@ -146,6 +151,15 @@ function handleStatusTransition(status, progress) {
   if (status === 'completed') sounds.finish();
   if (status === 'failed' || status === 'cancelled') sounds.error();
   lastStatus = status;
+}
+
+// Toca um som a cada nova mensagem enviada ou falhada durante a execução,
+// comparando os contadores com o último progresso conhecido.
+function handleMessageSounds(progress) {
+  if (Number.isInteger(lastSent) && progress.sent > lastSent) sounds.sent();
+  if (Number.isInteger(lastFailed) && progress.failed > lastFailed) sounds.error();
+  lastSent = progress.sent;
+  lastFailed = progress.failed;
 }
 
 async function findActive() {
@@ -161,6 +175,10 @@ async function load() {
     if (!active) { showEmpty(); return; }
     const progress = await request(`/api/campaigns/${active.id}/progress`);
     lastStatus = progress.status;
+    // Ancorar os contadores no estado atual evita tocar um som para cada
+    // mensagem já enviada ao abrir/recarregar a página no meio da campanha.
+    lastSent = progress.sent;
+    lastFailed = progress.failed;
     renderCampaign(active, progress);
   } catch (error) {
     showError(error.message);
@@ -176,6 +194,7 @@ events.addEventListener('campaign-progress', (event) => {
     return;
   }
   handleStatusTransition(progress.status, progress);
+  handleMessageSounds(progress);
   renderProgress(progress);
   if (['completed', 'cancelled', 'failed'].includes(progress.status) && elapsedTimer) {
     clearInterval(elapsedTimer);
