@@ -12,7 +12,7 @@ echo.
 rem 1) Node.js disponivel?
 where node >nul 2>nul
 if errorlevel 1 (
-  echo [ERRO] Node.js nao encontrado. Rode INSTALL.bat apos instalar o Node LTS.
+  echo [ERRO] Node.js nao encontrado. Instale o Node.js LTS e rode RUN.bat novamente.
   echo https://nodejs.org/
   goto :fail
 )
@@ -23,10 +23,10 @@ if errorlevel 1 goto :fail
 
 rem 3) Dependencias instaladas?
 if not exist "node_modules" (
-  echo Dependencias ausentes. Instalando agora (npm ci)...
+  echo Dependencias ausentes. Instalando agora com npm ci...
   call npm ci
   if errorlevel 1 (
-    echo [ERRO] Falha ao instalar dependencias. Rode INSTALL.bat.
+    echo [ERRO] Falha ao instalar dependencias. Verifique sua conexao e rode RUN.bat novamente.
     goto :fail
   )
 )
@@ -36,7 +36,7 @@ if not exist "dist\app.js" (
   echo Build ausente. Compilando agora...
   call npm run build
   if errorlevel 1 (
-    echo [ERRO] Falha ao compilar. Rode INSTALL.bat.
+    echo [ERRO] Falha ao compilar. Rode RUN.bat novamente.
     goto :fail
   )
 )
