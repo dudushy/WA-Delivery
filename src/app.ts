@@ -117,7 +117,9 @@ process.once('SIGTERM', () => void shutdown());
 server
   .listen({ host: '127.0.0.1', port: 3000 })
   .then(() => {
-    logger.info({ url: 'http://localhost:3000' }, 'WA-Delivery disponível.');
+    // Mensagem amigável para o usuário final no terminal (RUN.bat/run.sh).
+    // Os demais logs continuam estruturados; este é o "pronto para uso".
+    console.log('\nWA-Delivery pronto! Abra http://localhost:3000 no navegador.\n');
   })
   .catch((error: unknown) => {
     logger.error({ err: error }, 'Não foi possível iniciar o WA-Delivery.');
