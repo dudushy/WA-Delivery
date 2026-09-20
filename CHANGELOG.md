@@ -7,8 +7,8 @@ segue [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [2.0.0] - 2026-09-20
 
-Primeira versão estável da V2, validada no Windows 11: aplicação local (Node.js + TypeScript + Baileys + SQLite),
-com interface web em `localhost`, sem Chrome/Puppeteer e sem `config.json`.
+Primeira versão estável da V2, validada no Windows 11: aplicação local com
+Node.js, TypeScript, Baileys, SQLite e interface web em `localhost`.
 
 ### Adicionado
 
@@ -33,8 +33,6 @@ com interface web em `localhost`, sem Chrome/Puppeteer e sem `config.json`.
 - Ferramentas de qualidade: ESLint (flat config, TS/ESM), Prettier e cobertura
   de testes com limiares mínimos. Scripts `lint`, `lint:fix`, `format`,
   `format:check`, `test:coverage` e `check`.
-- Documentação: `INSTALLATION`, `BACKUP_RESTORE`, `TROUBLESHOOTING`,
-  `RELEASE_CHECKLIST`, `SECURITY_AUDIT` e checklist de validação manual.
 
 ### Corrigido
 
